@@ -1,0 +1,389 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Cell Annotation — BioTuring Tutorial</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>.page-hero{background:linear-gradient(160deg,#2b1a5e 0%,#3b2a86 35%,#5b3fb0 70%,#2563a8 100%)}
+.marker-lab{display:flex;flex-wrap:wrap;gap:20px;margin:14px 0;align-items:flex-start}
+.marker-chips{display:flex;flex-wrap:wrap;gap:8px;flex:1;min-width:240px}
+.marker-chip{background:var(--c-bg-alt);color:var(--c-ink);border:1.5px solid transparent;border-radius:20px;padding:7px 15px;font-family:var(--font-mono);font-size:.82rem;font-weight:600;cursor:pointer;transition:var(--transition)}
+.marker-chip:hover{border-color:var(--c-accent)}
+.marker-chip.active{background:var(--c-accent);color:#fff;border-color:var(--c-accent)}
+.ct-card{flex:1;min-width:240px;padding:20px 22px;border-radius:var(--radius-lg);background:var(--c-accent-light);border-left:4px solid var(--c-accent);font-size:.92rem}
+.ct-card .ct-name{font-family:var(--font-display);font-size:1.25rem;font-weight:700;color:var(--c-accent-dark);margin-bottom:6px}
+.ct-card .ct-emoji{font-size:1.6rem;display:block;margin-bottom:4px}
+.ct-card b{color:var(--c-accent-dark)}
+.score-row{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:.82rem}
+.score-row .sr-label{min-width:120px;font-weight:600}
+.score-bar{flex:1;height:9px;border-radius:5px;background:var(--c-bg-alt);overflow:hidden}
+.score-bar>span{display:block;height:100%;background:linear-gradient(90deg,var(--c-accent),var(--c-highlight));border-radius:5px;transition:width .5s ease}
+.badge-name{display:inline-block;padding:3px 12px;border-radius:20px;background:var(--c-highlight-light);color:var(--c-highlight);font-family:var(--font-mono);font-size:.78rem;font-weight:600;margin:2px}
+.mrk-table{width:100%;border-collapse:collapse;margin:18px 0;font-size:.86rem;background:var(--c-surface);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-sm)}
+.mrk-table thead{background:var(--c-accent-dark);color:#fff}
+.mrk-table th{padding:12px 14px;text-align:left;font-weight:600;font-size:.82rem}
+.mrk-table td{padding:11px 14px;border-bottom:1px solid var(--c-border-light);color:var(--c-ink-light);vertical-align:top}
+.mrk-table tr:last-child td{border-bottom:none}
+.mrk-table tr:nth-child(even){background:var(--c-surface-alt)}
+.mrk-table code{font-family:var(--font-mono);font-size:.8rem;color:var(--c-accent-dark);font-weight:600;white-space:nowrap}
+.checklist{list-style:none;padding:0;margin:14px 0}
+.checklist li{position:relative;padding:8px 0 8px 30px;font-size:.92rem;color:var(--c-ink-light);border-bottom:1px dashed var(--c-border-light)}
+.checklist li:last-child{border-bottom:none}
+.checklist li::before{content:'✔';position:absolute;left:0;top:8px;color:var(--c-accent);font-weight:700}</style></head><body>
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="BioTuring 教學" data-en="BioTuring Tutorial">BioTuring 教學</span></a>
+  <ul class="top-nav-links"><li><a href="overview.html" data-zh="總覽" data-en="Overview">總覽</a></li><li><a href="import.html">Import</a></li><li><a href="qc.html">QC</a></li><li><a href="normalization.html">Norm.</a></li><li><a href="clustering.html">Cluster</a></li><li><a href="annotation.html" class="active">Annot.</a></li><li><a href="dge.html">DE</a></li><li><a href="trajectory.html">Traj.</a></li><li><a href="multimodal.html">Multi</a></li><li><a href="spatialx.html">SpatialX</a></li><li><a href="talk2data.html">Talk2Data</a></li><li><a href="references/index.html" data-zh="📚 參考資料" data-en="📚 References">📚 參考資料</a></li></ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">STEP 5 · <span data-zh="細胞註釋" data-en="Cell Annotation">細胞註釋</span></div>
+<h1 data-zh="細胞類型註釋" data-en="Cell Type Annotation">細胞類型註釋</h1>
+<p class="subtitle" data-lang="zh">用 BBrowserX 的 MetaReference 自動預測細胞類型，再以 marker 基因驗證——這是 BioTuring 的招牌強項。</p>
+<p class="subtitle" data-lang="en">Auto-predict cell types with BBrowserX's MetaReference, then validate with marker genes — a signature BioTuring strength.</p>
+</header>
+<main class="content-wrap">
+
+<section class="section">
+<div class="section-label" data-zh="為什麼重要" data-en="WHY IT MATTERS">為什麼重要</div>
+<h2 data-zh="分群之後，該幫每群戴上「職業名牌」" data-en="After Clustering, Pin a Name Badge on Every Cluster">分群之後，該幫每群戴上「職業名牌」</h2>
+<div data-lang="zh">
+<p>想像你走進一場擠滿上千人的大型研討會，主辦單位很偷懶——每個人胸前的名牌只印了 <em>0 號、1 號、2 號…</em>。你知道他們自然地分成了幾群人聚在一起聊天，但你完全不知道<strong>誰是誰、誰做什麼工作</strong>。這正是<strong>分群 (clustering)</strong> 做完之後的狀態：細胞被切成一團團，卻沒有任何生物學意義。</p>
+<p><strong>細胞註釋 (cell annotation)</strong> 就是那個「幫每一群沒有名字的細胞戴上職業名牌」的步驟——把 cluster 0 認出來是「T 細胞」、cluster 3 是「單核球」、cluster 7 是「內皮細胞」。這一步聽起來很像貼標籤的瑣事，實際上卻是整個分析的<strong>分水嶺</strong>：從這裡開始，你的數字終於變成了會說故事的生物學。</p>
+<p>BBrowserX 提供兩條互補的路徑幫你貼名牌：<strong>①自動預測 (MetaReference)</strong>——一鍵把你的細胞丟去比對 BioTuring 的巨型參考資料庫，像「刷臉」一樣秒認身分；<strong>②marker 基因手動註釋</strong>——親自檢查每一群的標記基因（marker gene）表達，對照經典 marker 後手動命名。最佳實務是<strong>兩條路一起走</strong>：自動預測給你一份「草稿名單」節省九成時間，marker 驗證則確保這份草稿沒有認錯人。</p>
+</div>
+<div data-lang="en">
+<p>Picture yourself walking into a conference hall packed with a thousand people, and the organisers were lazy — everyone's badge just reads <em>#0, #1, #2…</em>. You can see people have naturally clumped into a few chatting groups, but you have no idea <strong>who anyone is or what they do</strong>. That is exactly where you stand right after <strong>clustering</strong>: cells are grouped into blobs, yet those blobs carry no biological meaning.</p>
+<p><strong>Cell annotation</strong> is the step where you "pin a job-title badge on every nameless cluster of cells" — recognising cluster 0 as "T cells," cluster 3 as "monocytes," cluster 7 as "endothelial cells." It sounds like tedious labelling, but it is actually the <strong>watershed</strong> of the whole analysis: from here on, your numbers finally turn into biology that tells a story.</p>
+<p>BBrowserX offers two complementary paths for pinning those badges: <strong>(1) automatic prediction (MetaReference)</strong> — one click sends your cells off to match BioTuring's giant reference database, recognising identities in a flash like "face-scanning"; and <strong>(2) marker-based manual annotation</strong> — you personally inspect each cluster's marker gene expression and name it against canonical markers. Best practice is to <strong>walk both paths together</strong>: auto-prediction hands you a "draft list" that saves 90% of the time, while marker validation makes sure that draft did not mistake anyone's identity.</p>
+</div>
+<div class="callout tip"><span class="callout-icon">💡</span><div>
+<span data-lang="zh"><strong>心法：</strong>把自動預測當作「一位很快但偶爾出錯的實習助理」——它幫你省下 90% 的時間，但最終掛上名牌、簽下名字的責任仍在你身上。永遠用 marker 基因與生物學脈絡再確認一次，這才是專業與外行的分野。</span>
+<span data-lang="en"><strong>Mindset:</strong> treat auto-prediction as "a fast but occasionally-wrong intern" — it saves you 90% of the time, but the final call, the badge with your signature on it, is yours. Always re-confirm with marker genes and biological context; that habit is what separates a pro from an amateur.</span>
+</div></div>
+<div class="card-grid cols-3">
+<div class="card"><div class="card-icon">🏷️</div><h4 data-zh="沒名牌 = 沒故事" data-en="No badge = no story">沒名牌 = 沒故事</h4><p data-lang="zh">「cluster 4 在疾病組變多」毫無意義；「調節性 T 細胞在疾病組變多」才是能寫進論文的發現。</p><p data-lang="en">"Cluster 4 increases in disease" means nothing; "regulatory T cells increase in disease" is a publishable finding.</p></div>
+<div class="card"><div class="card-icon">🧭</div><h4 data-zh="下游全靠它" data-en="Everything downstream leans on it">下游全靠它</h4><p data-lang="zh">差異表達、細胞比例、細胞通訊……每一項分析都以「這群是什麼細胞」為前提。</p><p data-lang="en">DE, cell proportions, cell–cell communication — every downstream analysis is premised on "what cell type is this."</p></div>
+<div class="card"><div class="card-icon">⚖️</div><h4 data-zh="錯一個，全盤錯" data-en="One wrong label, all wrong">錯一個，全盤錯</h4><p data-lang="zh">貼錯一張名牌，後面所有結論都繼承這個錯誤，而且很難事後察覺。</p><p data-lang="en">A single mislabel is inherited by every later conclusion — and it's hard to catch after the fact.</p></div>
+</div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="路徑一：自動" data-en="PATH 1: AUTOMATIC">路徑一：自動</div>
+<h2 data-zh="一、MetaReference 自動細胞類型預測" data-en="I. MetaReference Automatic Cell Type Prediction">一、MetaReference 自動細胞類型預測</h2>
+<div data-lang="zh">
+<p>MetaReference 是 BBrowserX 最閃亮的招牌功能。用一個生活化的比喻：它就像機場那台「<strong>刷臉比對一個上億人資料庫、秒認出你是誰</strong>」的閘門。它把你的每一顆細胞，拿去和 BioTuring 精心整理的<strong>超過 1 億 (100M+) 顆單細胞</strong>參考資料庫比對，直接告訴你這顆細胞的身分——目前可分類 <strong>54 種細胞類型與 183 種亞型 (subtype)</strong>，而且這個名單還在持續擴增。BBrowserX <strong>Pro 版</strong>更進一步提供<strong>癌細胞預測 (cancer cell prediction)</strong>，這在腫瘤研究中格外實用。</p>
+<p>背後的核心概念叫做<strong>參考式標籤轉移 (reference-based label transfer)</strong>。拆開來講很直覺：參考庫裡的每顆細胞都已經被專家「戴好名牌」了；演算法把你的細胞投影到同一個參考空間，找出「表達模式長得最像」的參考鄰居，然後把鄰居的名牌<strong>轉移 (transfer)</strong> 到你的細胞上。這其實就是一種 <em>最近參考匹配 (nearest-reference matching)</em>——你的細胞借用了最相似參考細胞的身分。</p>
+<p>這和路徑二的手動註釋有一個根本差異：手動註釋是<strong>「由下而上」</strong>——你親眼看 marker 表達、憑生物學知識做判斷；自動預測則是<strong>「由上而下」</strong>——直接借用一個龐大既有圖譜的集體智慧。兩者的優劣，我們在第三節會攤開來比。</p>
+</div>
+<div data-lang="en">
+<p>MetaReference is BBrowserX's most eye-catching feature. Here's a down-to-earth analogy: it's like the airport gate that "<strong>face-scans against a database of a billion people and recognises you in a second</strong>." It takes each of your cells and matches it against BioTuring's carefully curated reference of <strong>over 100 million (100M+) single cells</strong>, telling you the identity directly — currently classifying <strong>54 cell types and 183 subtypes</strong>, and that roster keeps expanding. BBrowserX <strong>Pro</strong> goes a step further with <strong>cancer cell prediction</strong>, especially handy in tumour research.</p>
+<p>The core concept behind it is <strong>reference-based label transfer</strong>. Unpacked, it's intuitive: every cell in the reference has already been given a name badge by experts; the algorithm projects your cells into that same reference space, finds the reference neighbours whose "expression pattern looks most alike," and <strong>transfers</strong> the neighbour's badge onto your cell. This is essentially <em>nearest-reference matching</em> — your cell borrows the identity of the most similar reference cell.</p>
+<p>This differs fundamentally from the manual annotation of Path 2: manual annotation is <strong>"bottom-up"</strong> — you look at marker expression with your own eyes and judge from biological knowledge; auto-prediction is <strong>"top-down"</strong> — it borrows the collective wisdom of a vast existing atlas. We lay out the trade-offs in Section III.</p>
+</div>
+<div class="workflow">
+<div class="workflow-step" data-step="1"><h4 data-zh="開啟預測功能" data-en="Open the prediction tool">開啟預測功能</h4>
+<p data-lang="zh">在分群完成的專案中，找到細胞類型預測 / MetaReference 功能（實際選單名稱會因版本而異）。</p>
+<p data-lang="en">In a clustered project, open the cell type prediction / MetaReference tool (exact menu name varies by version).</p></div>
+<div class="workflow-step" data-step="2"><h4 data-zh="執行預測（刷臉）" data-en="Run prediction (face-scan)">執行預測（刷臉）</h4>
+<p data-lang="zh">軟體把你的資料比對參考庫，替每個細胞或每群產生預測標籤與<strong>信心分數 (confidence score)</strong>——分數就是「這張臉有多確定認對了」。</p>
+<p data-lang="en">The software matches your data to the reference and produces a predicted label plus a <strong>confidence score</strong> per cell or cluster — the score says "how sure it is the face matched."</p></div>
+<div class="workflow-step" data-step="3"><h4 data-zh="覆蓋到 UMAP" data-en="Overlay on UMAP">覆蓋到 UMAP</h4>
+<p data-lang="zh">將預測標籤上色到 UMAP，直覺檢視哪些群落被指派為哪種細胞類型。好的預測應該「一群一色、界線乾淨」；若一群裡混了三四種顏色，那就是警訊。</p>
+<p data-lang="en">Colour the predicted labels onto the UMAP to visually inspect which clusters got which cell type. A good prediction should be "one cluster, one colour, clean borders"; a cluster splattered with three or four colours is a red flag.</p></div>
+<div class="workflow-step" data-step="4"><h4 data-zh="驗證再定案" data-en="Validate, then finalize">驗證再定案</h4>
+<p data-lang="zh"><strong>務必</strong>用 marker 基因（路徑二）與生物學脈絡確認後，再把預測結果採納為正式標籤。這一步不能跳過——理由見第三節那顆紅色警示。</p>
+<p data-lang="en"><strong>Always</strong> confirm with marker genes (Path 2) and biological context before adopting predictions as final labels. This step is non-negotiable — see the red warning in Section III.</p></div>
+</div>
+<div class="callout warn"><span class="callout-icon">⚠️</span><div>
+<span data-lang="zh"><strong>參考偏誤 (reference bias)：</strong>自動預測的品質受限於參考庫涵蓋的細胞類型——刷臉比對只能認出「資料庫裡登記過的人」。<strong>罕見、新穎或組織特異</strong>的細胞，很可能被硬塞成「長得最像的既有類型」。若你的樣本含參考庫少見的族群，請把低信心分數的預測當作<em>提示 (lead)</em> 而非<em>結論 (conclusion)</em>。</span>
+<span data-lang="en"><strong>Reference bias:</strong> auto-prediction quality is bounded by what the reference covers — face-scanning can only recognise "people already registered in the database." <strong>Rare, novel, or tissue-specific</strong> cells are easily forced into "the nearest existing type." If your sample contains populations underrepresented in the reference, treat low-confidence predictions as <em>leads</em>, not <em>conclusions</em>.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="路徑二：手動" data-en="PATH 2: MANUAL">路徑二：手動</div>
+<h2 data-zh="二、Marker 基因手動註釋" data-en="II. Marker-Based Manual Annotation">二、Marker 基因手動註釋</h2>
+<div data-lang="zh">
+<p>如果自動預測是「刷臉」，那 marker 基因手動註釋就是「<strong>看制服和識別證認人</strong>」。Marker 基因是某種細胞類型<strong>高度、又專一表達</strong>的基因——就像消防員的紅色制服、醫師的白袍、警察的臂章。只要你看到某群細胞集體「穿著」T 細胞的制服，你就能自信地把它命名為 T 細胞。</p>
+<p>實際做法：對每個 cluster 檢視經典 marker 的表達——用 <strong>violin plot（小提琴圖）、dot plot（點圖）、feature plot（在 UMAP 上把某基因的表達上色）</strong> 觀察——若某群強烈表達某細胞類型的招牌 marker，就把它命名為該類型。BBrowserX 的 <strong>Cell Search</strong> 還能反過來操作：依表達模式搜尋細胞（例如「找出 CD3D 高、CD79A 低的細胞」），直接把符合某套表達邏輯的細胞挑出來。</p>
+<p>下面這張表是每位單細胞分析者都該背在腦中的「制服對照表」。注意 <code>PTPRC</code>(CD45) 和 <code>EPCAM</code> 這種「大類分界」marker：CD45 是<strong>所有免疫細胞</strong>的總稱識別證，EPCAM 則標記上皮——用它們可以先把細胞粗分成免疫 vs. 非免疫兩大陣營，再往下細分。</p>
+</div>
+<div data-lang="en">
+<p>If auto-prediction is "face-scanning," then marker-based manual annotation is "<strong>recognising people by their uniform and ID card</strong>." Marker genes are genes a cell type expresses <strong>highly and specifically</strong> — like a firefighter's red uniform, a doctor's white coat, a police officer's armband. Once you see a cluster collectively "wearing" the T-cell uniform, you can confidently name it a T cell.</p>
+<p>In practice: for each cluster, inspect canonical marker expression — via <strong>violin plots, dot plots, and feature plots (colouring a gene's expression on the UMAP)</strong> — and if a cluster strongly expresses a cell type's hallmark markers, name it that type. BBrowserX's <strong>Cell Search</strong> also works the other way: find cells by expression pattern (e.g. "cells high in CD3D, low in CD79A"), pulling out cells that match an expression logic.</p>
+<p>The table below is the "uniform lookup" every single-cell analyst should keep in their head. Note the "big-branch divider" markers like <code>PTPRC</code> (CD45) and <code>EPCAM</code>: CD45 is the umbrella ID card for <strong>all immune cells</strong>, while EPCAM marks epithelium — use them to first split cells into immune vs. non-immune camps, then subdivide.</p>
+</div>
+
+<table class="mrk-table">
+<thead><tr>
+<th data-zh="細胞類型（制服）" data-en="Cell type (uniform)">細胞類型（制服）</th>
+<th data-zh="經典 marker（識別證）" data-en="Canonical markers (ID cards)">經典 marker（識別證）</th>
+<th data-zh="一句話記憶點" data-en="One-line mnemonic">一句話記憶點</th>
+</tr></thead>
+<tbody>
+<tr><td data-zh="🛡️ T 細胞" data-en="🛡️ T cells"><span data-lang="zh">🛡️ T 細胞</span><span data-lang="en">🛡️ T cells</span></td><td><code>CD3D</code> <code>CD3E</code> <code>CD3G</code></td><td data-lang="zh">CD3 複合體 = T 細胞受體的「開機鍵」</td><td data-lang="en">The CD3 complex = the T-cell receptor's "power button"</td></tr>
+<tr><td data-zh="🅱️ B 細胞" data-en="🅱️ B cells"><span data-lang="zh">🅱️ B 細胞</span><span data-lang="en">🅱️ B cells</span></td><td><code>MS4A1</code> <code>CD79A</code> <code>CD79B</code></td><td data-lang="zh">MS4A1 就是 CD20，抗癌藥物 rituximab 的靶點</td><td data-lang="en">MS4A1 is CD20 — the target of the drug rituximab</td></tr>
+<tr><td data-zh="🍽️ 單核球／巨噬細胞" data-en="🍽️ Monocytes / Macrophages"><span data-lang="zh">🍽️ 單核球／巨噬細胞</span><span data-lang="en">🍽️ Monocytes / Macrophages</span></td><td><code>LYZ</code> <code>CD14</code> <code>CD68</code></td><td data-lang="zh">髓系吞噬大隊，負責「吃掉」病原</td><td data-lang="en">Myeloid phagocytes — the cells that "eat" pathogens</td></tr>
+<tr><td data-zh="💥 NK 細胞" data-en="💥 NK cells"><span data-lang="zh">💥 NK 細胞</span><span data-lang="en">💥 NK cells</span></td><td><code>NKG7</code> <code>GNLY</code> <code>KLRD1</code></td><td data-lang="zh">細胞毒殺顆粒滿載，先斬後奏的殺手</td><td data-lang="en">Loaded with cytotoxic granules — the shoot-first killers</td></tr>
+<tr><td data-zh="🩸 內皮細胞" data-en="🩸 Endothelial cells"><span data-lang="zh">🩸 內皮細胞</span><span data-lang="en">🩸 Endothelial cells</span></td><td><code>PECAM1</code> <code>VWF</code> <code>CDH5</code></td><td data-lang="zh">PECAM1=CD31，血管內壁的鋪路工</td><td data-lang="en">PECAM1 = CD31 — pavers lining the blood vessels</td></tr>
+<tr><td data-zh="🧱 上皮細胞" data-en="🧱 Epithelial cells"><span data-lang="zh">🧱 上皮細胞</span><span data-lang="en">🧱 Epithelial cells</span></td><td><code>EPCAM</code> <code>KRT8</code> <code>KRT18</code></td><td data-lang="zh">組織的「磚牆」，多數上皮腫瘤源頭</td><td data-lang="en">The tissue "brick wall" — origin of most carcinomas</td></tr>
+<tr><td data-zh="🌐 免疫細胞（總稱）" data-en="🌐 Immune cells (umbrella)"><span data-lang="zh">🌐 免疫細胞（總稱）</span><span data-lang="en">🌐 Immune cells (umbrella)</span></td><td><code>PTPRC</code>（CD45）</td><td data-lang="zh">先分「免疫 vs. 非免疫」的第一道關卡</td><td data-lang="en">First gate to split "immune vs. non-immune"</td></tr>
+<tr><td data-zh="🩹 血小板" data-en="🩹 Platelets"><span data-lang="zh">🩹 血小板</span><span data-lang="en">🩹 Platelets</span></td><td><code>PPBP</code> <code>PF4</code> <code>ITGA2B</code></td><td data-lang="zh">凝血小幫手，常是「意外的小群」</td><td data-lang="en">Clotting helpers — often a "surprise tiny cluster"</td></tr>
+</tbody></table>
+
+<div class="interactive-panel">
+<div data-lang="zh"><p style="font-weight:600;margin-bottom:4px;">🧫 Marker → 細胞類型 對照練習</p><p style="font-size:.86rem;margin-bottom:8px;">點一個 marker 基因晶片，看看這張「識別證」指認出哪種細胞類型、以及自動預測給它的典型信心分數。試著把上表的制服和識別證對起來！</p></div>
+<div data-lang="en"><p style="font-weight:600;margin-bottom:4px;">🧫 Marker → Cell Type Lookup</p><p style="font-size:.86rem;margin-bottom:8px;">Click a marker gene chip to see which cell type this "ID card" identifies, plus the typical confidence score auto-prediction assigns it. Try matching the uniforms and ID cards from the table above!</p></div>
+<div class="marker-lab">
+  <div class="marker-chips" id="markerChips"></div>
+  <div class="ct-card" id="ctCard"></div>
+</div>
+</div>
+
+<h3 data-zh="怎麼挑一個「好」marker？" data-en="How to Pick a &quot;Good&quot; Marker?">怎麼挑一個「好」marker？</h3>
+<div data-lang="zh">
+<p>不是每個「在某細胞高表達」的基因都能當 marker。一個真正好用的識別證，要同時滿足兩個條件：</p>
+</div>
+<div data-lang="en">
+<p>Not every gene that "runs high in some cell type" makes a good marker. A truly useful ID card must meet two conditions at once:</p>
+</div>
+<div class="card-grid cols-2">
+<div class="card"><div class="card-icon">🎯</div><h4 data-zh="特異性（只有它有）" data-en="Specific (only it wears this)">特異性（只有它有）</h4><p data-lang="zh">這個基因應該<strong>幾乎只</strong>在目標細胞高表達，別的細胞都很低。CD3D 只在 T 細胞亮、其他群幾乎是黑的——這才是理想識別證。反例：管家基因 <code>ACTB</code>、<code>GAPDH</code> 到處都高，等於「人人都穿的白 T 恤」，完全認不出人。</p><p data-lang="en">The gene should run high <strong>almost only</strong> in the target cell, staying low elsewhere. CD3D lights up in T cells and is nearly black in others — that's an ideal ID. Counter-example: housekeeping genes like <code>ACTB</code>, <code>GAPDH</code> are high everywhere, a "plain white T-shirt everyone wears" — useless for telling people apart.</p></div>
+<div class="card"><div class="card-icon">📶</div><h4 data-zh="穩定表現（別忽亮忽暗）" data-en="Stably expressed (no flickering)">穩定表現（別忽亮忽暗）</h4><p data-lang="zh">好 marker 應在該細胞<strong>大多數個體</strong>都穩定表現，而不是只有零星幾顆亮。表現太稀疏、或在不同樣本間忽有忽無的基因，容易讓你的判斷隨機漂移。優先選在該群「覆蓋率高、又夠亮」的基因。</p><p data-lang="en">A good marker should be <strong>stably present in most cells</strong> of that type, not just a scattered few. Genes that are too sparse, or that flicker on and off across samples, make your calls drift randomly. Prefer genes that are both "widely covered and bright enough" within the cluster.</p></div>
+</div>
+<div class="callout tip"><span class="callout-icon">🔬</span><div>
+<span data-lang="zh"><strong>專家小撇步：</strong>永遠用<strong>一組 (a panel)</strong> marker、而非單一基因下判斷。T 細胞就同時看 CD3D + CD3E；B 細胞就 MS4A1 + CD79A。多個識別證一致指向同一身分，你的信心才站得住腳。單靠一張識別證，遇到造假（技術噪音、doublet）就翻車。</span>
+<span data-lang="en"><strong>Pro tip:</strong> always decide with a <strong>panel</strong> of markers, never a single gene. For T cells look at CD3D + CD3E together; for B cells, MS4A1 + CD79A. When several ID cards point to the same identity, your confidence stands on solid ground. Bet on one card alone and you'll crash the moment a forgery (technical noise, a doublet) shows up.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="工作流程" data-en="WORKFLOW">工作流程</div>
+<h2 data-zh="三、招牌流程：自動先給草稿 → marker 驗證 → 命名" data-en="III. The Signature Flow: Auto-Draft → Marker Validation → Naming">三、招牌流程：自動先給草稿 → marker 驗證 → 命名</h2>
+<div data-lang="zh">
+<p>把兩條路徑串成一條聰明的產線，就是 BioTuring 使用者最推薦的工作流。核心口訣是：<strong>「自動先給草稿，marker 負責驗證，最後你來命名。」</strong></p>
+</div>
+<div data-lang="en">
+<p>Chaining the two paths into one smart pipeline is the workflow BioTuring users recommend most. The mantra: <strong>"auto drafts, markers validate, and you name."</strong></p>
+</div>
+<div class="workflow">
+<div class="workflow-step" data-step="1"><h4 data-zh="自動先給草稿" data-en="Auto gives the draft">自動先給草稿</h4>
+<p data-lang="zh">先跑 MetaReference，一鍵得到全資料集的預測標籤與信心分數。這份「草稿名單」讓你不必從零開始猜，把注意力集中在真正可疑的地方。</p>
+<p data-lang="en">Run MetaReference first to get predicted labels and confidence scores across the whole dataset in one click. This "draft roster" means you don't guess from scratch — you focus attention where it's genuinely uncertain.</p></div>
+<div class="workflow-step" data-step="2"><h4 data-zh="marker 逐群驗證" data-en="Validate cluster-by-cluster with markers">marker 逐群驗證</h4>
+<p data-lang="zh">對每群拉出 2–3 個經典 marker（violin/dot/feature plot）核對：草稿說是 T 細胞，那 CD3D/CD3E 有沒有亮？識別證與制服對得上，才算通過驗證。</p>
+<p data-lang="en">For each cluster, pull 2–3 canonical markers (violin/dot/feature plots) to check: the draft says T cells — do CD3D/CD3E light up? Only when the ID card matches the uniform does it pass validation.</p></div>
+<div class="workflow-step" data-step="3"><h4 data-zh="處理不合格的群" data-en="Handle the clusters that fail">處理不合格的群</h4>
+<p data-lang="zh">草稿與 marker 不一致、或群內混雜？把它挑出來 <strong>subcluster（再分群）</strong> 重看，或暫標為 "unknown"。這些通常正是最有故事的族群。</p>
+<p data-lang="en">Draft disagrees with markers, or the cluster is mixed? Pull it out to <strong>subcluster</strong> and re-inspect, or mark it "unknown" for now. These are often exactly the most interesting populations.</p></div>
+<div class="workflow-step" data-step="4"><h4 data-zh="最後你來命名" data-en="Finally, you name it">最後你來命名</h4>
+<p data-lang="zh">驗證通過後，親手把最終標籤寫上去。命名時盡量用一致的粒度（都用大類、或都細到亞型），別一群叫「T 細胞」、隔壁卻叫「CD8+ 效應記憶 T 細胞」，後續統計會亂。</p>
+<p data-lang="en">Once validated, write the final label yourself. Name at a consistent granularity (all broad, or all down to subtype) — don't call one cluster "T cells" and its neighbour "CD8+ effector-memory T cells," or downstream statistics get messy.</p></div>
+</div>
+<div class="callout tip"><span class="callout-icon">🧩</span><div>
+<span data-lang="zh"><strong>實戰情境：</strong>你有一組 PBMC（外周血單核細胞）資料，MetaReference 一鍵貼好 8 個群的名牌，其中 7 群的 marker 一驗就過（CD3D、MS4A1、LYZ… 全都對）。只有第 8 群被標成「T 細胞」卻信心只有 41%。你拉 marker 一看——CD3D 低、但 PPBP 爆高！原來這是一小群<strong>血小板 (platelets)</strong>，參考庫裡樣本太少才被硬塞成最像的 T 細胞。你把它改名、記錄下來，五分鐘搞定。這就是「自動給草稿、marker 抓漏、你來拍板」的威力。</span>
+<span data-lang="en"><strong>In the field:</strong> you have a PBMC dataset; MetaReference badges 8 clusters in one click, and 7 of them pass marker validation instantly (CD3D, MS4A1, LYZ… all check out). Only cluster 8 is labelled "T cells" at just 41% confidence. You pull markers — CD3D is low, but PPBP is sky-high! It's a small cluster of <strong>platelets</strong>, forced into the nearest "T cell" because the reference had too few of them. You rename it, document it, done in five minutes. That's the power of "auto drafts, markers catch leaks, you make the call."</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="兩者比較" data-en="COMPARISON">兩者比較</div>
+<h2 data-zh="四、自動 vs. 手動：什麼時候用哪個？" data-en="IV. Automatic vs. Manual: When to Use Which?">四、自動 vs. 手動：什麼時候用哪個？</h2>
+<table class="comp-table">
+<thead><tr>
+<th data-zh="面向" data-en="Aspect">面向</th>
+<th data-zh="自動（MetaReference）" data-en="Automatic (MetaReference)">自動（MetaReference）</th>
+<th data-zh="手動（Marker 基因）" data-en="Manual (Marker genes)">手動（Marker 基因）</th>
+</tr></thead>
+<tbody>
+<tr><td data-zh="速度" data-en="Speed"><strong>速度</strong></td><td data-lang="zh">很快——一鍵完成整個資料集</td><td data-lang="zh">較慢——需逐群檢視 marker</td><td data-lang="en">Very fast — one click for the whole dataset</td><td data-lang="en">Slower — inspect markers cluster by cluster</td></tr>
+<tr><td data-zh="比喻" data-en="Analogy"><strong>比喻</strong></td><td data-lang="zh">刷臉比對上億人資料庫</td><td data-lang="zh">看制服與識別證認人</td><td data-lang="en">Face-scan against a billion-person database</td><td data-lang="en">Recognise people by uniform &amp; ID card</td></tr>
+<tr><td data-zh="透明度" data-en="Transparency"><strong>透明度</strong></td><td data-lang="zh">黑箱——標籤來自參考比對，理由不直觀</td><td data-lang="zh">高——命名依據就是你看到的 marker 表達</td><td data-lang="en">Black-box — labels from reference matching, reasoning less obvious</td><td data-lang="en">High — the naming rationale is the marker expression you see</td></tr>
+<tr><td data-zh="專業需求" data-en="Expertise needed"><strong>專業需求</strong></td><td data-lang="zh">低——不需先知道 marker</td><td data-lang="zh">高——需熟悉各細胞類型的經典 marker</td><td data-lang="en">Low — no prior marker knowledge required</td><td data-lang="en">High — must know canonical markers per cell type</td></tr>
+<tr><td data-zh="罕見／新細胞" data-en="Rare / novel cells"><strong>罕見／新細胞</strong></td><td data-lang="zh">弱——可能被錯標成最接近的已知類型</td><td data-lang="zh">強——能發現參考庫沒有的新族群</td><td data-lang="en">Weak — may be mislabeled as nearest known type</td><td data-lang="en">Strong — can discover populations absent from the reference</td></tr>
+<tr><td data-zh="何時信任" data-en="When to trust"><strong>何時信任</strong></td><td data-lang="zh">信心分數高、且 marker 也吻合時</td><td data-lang="zh">marker 專一且與生物學脈絡一致時</td><td data-lang="en">When confidence is high AND markers agree</td><td data-lang="en">When markers are specific and consistent with biology</td></tr>
+</tbody></table>
+<div class="decision-tree">
+<h4 data-zh="🌳 我該怎麼註釋這個資料集？" data-en="🌳 How should I annotate this dataset?">🌳 我該怎麼註釋這個資料集？</h4>
+<div class="dt-node"><span class="dt-q" data-zh="Q1" data-en="Q1">Q1</span><span class="dt-arrow">→</span><span data-lang="zh"><strong>先跑 MetaReference 自動預測</strong>，取得快速起點與信心分數。</span><span data-lang="en"><strong>Run MetaReference auto-prediction first</strong> for a fast starting point plus confidence scores.</span></div>
+<div class="dt-node"><span class="dt-q" data-zh="Q2" data-en="Q2">Q2</span><span class="dt-arrow">→</span><span data-lang="zh">預測<strong>信心高</strong>？→ 用 2–3 個經典 marker（violin/dot/feature plot）快速驗證即可定案。</span><span data-lang="en">Prediction <strong>high-confidence</strong>? → Validate with 2–3 canonical markers (violin/dot/feature plots) and finalize.</span></div>
+<div class="dt-node"><span class="dt-q" data-zh="Q3" data-en="Q3">Q3</span><span class="dt-arrow">→</span><span data-lang="zh">預測<strong>信心低或群內混雜</strong>？→ 切回 marker 手動註釋；必要時 subcluster 再重新檢視。</span><span data-lang="en">Prediction <strong>low-confidence or mixed</strong>? → Fall back to manual markers; subcluster and re-inspect if needed.</span></div>
+<div class="dt-node"><span class="dt-q" data-zh="Q4" data-en="Q4">Q4</span><span class="dt-arrow">→</span><span data-lang="zh">怎麼都對不上任何已知 marker？→ 可能是<strong>新族群或雙細胞 (doublet)</strong>，標為 "unknown" 並記錄。</span><span data-lang="en">Matches no known markers at all? → Possibly a <strong>novel population or doublet</strong>; label "unknown" and document it.</span></div>
+</div>
+<div class="callout danger"><span class="callout-icon">🛑</span><div>
+<span data-lang="zh"><strong>絕不要跳過驗證——這是最貴的一堂課。</strong>只採納自動預測、卻不看 marker，是單細胞分析最常見的錯誤來源之一。設想一個慘痛情境：某罕見的漿細胞樣 (plasmacytoid) 群，因為參考庫代表性不足，被自動預測「刷臉刷錯」硬塞成 T 細胞；你沒驗證就採納，結果整篇論文的「T 細胞在疾病組增加」其實是假象，審稿人一驗 marker 就抓包退稿。錯誤的細胞標籤會污染下游<em>每一項</em>結論——差異表達、細胞比例、細胞通訊全跟著錯。<strong>註釋是整個分析可信度的地基。</strong></span>
+<span data-lang="en"><strong>Never skip validation — it's the most expensive lesson.</strong> Adopting auto-predictions without checking markers is among the most common error sources in single-cell analysis. Imagine a painful scenario: a rare plasmacytoid population, underrepresented in the reference, gets "face-scanned wrong" and forced into T cells; you accept it without validating, and now your paper's "T cells increase in disease" is an artefact — a reviewer checks markers, catches it, and rejects the manuscript. A wrong cell label contaminates <em>every</em> downstream conclusion — DE, cell proportions, cell–cell communication all inherit the error. <strong>Annotation is the foundation of the whole analysis's credibility.</strong></span>
+</div></div>
+<div class="callout warn"><span class="callout-icon">🗓️</span><div>
+<span data-lang="zh"><strong>版本與數字會變動：</strong>本頁提到的「100M+ 參考細胞、54 種細胞類型、183 種亞型、Pro 版癌細胞預測」等數字，是 BioTuring 持續擴增的功能——實際選單名稱、可分類的類型數與版本差異，請以你手上 BBrowserX / BBrowserX Pro 的當前版本與官方文件為準。這裡的比喻與流程原則不變，但確切數字請以官方為準。</span>
+<span data-lang="en"><strong>Versions and numbers drift:</strong> figures on this page — "100M+ reference cells, 54 cell types, 183 subtypes, Pro cancer-cell prediction" — describe capabilities BioTuring keeps expanding. Exact menu names, the number of classifiable types, and version differences depend on the specific BBrowserX / BBrowserX Pro build you have; check the official docs for your version. The analogies and workflow principles here hold, but treat the precise numbers as version-dependent.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="常見誤區" data-en="COMMON PITFALLS">常見誤區</div>
+<h2 data-zh="五、三個最常見的翻車陷阱" data-en="V. Three Most Common Traps">五、三個最常見的翻車陷阱</h2>
+<div data-lang="zh">
+<p>就算你懂原理，實作時還是很容易踩進這幾個坑。先認識它們，遇到時才不會慌。</p>
+</div>
+<div data-lang="en">
+<p>Even when you understand the theory, these pits are easy to fall into during hands-on work. Learn them first so you don't panic when they appear.</p>
+</div>
+<div class="card-grid cols-3">
+<div class="card"><div class="card-icon">1️⃣</div><h4 data-zh="一個 marker 就下結論" data-en="Concluding from one marker">一個 marker 就下結論</h4><p data-lang="zh">看到 CD8A 亮就喊「這是 CD8 T 細胞」——但 CD8A 在部分 NK、樹突細胞也會出現。永遠用一組 marker 交叉確認，別讓單一識別證騙了你。</p><p data-lang="en">Seeing CD8A light up and shouting "CD8 T cell" — but CD8A also appears in some NK and dendritic cells. Always cross-check with a panel; don't let one ID card fool you.</p></div>
+<div class="card"><div class="card-icon">2️⃣</div><h4 data-zh="忽略 doublet 的假中間態" data-en="Ignoring doublet 'fake intermediates'">忽略 doublet 的假中間態</h4><p data-lang="zh">兩顆細胞被誤黏成一顆<strong>雙細胞 (doublet)</strong>，會同時「穿兩套制服」（如 CD3D + MS4A1 都亮），偽裝成一個看似新奇的「T-B 中間態」。看到不合生物學的混合表達，先懷疑 doublet，別急著發現新細胞。</p><p data-lang="en">Two cells stuck together as a <strong>doublet</strong> "wear two uniforms at once" (e.g. both CD3D + MS4A1 up), masquerading as a novel "T-B intermediate." When you see biologically implausible mixed expression, suspect a doublet before claiming a new cell type.</p></div>
+<div class="card"><div class="card-icon">3️⃣</div><h4 data-zh="粒度不一致" data-en="Inconsistent granularity">粒度不一致</h4><p data-lang="zh">一群命名到大類「髓系細胞」，隔壁卻細到「CD16+ 非經典單核球」。混用粒度會讓細胞比例統計失真，命名前先決定好整體要粗還是細。</p><p data-lang="en">Naming one cluster broadly as "myeloid cells" while its neighbour goes fine-grained to "CD16+ non-classical monocytes." Mixed granularity distorts proportion statistics — decide broad vs. fine for the whole set before naming.</p></div>
+</div>
+<h3 data-zh="定案前的自我檢查清單" data-en="Pre-Finalization Checklist">定案前的自我檢查清單</h3>
+<ul class="checklist">
+<li><span data-lang="zh">每一群都有<strong>至少 2 個</strong>一致的經典 marker 支持了嗎？</span><span data-lang="en">Does every cluster have <strong>at least 2</strong> consistent canonical markers backing it?</span></li>
+<li><span data-lang="zh">自動預測的<strong>信心分數</strong>都看過了嗎？低分的群額外驗證了嗎？</span><span data-lang="en">Have you reviewed every cluster's <strong>confidence score</strong>, and extra-validated the low ones?</span></li>
+<li><span data-lang="zh">有沒有「同時穿兩套制服」的群？排除 <strong>doublet</strong> 了嗎？</span><span data-lang="en">Any cluster "wearing two uniforms"? Have you ruled out <strong>doublets</strong>?</span></li>
+<li><span data-lang="zh">命名<strong>粒度一致</strong>嗎（全大類 or 全細到亞型）？</span><span data-lang="en">Is your naming <strong>granularity consistent</strong> (all broad or all subtype-level)?</span></li>
+<li><span data-lang="zh">對不上任何 marker 的群，有標 <strong>unknown 並記錄</strong>，而非硬塞嗎？</span><span data-lang="en">Are unmatchable clusters labelled <strong>unknown and documented</strong>, rather than forced?</span></li>
+</ul>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="視覺化" data-en="VISUALIZE">視覺化</div>
+<h2 data-zh="六、用哪種圖看 marker？" data-en="VI. Which Plot for Markers?">六、用哪種圖看 marker？</h2>
+<div data-lang="zh"><p>下圖模擬一個 dot plot 的概念：每個 marker（橫軸）在各細胞群（顏色）中的<strong>平均表達強度</strong>。專一的 marker 只在一種細胞類型「亮起來」，其他群幾乎貼地——這種「一柱獨高、其餘趴平」的形狀，正是你手動命名時最想看到的漂亮訊號。<strong>切換語言</strong>時圖例會同步翻譯，滑鼠移上柱子可看數值。</p></div>
+<div data-lang="en"><p>The chart below mimics a dot plot's concept: the <strong>mean expression</strong> of each marker (x-axis) across cell groups (colours). A specific marker "lights up" in only one cell type while others stay near the floor — that "one bar towering, the rest flat" shape is exactly the clean signal you hope to see when naming clusters. <strong>Switch languages</strong> and the legend translates in sync; hover a bar to read its value.</p></div>
+<div class="chart-container" style="height:320px;"><canvas id="markerChart"></canvas></div>
+<p style="font-size:.78rem;color:var(--c-ink-muted);text-align:center;"><span data-zh="示意數值，用於說明「專一 marker」概念，非真實資料。" data-en="Illustrative values to convey the 'specific marker' concept — not real data.">示意數值，用於說明「專一 marker」概念，非真實資料。</span></p>
+<div class="callout tip"><span class="callout-icon">💡</span><div>
+<span data-lang="zh"><strong>選圖小抄：</strong>快速掃視多 marker × 多群用 <strong>dot plot</strong>（點大小=表達比例、顏色深淺=強度，資訊密度最高）；比較單一 marker 在各群的分佈用 <strong>violin plot</strong>；在 UMAP 上看空間分佈用 <strong>feature plot</strong>。三者在 BBrowserX 都是點選即可產生。</span>
+<span data-lang="en"><strong>Plot cheat-sheet:</strong> scan many markers × many groups with a <strong>dot plot</strong> (dot size = fraction expressing, colour = intensity — highest information density); compare one marker's distribution across groups with a <strong>violin plot</strong>; see spatial layout on the UMAP with a <strong>feature plot</strong>. All three are click-to-generate in BBrowserX.</span>
+</div></div>
+</section>
+
+<section class="quiz-section">
+<h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">1. BBrowserX 的 MetaReference 自動細胞類型預測，其原理最貼近下列何者？</p>
+<p data-lang="en">1. BBrowserX's MetaReference auto cell type prediction works most like which of the following?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 隨機指派標籤</span><span data-lang="en">A. Randomly assigning labels</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 只看 cluster 編號大小</span><span data-lang="en">B. Reading off the cluster number</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 比對巨型參考庫做標籤轉移（最近參考匹配）</span><span data-lang="en">C. Label transfer against a huge reference (nearest-reference matching)</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 依細胞總數自動決定</span><span data-lang="en">D. Deciding by total cell count</span></div>
+</div><div class="quiz-feedback" id="fb1"></div></div>
+
+<div class="quiz-q" data-answer="1">
+<p data-lang="zh">2. 你想把某個 cluster 命名為 B 細胞。下列哪組 marker 最能支持這個判斷？</p>
+<p data-lang="en">2. You want to label a cluster as B cells. Which marker set best supports that call?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. CD3D / CD3E</span><span data-lang="en">A. CD3D / CD3E</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. MS4A1 / CD79A</span><span data-lang="en">B. MS4A1 / CD79A</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. LYZ / CD14</span><span data-lang="en">C. LYZ / CD14</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. PECAM1 / EPCAM</span><span data-lang="en">D. PECAM1 / EPCAM</span></div>
+</div><div class="quiz-feedback" id="fb2"></div></div>
+
+<div class="quiz-q" data-answer="3">
+<p data-lang="zh">3. 自動預測給某群「T 細胞」但信心分數很低，而該群並不表達任何經典 T 細胞 marker。最合理的做法是？</p>
+<p data-lang="en">3. Auto-prediction labels a cluster "T cells" with low confidence, yet it expresses no canonical T-cell markers. The most sensible action is?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 直接採納，因為軟體通常是對的</span><span data-lang="en">A. Accept it — the software is usually right</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 刪掉這群以免麻煩</span><span data-lang="en">B. Delete the cluster to avoid trouble</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 把整個資料集重新分群到只剩一群</span><span data-lang="en">C. Re-cluster everything into a single group</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 用 marker 與脈絡驗證；必要時標為 unknown 或 subcluster 再看</span><span data-lang="en">D. Validate with markers/context; if needed label unknown or subcluster</span></div>
+</div><div class="quiz-feedback" id="fb3"></div></div>
+
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">4. 某群同時強烈表達 CD3D（T 細胞制服）與 MS4A1（B 細胞制服），且細胞數異常偏高。最該優先懷疑的是？</p>
+<p data-lang="en">4. A cluster strongly co-expresses CD3D (T-cell uniform) and MS4A1 (B-cell uniform), with an unusually high per-cell count. What should you suspect first?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 一種全新的「T-B 融合」細胞類型，趕快發表</span><span data-lang="en">A. A brand-new "T-B fusion" cell type — publish fast</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 參考庫故障</span><span data-lang="en">B. The reference database is broken</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 雙細胞 (doublet) 造成的假中間態</span><span data-lang="en">C. A doublet-driven fake intermediate state</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. CD3D 一定是壞掉的基因</span><span data-lang="en">D. CD3D must simply be a broken gene</span></div>
+</div><div class="quiz-feedback" id="fb4"></div></div>
+
+<div class="quiz-q" data-answer="1">
+<p data-lang="zh">5. 下列何者最適合當作區分「免疫 vs. 非免疫」細胞的第一道 marker？</p>
+<p data-lang="en">5. Which is best as the first-gate marker to split "immune vs. non-immune" cells?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. GAPDH（管家基因）</span><span data-lang="en">A. GAPDH (housekeeping gene)</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. PTPRC / CD45（免疫細胞總稱）</span><span data-lang="en">B. PTPRC / CD45 (pan-immune marker)</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. PPBP（血小板）</span><span data-lang="en">C. PPBP (platelets)</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. cluster 編號</span><span data-lang="en">D. The cluster number</span></div>
+</div><div class="quiz-feedback" id="fb5"></div></div>
+</section>
+
+<nav class="page-nav">
+<a href="clustering.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 4: 分群與批次校正" data-en="Step 4: Clustering &amp; Batch Correction">Step 4: 分群與批次校正</span></a>
+<a href="dge.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 6: 差異表達與 Venice" data-en="Step 6: Differential Expression &amp; Venice">Step 6: 差異表達與 Venice</span></a>
+</nav>
+</main>
+<footer class="site-footer">© Charlene — BioTuring Interactive Tutorial · <span data-zh="教學用途，非 BioTuring 官方文件" data-en="Educational use — not official BioTuring documentation">教學用途，非 BioTuring 官方文件</span></footer>
+<script src="i18n.js"></script>
+<script>
+window.addEventListener('scroll',()=>{const h=document.documentElement;document.getElementById('progressBar').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+'%';});
+
+// Marker -> cell type lookup
+const MARKERS=[
+ {g:'CD3D',k:'t'},{g:'CD3E',k:'t'},
+ {g:'MS4A1',k:'b'},{g:'CD79A',k:'b'},
+ {g:'LYZ',k:'mono'},{g:'CD14',k:'mono'},
+ {g:'NKG7',k:'nk'},{g:'PECAM1',k:'endo'},{g:'EPCAM',k:'epi'},
+ {g:'PTPRC',k:'immune'},{g:'PPBP',k:'plat'}
+];
+const CT={
+ t:{emoji:'🛡️',zh:'T 細胞',en:'T cells',score:96,
+    zh_d:'CD3 複合體 (<b>CD3D/CD3E</b>) 是 T 細胞受體訊號的核心元件，是最經典的泛 T 細胞 marker。就像 T 細胞的「開機鍵」制服。',
+    en_d:'The CD3 complex (<b>CD3D/CD3E</b>) is core to T-cell receptor signalling — the classic pan-T marker, the T cell\'s "power-button" uniform.'},
+ b:{emoji:'🅱️',zh:'B 細胞',en:'B cells',score:95,
+    zh_d:'<b>MS4A1</b> (CD20) 與 <b>CD79A</b> 標記 B 細胞受體複合體，是可靠的 B 細胞 marker。MS4A1 也是抗癌藥 rituximab 的靶點。',
+    en_d:'<b>MS4A1</b> (CD20) and <b>CD79A</b> mark the B-cell receptor complex — reliable B-cell markers. MS4A1 is also the target of rituximab.'},
+ mono:{emoji:'🍽️',zh:'單核球 / 巨噬細胞',en:'Monocytes / Macrophages',score:92,
+    zh_d:'<b>LYZ</b> 與 <b>CD14</b> 是髓系吞噬細胞的招牌，指向單核球／巨噬細胞——負責「吃掉」病原的大隊。',
+    en_d:'<b>LYZ</b> and <b>CD14</b> are hallmarks of myeloid phagocytes — monocytes/macrophages, the squad that "eats" pathogens.'},
+ nk:{emoji:'💥',zh:'自然殺手細胞 (NK)',en:'Natural Killer (NK) cells',score:90,
+    zh_d:'<b>NKG7</b> 富含於細胞毒殺顆粒，是 NK（與部分細胞毒性 T）的 marker——先斬後奏的殺手。',
+    en_d:'<b>NKG7</b> is enriched in cytotoxic granules — a marker of NK (and some cytotoxic T) cells, the shoot-first killers.'},
+ endo:{emoji:'🩸',zh:'內皮細胞',en:'Endothelial cells',score:93,
+    zh_d:'<b>PECAM1</b> (CD31) 是血管內皮細胞的經典 marker——血管內壁的鋪路工。',
+    en_d:'<b>PECAM1</b> (CD31) is the classic marker of vascular endothelial cells — the pavers lining blood vessels.'},
+ epi:{emoji:'🧱',zh:'上皮細胞',en:'Epithelial cells',score:94,
+    zh_d:'<b>EPCAM</b>（上皮細胞黏附分子）是上皮細胞的招牌 marker——組織的「磚牆」，多數上皮腫瘤的源頭。',
+    en_d:'<b>EPCAM</b> (epithelial cell adhesion molecule) is the signature epithelial marker — the tissue "brick wall," origin of most carcinomas.'},
+ immune:{emoji:'🌐',zh:'免疫細胞（總稱）',en:'Immune cells (umbrella)',score:88,
+    zh_d:'<b>PTPRC</b> (CD45) 是所有免疫細胞共通的識別證，是先分「免疫 vs. 非免疫」的第一道 marker，不能單獨區分子類型。',
+    en_d:'<b>PTPRC</b> (CD45) is the shared ID card of all immune cells — the first-gate marker to split "immune vs. non-immune," not a subtype discriminator on its own.'},
+ plat:{emoji:'🩹',zh:'血小板',en:'Platelets',score:91,
+    zh_d:'<b>PPBP</b> (與 PF4) 是血小板的招牌 marker——凝血小幫手，常在 PBMC 資料中冒出一個「意外的小群」。',
+    en_d:'<b>PPBP</b> (with PF4) is the hallmark platelet marker — clotting helpers that often show up as a "surprise tiny cluster" in PBMC data.'}
+};
+const chipBox=document.getElementById('markerChips');
+MARKERS.forEach((m,i)=>{const b=document.createElement('button');b.className='marker-chip'+(i===0?' active':'');b.textContent=m.g;b.dataset.k=m.k;b.dataset.g=m.g;chipBox.appendChild(b);});
+function renderCt(k,g){const L=I18n.get();const c=CT[k];const box=document.getElementById('ctCard');
+ const idLabel=L==='zh'?'指認為':'Identifies';const scLabel=L==='zh'?'典型信心':'Typical confidence';
+ box.innerHTML='<span class="ct-emoji">'+c.emoji+'</span><div style="font-size:.78rem;color:var(--c-ink-muted);font-weight:600;">'+idLabel+' ('+g+')</div><div class="ct-name">'+c[L]+'</div><p style="margin:6px 0;">'+c[L+'_d']+'</p><div class="score-row"><span class="sr-label">'+scLabel+'</span><span class="score-bar"><span style="width:'+c.score+'%"></span></span><b>'+c.score+'%</b></div>';}
+chipBox.querySelectorAll('.marker-chip').forEach(b=>b.addEventListener('click',()=>{chipBox.querySelectorAll('.marker-chip').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderCt(b.dataset.k,b.dataset.g);}));
+document.addEventListener('langchange',()=>{const a=chipBox.querySelector('.marker-chip.active');if(a)renderCt(a.dataset.k,a.dataset.g);});
+renderCt('t','CD3D');
+
+// Dot-plot-style marker specificity chart
+const mkData={
+ markers:['CD3D','MS4A1','LYZ','PECAM1','EPCAM'],
+ groups_zh:['T 細胞','B 細胞','單核球','內皮細胞','上皮細胞'],
+ groups_en:['T cells','B cells','Monocytes','Endothelial','Epithelial'],
+ // rows = groups, cols = markers ; each group lights up its own marker
+ matrix:[
+  [4.6,0.3,0.5,0.2,0.1], // T
+  [0.4,4.4,0.6,0.2,0.2], // B
+  [0.5,0.5,4.8,0.3,0.2], // Mono
+  [0.2,0.2,0.4,4.5,0.4], // Endo
+  [0.1,0.2,0.3,0.5,4.7]  // Epi
+ ],
+ colors:['#5b3fb0','#2563a8','#1a6b5a','#c0392b','#d4a03c']
+};
+function mkDatasets(L){const g=L==='zh'?mkData.groups_zh:mkData.groups_en;return g.map((name,gi)=>({label:name,data:mkData.matrix[gi],backgroundColor:mkData.colors[gi]}));}
+const markerChart=new Chart(document.getElementById('markerChart'),{type:'bar',data:{labels:mkData.markers,datasets:mkDatasets(I18n.get())},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11}}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.parsed.y}}},scales:{y:{title:{display:true,text:'mean expr (illustrative)'},beginAtZero:true},x:{ticks:{font:{family:'monospace',size:11}}}}}});
+document.addEventListener('langchange',e=>{markerChart.data.datasets=mkDatasets(e.detail.lang);markerChart.update();});
+
+// Quiz
+const QF={
+ zh:{q1_y:'MetaReference 把你的細胞比對 100M+ 參考庫，做標籤轉移／最近參考匹配。',q1_n:'正確答案已標示。',q2_y:'MS4A1 (CD20) 與 CD79A 是可靠的 B 細胞 marker。',q2_n:'正確答案已標示。',q3_y:'低信心又無 marker 支持時，應驗證、標 unknown 或 subcluster，切勿盲目採納。',q3_n:'正確答案已標示。',q4_y:'同時「穿兩套制服」（CD3D+MS4A1 都高）又細胞數異常，最典型就是 doublet 造成的假中間態。',q4_n:'正確答案已標示。',q5_y:'PTPRC (CD45) 是所有免疫細胞共通的 marker，最適合先分「免疫 vs. 非免疫」。',q5_n:'正確答案已標示。'},
+ en:{q1_y:'MetaReference matches your cells to a 100M+ reference via label transfer / nearest-reference matching.',q1_n:'Correct answer highlighted.',q2_y:'MS4A1 (CD20) and CD79A are reliable B-cell markers.',q2_n:'Correct answer highlighted.',q3_y:'With low confidence and no marker support, validate, label unknown, or subcluster — never adopt blindly.',q3_n:'Correct answer highlighted.',q4_y:'Co-expressing two uniforms (CD3D+MS4A1 both high) plus abnormal counts is the classic signature of a doublet-driven fake intermediate.',q4_n:'Correct answer highlighted.',q5_y:'PTPRC (CD45) is shared by all immune cells — ideal for the first "immune vs. non-immune" split.',q5_n:'Correct answer highlighted.'}
+};
+document.querySelectorAll('.quiz-q').forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll('.quiz-opt').forEach(o=>{o.addEventListener('click',()=>{if(q.classList.contains('answered'))return;q.classList.add('answered');const fb=document.getElementById('fb'+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?'correct':'wrong');if(!ok)q.querySelectorAll('.quiz-opt')[ans].classList.add('correct');const L=I18n.get();fb.className='quiz-feedback show '+(ok?'correct-fb':'wrong-fb');fb.textContent=(ok?'✅ ':'❌ ')+(QF[L]['q'+(qi+1)+'_'+(ok?'y':'n')]||'');});});});
+</script>
+</body></html>
