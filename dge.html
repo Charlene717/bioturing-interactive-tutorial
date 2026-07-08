@@ -1,0 +1,433 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Differential Expression & Venice — BioTuring Tutorial</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>.page-hero{background:linear-gradient(160deg,#2b1a5e 0%,#3b2a86 35%,#5b3fb0 70%,#2563a8 100%)}
+.pattern-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:16px 0}
+.pattern-card{background:var(--c-surface);border:1px solid var(--c-border-light);border-radius:var(--radius-lg);padding:16px 18px;box-shadow:var(--shadow-sm)}
+.pattern-card .ptag{display:inline-block;font-family:var(--font-mono);font-weight:600;font-size:.78rem;padding:2px 10px;border-radius:6px;background:var(--c-accent-light);color:var(--c-accent-dark);margin-bottom:8px}
+.pattern-card h4{font-family:var(--font-display);font-size:1rem;margin-bottom:4px}
+.pattern-card p{font-size:.85rem;color:var(--c-ink-light);margin:0}
+.pattern-card .pex{display:block;margin-top:8px;font-size:.78rem;font-family:var(--font-mono);color:var(--c-highlight);background:var(--c-highlight-light);border-radius:6px;padding:6px 8px}
+.verdict{display:flex;gap:16px;flex-wrap:wrap;margin:14px 0}
+.verdict-box{flex:1;min-width:220px;padding:14px 18px;border-radius:var(--radius-lg);font-size:.9rem}
+.verdict-box .vlabel{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;opacity:.85}
+.verdict-box .vres{font-family:var(--font-display);font-size:1.15rem;font-weight:700}
+.verdict-mean{background:var(--c-danger-light);border-left:4px solid var(--c-danger);color:var(--c-danger)}
+.verdict-venice{background:var(--c-accent-light);border-left:4px solid var(--c-accent);color:var(--c-accent-dark)}
+.class-demo{display:flex;gap:16px;flex-wrap:wrap;margin:18px 0}
+.class-box{flex:1;min-width:240px;background:var(--c-surface);border:1px solid var(--c-border-light);border-radius:var(--radius-lg);padding:18px 20px;box-shadow:var(--shadow-sm)}
+.class-box h5{font-family:var(--font-display);font-size:1.05rem;margin-bottom:8px;color:var(--c-ink)}
+.class-scores{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}
+.class-scores span{font-family:var(--font-mono);font-size:.78rem;background:var(--c-surface-alt);border-radius:5px;padding:2px 7px;color:var(--c-ink-light)}
+.class-box .cmean{margin-top:8px;font-family:var(--font-mono);font-size:.85rem;font-weight:600;color:var(--c-accent-dark)}
+.vol-legend{display:flex;gap:14px;flex-wrap:wrap;margin:10px 0 4px;font-size:.82rem}
+.vol-legend span{display:inline-flex;align-items:center;gap:6px;color:var(--c-ink-light)}
+.vol-dot{width:11px;height:11px;border-radius:50%;display:inline-block}</style></head><body>
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="BioTuring 教學" data-en="BioTuring Tutorial">BioTuring 教學</span></a>
+  <ul class="top-nav-links"><li><a href="overview.html" data-zh="總覽" data-en="Overview">總覽</a></li><li><a href="import.html">Import</a></li><li><a href="qc.html">QC</a></li><li><a href="normalization.html">Norm.</a></li><li><a href="clustering.html">Cluster</a></li><li><a href="annotation.html">Annot.</a></li><li><a href="dge.html" class="active">DE</a></li><li><a href="trajectory.html">Traj.</a></li><li><a href="multimodal.html">Multi</a></li><li><a href="spatialx.html">SpatialX</a></li><li><a href="talk2data.html">Talk2Data</a></li><li><a href="references/index.html" data-zh="📚 參考資料" data-en="📚 References">📚 參考資料</a></li></ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">STEP 6 · <span data-zh="差異表達與 Venice" data-en="Differential Expression & Venice">差異表達與 Venice</span></div>
+<h1 data-zh="差異表達分析與 Venice 演算法" data-en="Differential Expression & the Venice Algorithm">差異表達分析與 Venice 演算法</h1>
+<p class="subtitle" data-lang="zh">找出區分細胞群或條件的 marker 基因——並理解為何 BioTuring 用「分佈」而非「平均」來定義差異。</p>
+<p class="subtitle" data-lang="en">Find the marker genes that distinguish a cluster or condition — and learn why BioTuring compares whole distributions, not just means.</p>
+</header>
+<main class="content-wrap">
+
+<section class="section">
+<div class="section-label" data-zh="核心直覺" data-en="THE BIG IDEA">核心直覺</div>
+<h2 data-zh="平均值會說謊" data-en="The Mean Can Lie">平均值會說謊</h2>
+<div data-lang="zh">
+<p>先講一個小故事。有兩個班級要考同一份數學考卷，最後<strong>全班平均都是 60 分</strong>。校長只看成績單上的「平均」，一句話就下結論：「這兩班程度一樣。」——但真的一樣嗎？</p>
+<p>走進教室你才發現：<strong>A 班</strong>每個人都考 58～62 分，整整齊齊擠在 60 分附近；<strong>B 班</strong>卻是一半的人考 0 分、另一半考 100 分，中間幾乎沒人。兩班的<strong>平均一模一樣</strong>，實際狀況卻天差地遠：一班是「大家都懂一半」，另一班是「一半人全懂、一半人全不懂」。這時候如果你只拿「平均」去比，會很有自信地說「沒差異」——而這個結論<strong>大錯特錯</strong>。</p>
+<p>這就是本頁的核心：<strong>平均值（mean）是一個會說謊的摘要</strong>。它把整群的複雜樣貌壓縮成一個數字，遇到「混合」的群體時，這個數字誰都不代表。而單細胞資料，恰恰就是最愛出現這種「B 班」的地方。</p>
+</div>
+<div data-lang="en">
+<p>Start with a little story. Two classes sit the same math exam, and both end up with a <strong>class average of 60</strong>. The principal glances at the mean on the report and declares: "These two classes are equally strong." — but are they, really?</p>
+<p>Walk into the rooms and you'll see the truth. In <strong>Class A</strong> everyone scored between 58 and 62, packed tightly around 60. In <strong>Class B</strong>, half the students scored 0 and the other half scored 100, with almost no one in between. The two <strong>means are identical</strong>, yet the realities could not be more different: one class is "everyone half-understands," the other is "half know everything, half know nothing." Compare them by the mean alone and you'll confidently announce "no difference" — a conclusion that is <strong>flatly wrong</strong>.</p>
+<p>That is the heart of this page: <strong>the mean is a summary that can lie</strong>. It squeezes a group's rich shape into one number, and when the group is a <em>mixture</em>, that number represents no one. And single-cell data is exactly where "Class B" shows up all the time.</p>
+</div>
+
+<div class="class-demo">
+<div class="class-box"><h5 data-zh="A 班｜大家都 ~60 分" data-en="Class A | everyone ~60">A 班｜大家都 ~60 分</h5>
+<div class="class-scores"><span>59</span><span>61</span><span>60</span><span>58</span><span>62</span><span>60</span><span>61</span><span>59</span><span>60</span><span>62</span></div>
+<div class="cmean" data-zh="平均 = 60　·　分佈：單峰、很集中" data-en="mean = 60 · shape: unimodal, tight">平均 = 60　·　分佈：單峰、很集中</div></div>
+<div class="class-box"><h5 data-zh="B 班｜一半 0、一半 100" data-en="Class B | half 0, half 100">B 班｜一半 0、一半 100</h5>
+<div class="class-scores"><span>0</span><span>100</span><span>0</span><span>100</span><span>0</span><span>100</span><span>0</span><span>100</span><span>0</span><span>100</span></div>
+<div class="cmean" data-zh="平均 = 60　·　分佈：雙峰、極端分裂" data-en="mean = 60 · shape: bimodal, split">平均 = 60　·　分佈：雙峰、極端分裂</div></div>
+</div>
+<div class="callout tip"><span class="callout-icon">🧠</span><div>
+<span data-lang="zh"><strong>把班級換成細胞：</strong>一個「class」就是一群細胞（一個 cluster 或一個實驗條件），每個「學生的分數」就是一個細胞裡某基因的表達量。B 班那種「一半 0、一半 100」在單細胞裡超常見——因為一群細胞往往是<strong>多種狀態的混合體</strong>（有些細胞開了這個基因、有些完全關著）。所以：<strong>要看差異，得看整條分佈，不能只看平均。</strong></span>
+<span data-lang="en"><strong>Now swap classes for cells:</strong> a "class" is a group of cells (a cluster or a condition), and each "student's score" is one gene's expression in one cell. That "half-0, half-100" pattern is everywhere in single cell, because a cell group is usually a <strong>mixture of states</strong> (some cells have the gene switched on, others fully off). So: <strong>to see a difference, look at the whole distribution — not just the mean.</strong></span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="目標" data-en="THE GOAL">目標</div>
+<h2 data-zh="一、差異表達分析在單細胞中的目標" data-en="I. What Differential Expression Is For">一、差異表達分析在單細胞中的目標</h2>
+<div data-lang="zh">
+<p>分群與註釋之後，一個關鍵問題是：<strong>是什麼基因讓這一群細胞與眾不同？</strong>差異表達分析（Differential Expression, DE）就是要找出這些 <strong>marker 基因</strong>——在某個 cluster（或某個實驗條件）中，表達顯著高於（或低於）其他細胞的基因。你可以把它想成幫每一群細胞<strong>找出「身分證上的特徵」</strong>：CD3 高 → 大概是 T 細胞；MS4A1 高 → 大概是 B 細胞。</p>
+<p>在 BBrowserX 裡，DE 有兩個典型用途：<strong>①</strong> <strong>Cluster marker</strong>——把一群 vs. 其餘所有細胞比較，得到定義該群的基因（也是自動註釋的依據）；<strong>②</strong> <strong>Condition comparison</strong>——把同一種細胞型在「處理 vs. 對照」「腫瘤 vs. 正常」之間比較，找出反應基因。操作上通常是：選取細胞群 → 選擇比較對象 → 選演算法 → 產生排序後的基因清單。</p>
+<p>舉個實戰數字：假設你有一個 12,000 顆細胞、18,000 個基因的資料集，你選出第 5 群（約 900 顆）去和其餘 11,100 顆比較，BBrowserX 會回傳一張<strong>每個基因一列</strong>的表——含效應大小（log2FC）、顯著性（p 值），你再排序、篩選，通常挑前 10～30 個 marker 來認這群到底是誰。</p>
+</div>
+<div data-lang="en">
+<p>After clustering and annotation, a central question remains: <strong>which genes make this group of cells distinct?</strong> Differential expression (DE) analysis finds those <strong>marker genes</strong> — genes expressed significantly higher (or lower) in one cluster (or one experimental condition) than in the rest. Think of it as printing each group's <strong>"ID-card features"</strong>: high CD3 → probably T cells; high MS4A1 → probably B cells.</p>
+<p>In BBrowserX, DE serves two typical purposes: <strong>(1)</strong> <strong>Cluster markers</strong> — comparing one group vs. all remaining cells to get the genes that define it (this also feeds auto-annotation); <strong>(2)</strong> <strong>Condition comparison</strong> — comparing the same cell type between "treated vs. control" or "tumor vs. normal" to find responding genes. The workflow is usually: select a cell group → choose what to compare against → pick a test → get a ranked gene list.</p>
+<p>A concrete number: say you have a dataset of 12,000 cells and 18,000 genes, and you pick cluster 5 (~900 cells) to compare against the remaining 11,100. BBrowserX returns a table with <strong>one row per gene</strong> — effect size (log2FC) and significance (p-value) — which you then sort and filter, usually taking the top 10–30 markers to work out who this cluster really is.</p>
+</div>
+<div class="callout tip"><span class="callout-icon">💡</span><div>
+<span data-lang="zh"><strong>選單名稱因版本而異：</strong>在不同 BBrowserX 版本中，這個功能可能出現在 <em>Differential Expression</em>、<em>Find Markers</em> 或 <em>Compare Groups</em> 等名稱下。找不到時，優先尋找可以「選群 → 比較」的面板。</span>
+<span data-lang="en"><strong>Menu names vary by version:</strong> depending on your BBrowserX build, this may appear as <em>Differential Expression</em>, <em>Find Markers</em>, or <em>Compare Groups</em>. If you can't find it, look for any panel that lets you "select a group → compare".</span>
+</div></div>
+<div class="callout warn"><span class="callout-icon">🎯</span><div>
+<span data-lang="zh"><strong>實戰情境：</strong>你剛把 PBMC（周邊血）資料分成 9 群，其中一群怎麼看都不確定是什麼。跑一次「這群 vs. 其餘」的 DE，前幾名 marker 冒出 <em>NKG7、GNLY、KLRD1</em>——這些是細胞毒殺性基因，於是你有信心把它標成 <strong>NK 細胞（自然殺手細胞）</strong>。DE 就是把「一團看不懂的點」翻譯成「有名字的細胞型」的關鍵一步。</span>
+<span data-lang="en"><strong>In practice:</strong> you've just split a PBMC (peripheral blood) dataset into 9 clusters, and one of them is a mystery. Run "this group vs. the rest," and the top markers come back as <em>NKG7, GNLY, KLRD1</em> — cytotoxic genes — so you can confidently label it <strong>NK cells (natural killers)</strong>. DE is the step that translates "a blob of dots" into "a cell type with a name."</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="方法選擇" data-en="THE METHODS">方法選擇</div>
+<h2 data-zh="二、標準統計檢定與 Venice" data-en="II. Standard Tests, and Venice">二、標準統計檢定與 Venice</h2>
+<div data-lang="zh"><p>BBrowserX 同時提供傳統的統計檢定與 BioTuring 自研的 <strong>Venice</strong>。你可以把它們想成三種「不同視力」的檢查員：</p>
+<ul style="color:var(--c-ink-light);margin:0 0 16px 20px;line-height:1.9">
+<li><strong>t-test</strong>——只量兩班的<strong>平均分數（mean）</strong>差多少，假設分數大致呈鐘形（近似常態 normal）。就像只看兩班平均分，不管分數怎麼分佈。</li>
+<li><strong>Wilcoxon rank-sum</strong>（Mann–Whitney U）——無母數（non-parametric）的秩檢定，比的是「把兩班的人排排站，A 班的人普遍站得比 B 班前面嗎？」也就是<strong>分佈的位置（中位數傾向）</strong>。它對<strong>離群值（outlier）</strong>比較不敏感（少數幾個超高分不會把它帶歪），是 scRNA-seq 常見預設。</li>
+<li><strong>Venice</strong>——BioTuring 自研，不看單一數字，而是把<strong>整條表達分佈</strong>攤開來一起比較——形狀、峰數、比例通通看。就像那個真的走進兩間教室、把每個人的分數都看過的老師。</li>
+</ul></div>
+<div data-lang="en"><p>BBrowserX offers both classical statistical tests and BioTuring's proprietary <strong>Venice</strong>. Picture them as three inspectors with different "eyesight":</p>
+<ul style="color:var(--c-ink-light);margin:0 0 16px 20px;line-height:1.9">
+<li><strong>t-test</strong> — only measures how far apart the two class <strong>means</strong> are, assuming scores are roughly bell-shaped (approximately <em>normal</em>). Like reading two class averages and ignoring how the scores spread.</li>
+<li><strong>Wilcoxon rank-sum</strong> (Mann–Whitney U) — a <em>non-parametric</em> rank test that asks "if we line everyone up, does Class A generally stand ahead of Class B?" — i.e. the <strong>location (median tendency)</strong> of the distribution. It's less sensitive to <strong>outliers</strong> (a few very high scores won't skew it) and is a common scRNA-seq default.</li>
+<li><strong>Venice</strong> — BioTuring's own method. Instead of one number, it lays out the <strong>whole expression distribution</strong> and compares everything — shape, number of peaks, proportions. Like the teacher who actually walked into both rooms and looked at every single score.</li>
+</ul></div>
+
+<div class="callout warn"><span class="callout-icon">⚠️</span><div>
+<span data-lang="zh"><strong>為什麼「平均值」不夠？</strong>傳統方法（Seurat、CellRanger、EdgeR）以「平均表達」定義差異。但一群細胞往往是<strong>多種細胞型／狀態的混合</strong>——例如一半細胞完全不表達某基因、另一半高度表達（正是我們的「B 班」）。這種群體的「平均值」誰都不代表。單一參數無法描述整個群體，這正是 Venice 想解決的問題。<strong>記住那句話：混合群體 → 平均值失真 → 需要看分佈。</strong></span>
+<span data-lang="en"><strong>Why isn't the mean enough?</strong> Conventional methods (Seurat, CellRanger, EdgeR) define DE by comparing <strong>mean</strong> expression. But a cell population is often a <strong>mixture of cell types/states</strong> — say half the cells don't express a gene at all while the other half express it highly (that's our "Class B"). The "mean" of such a population represents no one. A single parameter can't describe the whole population — exactly the problem Venice targets. <strong>The mantra: mixed population → mean distorts → look at the distribution.</strong></span>
+</div></div>
+
+<h3 data-zh="Venice 能辨識的四種差異型態" data-en="The four patterns Venice can detect">Venice 能辨識的四種差異型態</h3>
+<div data-lang="zh"><p>因為 Venice 比較的是整條分佈，它能區分出四類差異——其中三類是純平均檢定容易漏掉的。每一類都附一個「一句話定義 + 迷你例子」，幫你一眼記住：</p></div>
+<div data-lang="en"><p>Because Venice compares the whole distribution, it distinguishes four kinds of difference — three of which pure mean-based tests tend to miss. Each comes with a one-line definition and a tiny example to make it stick:</p></div>
+<div class="pattern-grid">
+<div class="pattern-card"><span class="ptag">DE</span><h4 data-zh="平均差異" data-en="Differential Expression">平均差異</h4><p data-lang="zh">兩組的平均表達不同——最經典的差異。</p><p data-lang="en">Classic DE: the two groups differ in mean expression.</p><span class="pex" data-lang="zh">例：A 平均 3.5、B 平均 6.5。整體都上調了。</span><span class="pex" data-lang="en">e.g. A averages 3.5, B averages 6.5 — shifted up overall.</span></div>
+<div class="pattern-card"><span class="ptag">DP</span><h4 data-zh="比例差異" data-en="Differential Proportion">比例差異</h4><p data-lang="zh">「表達 vs. 不表達」的細胞比例改變了，峰的位置沒變。</p><p data-lang="en">The fraction of expressing vs. silent cells changes, while the peak positions stay put.</p><span class="pex" data-lang="zh">例：A 有 35% 細胞開了某基因，B 變成 60%。</span><span class="pex" data-lang="en">e.g. 35% of A's cells switch the gene on, but 60% of B's do.</span></div>
+<div class="pattern-card"><span class="ptag">DM</span><h4 data-zh="型態差異" data-en="Differential Modality">型態差異</h4><p data-lang="zh">分佈的形狀／峰數不同——單峰 vs. 雙峰，平均卻可能一樣。</p><p data-lang="en">The shape / number of peaks differs — unimodal vs. bimodal — even if the means match.</p><span class="pex" data-lang="zh">例：A 集中在 5 附近，B 一半在 2、一半在 8（我們的 B 班）。</span><span class="pex" data-lang="en">e.g. A clusters near 5, B splits half at 2 and half at 8 (our Class B).</span></div>
+<div class="pattern-card"><span class="ptag">DB</span><h4 data-zh="型態＋平均" data-en="Both DM & DE">型態＋平均</h4><p data-lang="zh">同時有型態差異又有平均差異（DM + DE），最複雜的一種。</p><p data-lang="en">Both differential modality and differential expression at once — the most complex case.</p><span class="pex" data-lang="zh">例：A 單峰在 4；B 雙峰且整體也往上偏到平均 7。</span><span class="pex" data-lang="en">e.g. A is unimodal at 4; B is bimodal and also shifted up to a mean of 7.</span></div>
+</div>
+<div class="callout tip"><span class="callout-icon">🏆</span><div>
+<span data-lang="zh"><strong>Venice 的實績：</strong>在模擬資料上與 <strong>15 種方法</strong>比較，Venice 取得<strong>最佳 AUC</strong>（AUC 越接近 1，代表越能把「真的有差異」和「沒差異」分辨清楚）。它是<strong>開源、學術免費</strong>的，內建於 BioTuring 的 <strong>Signac</strong> 套件中。論文：Nguyen et al., <em>Venice: A New Algorithm for Finding Marker Genes in Single-Cell Transcriptomic Data</em>, bioRxiv 2020, DOI 10.1101/2020.11.16.384479。</span>
+<span data-lang="en"><strong>Venice's track record:</strong> benchmarked against <strong>15 methods</strong> on simulated data, Venice achieved the <strong>best AUC</strong> (the closer AUC is to 1, the better it separates "truly different" from "not different"). It is <strong>open-source and free for academics</strong>, built into BioTuring's <strong>Signac</strong> package. Paper: Nguyen et al., <em>Venice: A New Algorithm for Finding Marker Genes in Single-Cell Transcriptomic Data</em>, bioRxiv 2020, DOI 10.1101/2020.11.16.384479.</span>
+</div></div>
+<div class="callout warn"><span class="callout-icon">🔬</span><div>
+<span data-lang="zh"><strong>專家小撇步——為什麼 scRNA-seq 特別需要看分佈？</strong>單細胞資料充滿「零」：因為技術限制（沒抓到那個 mRNA），或因為那顆細胞真的沒表達，很多基因在很多細胞裡都是 0。這種「一堆 0 加上一小撮高值」天生就是雙峰、天生就是混合。這正是 DP 與 DM 型態的溫床——也正是只看平均的檢定最容易翻船的地方。</span>
+<span data-lang="en"><strong>Pro tip — why scRNA-seq especially needs distributions:</strong> single-cell data is full of zeros — either technical (the mRNA wasn't captured) or true (the cell really doesn't express it). Many genes read 0 in many cells. This "pile of zeros plus a small cluster of high values" is inherently bimodal, inherently mixed — a breeding ground for DP and DM patterns, and exactly where mean-only tests capsize.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="互動" data-en="INTERACTIVE">互動</div>
+<h2 data-zh="三、互動：同樣平均、不同分佈" data-en="III. Interactive: Same Mean, Different Distribution">三、互動：同樣平均、不同分佈</h2>
+<div data-lang="zh"><p>紙上談兵不如親眼看到。下面兩條曲線代表某基因在 <strong>Group A</strong> 與 <strong>Group B</strong> 的表達分佈（合成資料）。切換情境，觀察一個<strong>只看平均</strong>的檢定與 <strong>Venice（看整條分佈）</strong>會給出<strong>截然不同的判定</strong>。特別留意頭兩個情境：拖動滑桿讓兩組的<strong>平均值幾乎相同</strong>（μ(A) ≈ μ(B)），t-test 會攤手說「沒差異」，Venice 卻能抓到形狀或比例的破綻。</p></div>
+<div data-lang="en"><p>Seeing beats telling. The two curves below show a gene's expression distribution in <strong>Group A</strong> and <strong>Group B</strong> (synthetic data). Toggle the scenario and watch a <strong>mean-only</strong> test and <strong>Venice (whole distribution)</strong> reach <strong>opposite verdicts</strong>. Watch the first two scenarios especially: drag the slider so the two means are <strong>nearly identical</strong> (μ(A) ≈ μ(B)) — the t-test shrugs "no difference," yet Venice catches the giveaway in shape or proportion.</p></div>
+<div class="interactive-panel">
+<div class="toggle-row" id="scenPick">
+  <button class="toggle-btn active" data-k="bimodal"><span data-zh="雙峰 vs 單峰（DM）" data-en="Bimodal vs unimodal (DM)">雙峰 vs 單峰（DM）</span></button>
+  <button class="toggle-btn" data-k="fraction"><span data-zh="表達細胞比例不同（DP）" data-en="Different expressing fraction (DP)">表達細胞比例不同（DP）</span></button>
+  <button class="toggle-btn" data-k="truede"><span data-zh="真正的平均差異（DE）" data-en="A true mean shift (DE)">真正的平均差異（DE）</span></button>
+</div>
+<div class="slider-group"><label><span data-zh="分佈分離程度" data-en="Separation of the two modes">分佈分離程度</span><span id="sepVal">1.8</span></label>
+<input type="range" id="sepSlider" min="0" max="30" value="18"></div>
+<div class="chart-container" style="height:300px;"><canvas id="distChart"></canvas></div>
+<div class="sim-stats">
+  <div class="sim-stat pass" id="statMeanA">μ(A) = –</div>
+  <div class="sim-stat pass" id="statMeanB">μ(B) = –</div>
+</div>
+<div class="verdict">
+  <div class="verdict-box verdict-mean"><div class="vlabel" data-zh="只看平均的檢定（t-test）" data-en="Mean-based test (t-test)">只看平均的檢定（t-test）</div><div class="vres" id="verdictMean">–</div></div>
+  <div class="verdict-box verdict-venice"><div class="vlabel" data-zh="Venice（看整條分佈）" data-en="Venice (whole distribution)">Venice（看整條分佈）</div><div class="vres" id="verdictVenice">–</div></div>
+</div>
+<p style="font-size:.85rem;color:var(--c-ink-light);margin:10px 0 0" data-lang="zh"><strong>怎麼玩：</strong>在「雙峰 vs 單峰」情境，把滑桿拉大——B 組會裂成兩座山，但 <span style="font-family:var(--font-mono)">μ(A)</span> 與 <span style="font-family:var(--font-mono)">μ(B)</span> 幾乎黏在一起。這時 t-test 判「無差異」（紅框），Venice 卻標記 <strong>DM</strong>（綠框）。這，就是「平均值會說謊」的活生生示範。</p>
+<p style="font-size:.85rem;color:var(--c-ink-light);margin:10px 0 0" data-lang="en"><strong>Try this:</strong> in "bimodal vs unimodal," push the slider up — Group B splits into two hills, yet <span style="font-family:var(--font-mono)">μ(A)</span> and <span style="font-family:var(--font-mono)">μ(B)</span> stay glued together. The t-test calls "no difference" (red box) while Venice flags <strong>DM</strong> (green box). That's "the mean can lie," live.</p>
+<p style="font-size:.8rem;color:var(--c-ink-muted);margin:6px 0 0" data-lang="zh">合成示意圖，僅用於說明概念，非真實統計輸出。</p>
+<p style="font-size:.8rem;color:var(--c-ink-muted);margin:6px 0 0" data-lang="en">Synthetic illustration for intuition only — not a real statistical output.</p>
+</div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="對照" data-en="COMPARISON">對照</div>
+<h2 data-zh="四、Venice vs. t-test / Wilcoxon" data-en="IV. Venice vs. t-test / Wilcoxon">四、Venice vs. t-test / Wilcoxon</h2>
+<table class="comp-table">
+<thead><tr>
+<th data-zh="方法" data-en="Method">方法</th>
+<th data-zh="它比較什麼" data-en="What it compares">它比較什麼</th>
+<th data-zh="能／不能捕捉" data-en="Captures / misses">能／不能捕捉</th>
+</tr></thead>
+<tbody>
+<tr><td data-zh="t-test" data-en="t-test"><strong>t-test</strong></td><td data-lang="zh">兩組表達的<strong>平均值</strong></td><td data-lang="zh">✅ 平均差異；❌ 型態(DM)、比例(DP) 差異；對離群值與非常態敏感</td><td data-lang="en">Mean expression of two groups</td><td data-lang="en">✅ mean shifts; ❌ modality (DM) & proportion (DP); sensitive to outliers/non-normality</td></tr>
+<tr><td data-zh="Wilcoxon" data-en="Wilcoxon"><strong>Wilcoxon</strong></td><td data-lang="zh">分佈的<strong>位置（秩／中位數傾向）</strong></td><td data-lang="zh">✅ 位置移動、對離群穩健；❌ 相同中位但不同型態的分佈</td><td data-lang="en">Distribution location (rank/median)</td><td data-lang="en">✅ location shifts, robust to outliers; ❌ same-median but different-shape distributions</td></tr>
+<tr><td data-zh="Venice" data-en="Venice"><strong>Venice</strong></td><td data-lang="zh"><strong>完整的表達分佈</strong></td><td data-lang="zh">✅ DE + DP + DM + DB 四型態；適合混合群體；模擬資料最佳 AUC</td><td data-lang="en"><strong>The full expression distribution</strong></td><td data-lang="en">✅ all four — DE + DP + DM + DB; suited to mixed populations; best AUC on simulated data</td></tr>
+</tbody></table>
+
+<div data-lang="zh"><p>用一句話收束：<strong>t-test 看「平均」，Wilcoxon 看「位置」，Venice 看「整條分佈」。</strong>視野越寬，能抓到的真實差異就越多——但也別忘了，看得越細，你越需要對結果的生物意義做判斷（見第六節）。</p></div>
+<div data-lang="en"><p>In one line: <strong>t-test looks at the "mean," Wilcoxon at the "location," Venice at the "whole distribution."</strong> The wider the view, the more real differences you catch — but remember, the finer the lens, the more you must judge the biological meaning of what it finds (see Section VI).</p></div>
+
+<div class="decision-tree"><h4 data-zh="🌳 我該選哪個檢定？" data-en="🌳 Which test should I pick?">🌳 我該選哪個檢定？</h4>
+<div class="dt-node"><span class="dt-q" data-zh="想要" data-en="Want">想要</span><span class="dt-arrow">→</span><span data-lang="zh"><strong>快速、穩健的 cluster marker 預設</strong>？用 <strong>Wilcoxon</strong>（多數 scRNA 流程的預設）。</span><span data-lang="en"><strong>a fast, robust default for cluster markers</strong>? Use <strong>Wilcoxon</strong> (the default in most scRNA pipelines).</span></div>
+<div class="dt-node"><span class="dt-q" data-zh="擔心" data-en="Worry">擔心</span><span class="dt-arrow">→</span><span data-lang="zh">群體是<strong>混合細胞型／雙峰表達</strong>，怕漏掉分佈型態差異？用 <strong>Venice</strong>。</span><span data-lang="en">the group is a <strong>mixture / bimodal</strong> and you'd miss distributional differences? Use <strong>Venice</strong>.</span></div>
+<div class="dt-node"><span class="dt-q" data-zh="需要" data-en="Need">需要</span><span class="dt-arrow">→</span><span data-lang="zh">與教科書／舊分析<strong>對齊</strong>、假設近常態？可用 <strong>t-test</strong>，但留意其侷限。</span><span data-lang="en">to <strong>align</strong> with textbook/legacy analyses under near-normal assumptions? <strong>t-test</strong> works, but mind its limits.</span></div>
+</div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="解讀" data-en="READING RESULTS">解讀</div>
+<h2 data-zh="五、看懂結果：log2FC、adjusted p 與火山圖" data-en="V. Reading Results: log2FC, adjusted p, Volcano">五、看懂結果：log2FC、adjusted p 與火山圖</h2>
+<div data-lang="zh"><p>跑完 DE，你會拿到一張長長的表。看懂它只要抓兩個數字：<strong>「差多少」（效應大小）</strong>和<strong>「多有把握」（統計顯著性）</strong>。這兩件事分別對應 log2FC 和 adjusted p 值——它們回答不同問題，缺一不可。</p></div>
+<div data-lang="en"><p>After DE you get a long table. Reading it comes down to two numbers: <strong>"how big is the difference" (effect size)</strong> and <strong>"how sure are we" (statistical significance)</strong>. These map to log2FC and the adjusted p-value — they answer different questions, and you need both.</p></div>
+<div class="card-grid cols-2">
+<div class="card"><div class="card-icon">📈</div><h4>log2 Fold Change</h4>
+<div data-lang="zh"><p><strong>log2FC</strong> 是表達倍率變化取以 2 為底的對數：<strong>+1</strong> 代表 A 組表達為 B 組的 2 倍、<strong>+2</strong> 為 4 倍、<strong>+3</strong> 為 8 倍、<strong>−1</strong> 為一半。它衡量<strong>效果大小（方向與幅度）</strong>，正值＝在該群上調、負值＝下調、0＝沒變。<br><em>為什麼取 log？</em>因為 2 倍和一半在生物上「一樣大」但方向相反，取 log2 之後剛好是 +1 與 −1，對稱好讀。</p></div>
+<div data-lang="en"><p><strong>log2FC</strong> is the fold change on a base-2 log scale: <strong>+1</strong> means A is 2× B, <strong>+2</strong> is 4×, <strong>+3</strong> is 8×, <strong>−1</strong> is half. It measures <strong>effect size (direction & magnitude)</strong>; positive = up-regulated, negative = down, 0 = unchanged.<br><em>Why log?</em> Because "2×" and "half" are equally large in opposite directions — on the log2 scale they become a tidy, symmetric +1 and −1.</p></div></div>
+<div class="card"><div class="card-icon">🎯</div><h4 data-zh="校正後 p 值" data-en="Adjusted p-value">校正後 p 值</h4>
+<div data-lang="zh"><p>單細胞一次檢定數千個基因，必須做<strong>多重檢定校正</strong>（如 Benjamini–Hochberg FDR）。<em>為什麼？</em>假設你測 18,000 個基因、就算<strong>全都沒差異</strong>，用 p&lt;0.05 也會純粹靠運氣冒出約 900 個「假陽性」。校正就是把這種「檢定太多次」的僥倖扣掉。請用 <strong>adjusted p（q 值）</strong>而非原始 p 篩選，常見門檻 &lt; 0.05。它衡量的是<strong>統計顯著性</strong>，不是效果大小。</p></div>
+<div data-lang="en"><p>Single-cell DE tests thousands of genes at once, so you must apply <strong>multiple-testing correction</strong> (e.g. Benjamini–Hochberg FDR). <em>Why?</em> Test 18,000 genes and, even if <strong>none truly differ</strong>, a p&lt;0.05 cutoff throws up about 900 "false positives" by luck alone. Correction discounts that "too-many-tests" fluke. Filter on the <strong>adjusted p (q-value)</strong>, not the raw p — a common cutoff is &lt; 0.05. It measures <strong>statistical significance</strong>, not effect size.</p></div></div>
+</div>
+<div class="callout tip"><span class="callout-icon">🌋</span><div>
+<span data-lang="zh"><strong>火山圖 (Volcano plot)：</strong>把 <strong>log2FC（x 軸）</strong>對 <strong>−log10(adjusted p)（y 軸）</strong>作圖。名字很浪漫——因為圖形常像一座噴發的火山：中間一團「沒差異」的基因構成火山口，兩側往上噴出的點就是有意義的 marker。x 軸越往右＝在該群上調越多、越往左＝下調越多；y 軸越高＝越顯著。所以<strong>右上角</strong>（大幅上調且高度顯著）與<strong>左上角</strong>（大幅下調且高度顯著）的點，就是最值得注意的 marker。BBrowserX 產出的 DE 表可直接排序或畫成火山圖。</span>
+<span data-lang="en"><strong>Volcano plot:</strong> plot <strong>log2FC (x-axis)</strong> against <strong>−log10(adjusted p) (y-axis)</strong>. The name is fitting — the shape often looks like an erupting volcano: a crater of "no-difference" genes in the middle, with meaningful markers spraying up the sides. Right on x = more up-regulated, left = more down; higher on y = more significant. So points in the <strong>upper-right</strong> (strongly up and highly significant) and <strong>upper-left</strong> (strongly down and highly significant) are the markers most worth your attention. BBrowserX's DE table can be sorted or drawn as a volcano plot directly.</span>
+</div></div>
+
+<div data-lang="zh"><p>下面是一張示意火山圖。灰點是「沒過關」的基因，綠點是<strong>上調 marker</strong>，紅點是<strong>下調 marker</strong>——注意它們都同時滿足「x 軸夠遠（效應大）」和「y 軸夠高（夠顯著）」兩個條件。</p></div>
+<div data-lang="en"><p>Below is a schematic volcano plot. Grey dots are genes that "don't pass"; green dots are <strong>up-regulated markers</strong>, red dots are <strong>down-regulated markers</strong> — note they satisfy both "far enough on x (big effect)" and "high enough on y (significant)."</p></div>
+<div class="vol-legend">
+<span><i class="vol-dot" style="background:#1a6b5a"></i><span data-zh="上調 marker" data-en="up-regulated marker">上調 marker</span></span>
+<span><i class="vol-dot" style="background:#c0392b"></i><span data-zh="下調 marker" data-en="down-regulated marker">下調 marker</span></span>
+<span><i class="vol-dot" style="background:#b8b2a2"></i><span data-zh="未達門檻" data-en="below threshold">未達門檻</span></span>
+</div>
+<div class="chart-container" style="height:320px;"><canvas id="volChart"></canvas></div>
+
+<div class="callout danger"><span class="callout-icon">⚠️</span><div>
+<span data-lang="zh"><strong>兩個常見陷阱：</strong><br><strong>①</strong> <em>統計顯著 ≠ 生物重要</em>。單細胞動輒上萬個細胞，樣本一多，微小到沒意義的差異也能有極小的 p 值。譬如某基因 log2FC 只有 0.05（幾乎沒變）卻因為 12,000 顆細胞而 q 值 &lt; 0.001——顯著，但生物上根本不重要。務必同時看 <strong>log2FC 的幅度</strong>與生物脈絡，別被超小 p 值沖昏頭。<br><strong>②</strong> <em>Pseudoreplication（偽重複）</em>。當你比較「條件」（如 patient vs. control）時，若把每個細胞當成獨立樣本，等於把「樣本數 n」從「3 個病人」灌水成「幾萬顆細胞」，p 值會嚴重高估、假陽性爆量。真正的重複單位是<strong>個體（病人）</strong>，不是細胞。跨樣本比較時，應以<strong>樣本（個體）</strong>為統計單位——常見作法是 <strong>pseudobulk</strong>：先把每位病人同型細胞的表達加總成一個「假 bulk」樣本，再做組間比較。</span>
+<span data-lang="en"><strong>Two common pitfalls:</strong><br><strong>(1)</strong> <em>Statistical significance ≠ biological importance.</em> With tens of thousands of cells, a big sample size makes even trivial differences yield tiny p-values. A gene with log2FC of just 0.05 (barely moved) can still hit q &lt; 0.001 thanks to 12,000 cells — significant, but biologically meaningless. Always read the <strong>magnitude of log2FC</strong> alongside biological context; don't be dazzled by a microscopic p.<br><strong>(2)</strong> <em>Pseudoreplication.</em> When comparing <em>conditions</em> (e.g. patient vs. control), treating each cell as an independent sample inflates your "n" from "3 patients" to "tens of thousands of cells," grossly overstating significance and flooding you with false positives. The true replicate unit is the <strong>individual (patient)</strong>, not the cell. For cross-sample comparisons the statistical unit should be the <strong>sample (individual)</strong> — commonly via <strong>pseudobulk</strong>: sum each patient's same-type cells into one "pseudo-bulk" sample, then compare across groups.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="從清單到故事" data-en="FROM LIST TO STORY">從清單到故事</div>
+<h2 data-zh="六、拿到 marker 清單之後：怎麼變成生物學結論" data-en="VI. After the Marker List: Turning Genes into Biology">六、拿到 marker 清單之後：怎麼變成生物學結論</h2>
+<div data-lang="zh"><p>DE 表本身只是原料，不是結論。一份漂亮的 marker 清單，還要經過幾道「加工」才會變成能寫進論文的生物學故事。把它想成從「一籃食材」到「一道菜」的過程：</p></div>
+<div data-lang="en"><p>A DE table is raw material, not a conclusion. A pretty marker list needs a few more "processing" steps before it becomes a biology story you can write into a paper. Think of it as going from "a basket of ingredients" to "a finished dish":</p></div>
+<div class="workflow">
+<div class="workflow-step" data-step="1"><h4 data-zh="① 排序與篩選" data-en="① Sort & filter">① 排序與篩選</h4>
+<div data-lang="zh"><p>先用 adjusted p &lt; 0.05 濾掉雜訊，再依 log2FC 排序。通常取<strong>正向 top 10～30</strong> 當該群的招牌 marker。祕訣：同時要求「表達細胞比例（pct）夠高」——一個只在 3% 細胞出現的基因，就算 log2FC 很大也不太適合當群體 marker。</p></div>
+<div data-lang="en"><p>First filter out noise with adjusted p &lt; 0.05, then sort by log2FC. Usually take the <strong>top 10–30 positive</strong> genes as the group's signature markers. Tip: also require a high "percent expressing (pct)" — a gene seen in only 3% of cells is a poor group marker even with a big log2FC.</p></div></div>
+<div class="workflow-step" data-step="2"><h4 data-zh="② 用小提琴圖／熱圖驗證" data-en="② Verify with violins & heatmaps">② 用小提琴圖／熱圖驗證</h4>
+<div data-lang="zh"><p>別只信數字。把 top marker 畫成 <strong>violin plot（小提琴圖）</strong>或 <strong>heatmap（熱圖）</strong>，親眼確認它真的只在目標群「亮」起來。這一步常常能揪出「其實在好幾群都高」的假 marker——正好呼應本頁主題：<strong>看形狀，別只看數字。</strong></p></div>
+<div data-lang="en"><p>Don't trust numbers alone. Draw top markers as <strong>violin plots</strong> or a <strong>heatmap</strong> and confirm they really "light up" only in the target group. This step often exposes fake markers that are actually high in several groups — echoing this page's theme: <strong>look at the shape, not just the number.</strong></p></div></div>
+<div class="workflow-step" data-step="3"><h4 data-zh="③ 認出細胞型或功能" data-en="③ Name the cell type or program">③ 認出細胞型或功能</h4>
+<div data-lang="zh"><p>把 top marker 對照已知的細胞型標記（如 CD3D→T、LYZ→單核球）或功能程式（如 interferon 反應基因一起上升）。BBrowserX 的自動註釋與 MetaReference（建於 1 億+ 細胞）可以幫你加速這一步。</p></div>
+<div data-lang="en"><p>Match top markers against known cell-type markers (e.g. CD3D→T cells, LYZ→monocytes) or functional programs (e.g. a coordinated rise in interferon-response genes). BBrowserX's auto-annotation and MetaReference (built on 100M+ cells) can accelerate this step.</p></div></div>
+<div class="workflow-step" data-step="4"><h4 data-zh="④ 富集分析放大格局" data-en="④ Zoom out with enrichment">④ 富集分析放大格局</h4>
+<div data-lang="zh"><p>單一基因說一個字，一群基因才說一句話。把上調 marker 丟進<strong>基因集富集（GSEA / pathway enrichment）</strong>，看看它們是否集中在某條路徑（如「T 細胞活化」「氧化磷酸化」），這才是能寫進 abstract 的層級結論。</p></div>
+<div data-lang="en"><p>One gene says a word; a set of genes says a sentence. Feed the up-regulated markers into <strong>gene-set enrichment (GSEA / pathway enrichment)</strong> to see if they concentrate in a pathway (e.g. "T-cell activation," "oxidative phosphorylation") — that's the abstract-worthy, higher-level conclusion.</p></div></div>
+</div>
+<div class="callout tip"><span class="callout-icon">🧭</span><div>
+<span data-lang="zh"><strong>一句話帶走：</strong>DE 找出「哪些基因不同」，但「不同得有沒有意義」要靠你把效應大小、表達比例、視覺化、與生物脈絡兜在一起判斷。工具給你候選，科學家給結論。</span>
+<span data-lang="en"><strong>One takeaway:</strong> DE tells you "which genes differ," but "whether the difference matters" is your call — made by weaving together effect size, expressing fraction, visualization, and biological context. The tool gives candidates; the scientist gives conclusions.</span>
+</div></div>
+</section>
+
+<section class="quiz-section">
+<h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">1. Venice 相較傳統方法（Seurat/CellRanger/EdgeR）最核心的差別是什麼？</p>
+<p data-lang="en">1. What is the core difference between Venice and conventional methods (Seurat/CellRanger/EdgeR)?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. Venice 只比較中位數</span><span data-lang="en">A. Venice only compares medians</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. Venice 不需要多重檢定校正</span><span data-lang="en">B. Venice needs no multiple-testing correction</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. Venice 比較整條表達分佈，而非單一平均值</span><span data-lang="en">C. Venice compares the whole distribution, not a single mean</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. Venice 只能用在空間資料</span><span data-lang="en">D. Venice only works on spatial data</span></div>
+</div><div class="quiz-feedback" id="fb1"></div></div>
+
+<div class="quiz-q" data-answer="1">
+<p data-lang="zh">2. 某基因在兩組的<strong>平均表達幾乎相同</strong>，但一組為雙峰、另一組為單峰。哪種檢定最可能標記出這個差異？</p>
+<p data-lang="en">2. A gene has <strong>nearly identical mean</strong> in two groups, but one is bimodal and the other unimodal. Which test is most likely to flag this?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. t-test</span><span data-lang="en">A. t-test</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. Venice（能捕捉 DM 型態差異）</span><span data-lang="en">B. Venice (captures DM / modality)</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 三者結果都相同</span><span data-lang="en">C. All three give the same result</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 沒有方法能偵測</span><span data-lang="en">D. No method can detect it</span></div>
+</div><div class="quiz-feedback" id="fb2"></div></div>
+
+<div class="quiz-q" data-answer="0">
+<p data-lang="zh">3. 你比較「病人 vs. 健康對照」的 T 細胞，得到極小的 p 值。要避免哪個陷阱？</p>
+<p data-lang="en">3. Comparing T cells in "patients vs. healthy controls" you get a tiny p-value. Which pitfall must you avoid?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. Pseudoreplication——應以樣本（個體）為統計單位，而非每個細胞</span><span data-lang="en">A. Pseudoreplication — use samples (individuals) as the unit, not each cell</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 應該不做任何校正</span><span data-lang="en">B. You should skip all correction</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. log2FC 越小越可信</span><span data-lang="en">C. Smaller log2FC is more trustworthy</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 極小 p 值一定代表生物重要</span><span data-lang="en">D. A tiny p-value always means biological importance</span></div>
+</div><div class="quiz-feedback" id="fb3"></div></div>
+
+<div class="quiz-q" data-answer="3">
+<p data-lang="zh">4. 火山圖 (Volcano plot) 上，哪個位置的點是「最值得注意的上調 marker」？</p>
+<p data-lang="en">4. On a volcano plot, which position holds the "most noteworthy up-regulated markers"?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 正中央（火山口）</span><span data-lang="en">A. Dead center (the crater)</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 最底部、靠近 y=0</span><span data-lang="en">B. Bottom, near y=0</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 左上角（大幅下調且顯著）</span><span data-lang="en">C. Upper-left (strongly down & significant)</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 右上角（大幅上調且高度顯著）</span><span data-lang="en">D. Upper-right (strongly up & highly significant)</span></div>
+</div><div class="quiz-feedback" id="fb4"></div></div>
+
+<div class="quiz-q" data-answer="1">
+<p data-lang="zh">5. 某基因 log2FC = +0.04，但因為資料有 15,000 顆細胞而 adjusted p &lt; 0.001。最合理的解讀是？</p>
+<p data-lang="en">5. A gene has log2FC = +0.04 but, thanks to 15,000 cells, adjusted p &lt; 0.001. The most sensible reading is?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 效應很大，一定是關鍵 marker</span><span data-lang="en">A. Huge effect — definitely a key marker</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 統計顯著但效應極小，生物意義可能不大</span><span data-lang="en">B. Statistically significant but tiny effect — likely little biological meaning</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. p 值這麼小，log2FC 可以忽略</span><span data-lang="en">C. With such a small p, log2FC can be ignored</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 這代表資料一定有錯</span><span data-lang="en">D. This must mean the data is broken</span></div>
+</div><div class="quiz-feedback" id="fb5"></div></div>
+</section>
+
+<nav class="page-nav">
+<a href="annotation.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Prev">← 上一步</span><span class="nav-title" data-zh="Step 5: 細胞註釋" data-en="Step 5: Cell Annotation">Step 5: 細胞註釋 / Cell Annotation</span></a>
+<a href="trajectory.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="軌跡與細胞通訊" data-en="Trajectory & Cell Communication">軌跡與細胞通訊 / Trajectory &amp; Cell Communication</span></a>
+</nav>
+</main>
+<footer class="site-footer">© Charlene — BioTuring Interactive Tutorial · <span data-zh="教學用途，非 BioTuring 官方文件" data-en="Educational use — not official BioTuring documentation">教學用途，非 BioTuring 官方文件</span></footer>
+<script src="i18n.js"></script>
+<script>
+window.addEventListener('scroll',()=>{const h=document.documentElement;document.getElementById('progressBar').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+'%';});
+
+// ---- Distribution demo (synthetic) ----
+const X=[];for(let i=0;i<=100;i++)X.push(i/10); // 0..10
+function gauss(x,mu,sig){return Math.exp(-((x-mu)**2)/(2*sig*sig))/(sig*Math.sqrt(2*Math.PI));}
+function curveBimodal(sep){ // group B is bimodal, mean held ~=5
+  const s=sep/10; const lo=5-2.4*Math.max(s,0.15), hi=5+2.4*Math.max(s,0.15);
+  return X.map(x=>0.5*gauss(x,lo,0.9)+0.5*gauss(x,hi,0.9));
+}
+function curveUni(){return X.map(x=>gauss(x,5,1.4));} // unimodal, mean 5
+function curveFracHi(sep){ // most cells at 0, a fraction high; sep raises the high peak's separation
+  const f=0.35+sep/60; const hp=5+sep/8;
+  return X.map(x=>(1-f)*gauss(x,0.5,0.6)+f*gauss(x,hp,1.0));
+}
+function curveFracLo(sep){ const f=0.35+sep/60; const hp=5+sep/8;
+  return X.map(x=>(1-f+0.18)*gauss(x,0.5,0.6)+(f-0.18)*gauss(x,hp,1.0));
+}
+function mean(vals){let s=0,w=0;for(let i=0;i<X.length;i++){s+=X[i]*vals[i];w+=vals[i];}return s/w;}
+
+const SCEN={
+  bimodal:{
+    a:s=>curveUni(), b:s=>curveBimodal(s),
+    mean:'≈ 相同 / ≈ equal', meanEn:'≈ equal',
+    verdictMean:{zh:'不顯著 · 判為「無差異」',en:'Not significant · calls "no difference"'},
+    verdictVenice:{zh:'顯著 · DM 型態差異',en:'Significant · DM (differential modality)'}
+  },
+  fraction:{
+    a:s=>curveFracLo(s), b:s=>curveFracHi(s),
+    verdictMean:{zh:'邊緣／常漏 · 平均差異微小',en:'Marginal / often missed · tiny mean gap'},
+    verdictVenice:{zh:'顯著 · DP 比例差異',en:'Significant · DP (differential proportion)'}
+  },
+  truede:{
+    a:s=>X.map(x=>gauss(x,3.5,1.3)), b:s=>X.map(x=>gauss(x,6.5,1.3)),
+    verdictMean:{zh:'顯著 · 明確平均差異',en:'Significant · clear mean shift'},
+    verdictVenice:{zh:'顯著 · DE 平均差異',en:'Significant · DE (mean shift)'}
+  }
+};
+let scen='bimodal';
+const distChart=new Chart(document.getElementById('distChart'),{
+  type:'line',
+  data:{labels:X,datasets:[
+    {label:'Group A',data:[],borderColor:'#5b3fb0',backgroundColor:'rgba(91,63,176,.15)',fill:true,tension:.35,pointRadius:0,borderWidth:2},
+    {label:'Group B',data:[],borderColor:'#2563a8',backgroundColor:'rgba(37,99,168,.15)',fill:true,tension:.35,pointRadius:0,borderWidth:2}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{position:'top'},tooltip:{enabled:false}},
+    scales:{x:{title:{display:true,text:I18n?I18n.get()==='zh'?'表達量 (log)':'expression (log)':'expression'},ticks:{maxTicksLimit:6}},
+      y:{title:{display:true,text:I18n&&I18n.get()==='zh'?'細胞密度':'cell density'},ticks:{display:false}}}}
+});
+function render(){
+  const s=+document.getElementById('sepSlider').value;
+  document.getElementById('sepVal').textContent=(s/10).toFixed(1);
+  const cfg=SCEN[scen];
+  const a=cfg.a(s), b=cfg.b(s);
+  distChart.data.datasets[0].data=a; distChart.data.datasets[1].data=b;
+  distChart.update();
+  const L=I18n.get();
+  document.getElementById('statMeanA').textContent='μ(A) = '+mean(a).toFixed(2);
+  document.getElementById('statMeanB').textContent='μ(B) = '+mean(b).toFixed(2);
+  const dmean=Math.abs(mean(a)-mean(b));
+  const mEl=document.getElementById('statMeanA'), mEl2=document.getElementById('statMeanB');
+  const close=dmean<0.6;
+  [mEl,mEl2].forEach(e=>{e.className='sim-stat '+(close?'fail':'pass');});
+  document.getElementById('verdictMean').textContent=cfg.verdictMean[L];
+  document.getElementById('verdictVenice').textContent=cfg.verdictVenice[L];
+}
+document.getElementById('sepSlider').addEventListener('input',render);
+document.querySelectorAll('#scenPick .toggle-btn').forEach(btn=>btn.addEventListener('click',()=>{
+  document.querySelectorAll('#scenPick .toggle-btn').forEach(x=>x.classList.remove('active'));
+  btn.classList.add('active');scen=btn.dataset.k;render();
+}));
+
+// ---- Volcano plot (synthetic schematic) ----
+function volPoints(){
+  // deterministic pseudo-random for reproducibility
+  let seed=42; const rnd=()=>{seed=(seed*1103515245+12345)&0x7fffffff;return seed/0x7fffffff;};
+  const grey=[],up=[],down=[];
+  for(let i=0;i<220;i++){
+    // most genes: small fc, low significance (crater)
+    const fc=(rnd()-0.5)*2.4; const sig=Math.abs((rnd()-0.5))*2.2+rnd()*0.6;
+    if(fc>1.0&&sig>2.4){up.push({x:fc,y:sig});}
+    else if(fc<-1.0&&sig>2.4){down.push({x:fc,y:sig});}
+    else{grey.push({x:fc,y:sig});}
+  }
+  // ensure a few strong markers up top
+  up.push({x:2.6,y:6.2},{x:2.0,y:5.1},{x:3.1,y:4.6},{x:1.6,y:4.0},{x:2.2,y:5.7});
+  down.push({x:-2.4,y:5.4},{x:-1.9,y:4.3},{x:-2.8,y:5.9},{x:-1.5,y:3.6});
+  return {grey,up,down};
+}
+const VP=volPoints();
+const volChart=new Chart(document.getElementById('volChart'),{
+  type:'scatter',
+  data:{datasets:[
+    {label:'up',data:VP.up,backgroundColor:'#1a6b5a',pointRadius:4},
+    {label:'down',data:VP.down,backgroundColor:'#c0392b',pointRadius:4},
+    {label:'ns',data:VP.grey,backgroundColor:'rgba(184,178,162,.55)',pointRadius:3}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{enabled:false}},
+    scales:{
+      x:{title:{display:true,text:I18n&&I18n.get()==='zh'?'log2 倍率變化 (log2FC)':'log2 fold change (log2FC)'},min:-4,max:4,grid:{color:'rgba(0,0,0,.05)'}},
+      y:{title:{display:true,text:'−log10(adj p)'},min:0,max:7,grid:{color:'rgba(0,0,0,.05)'}}
+    }}
+});
+
+document.addEventListener('langchange',e=>{
+  const L=e.detail.lang;
+  distChart.options.scales.x.title.text=L==='zh'?'表達量 (log)':'expression (log)';
+  distChart.options.scales.y.title.text=L==='zh'?'細胞密度':'cell density';
+  distChart.update();render();
+  volChart.options.scales.x.title.text=L==='zh'?'log2 倍率變化 (log2FC)':'log2 fold change (log2FC)';
+  volChart.update();
+});
+render();
+
+// ---- Quiz ----
+const QF={
+ zh:{q1_y:'正解。Venice 比較完整的表達分佈，能捕捉平均檢定漏掉的型態與比例差異。',q1_n:'正確答案已標示：Venice 比較整條分佈而非單一平均。',
+     q2_y:'正解。同樣平均但單峰 vs 雙峰屬於 DM（型態差異），正是 Venice 的強項。',q2_n:'正確答案已標示：Venice 能捕捉 DM 型態差異。',
+     q3_y:'正解。跨樣本比較須以個體為統計單位（如 pseudobulk），否則會偽重複、灌水顯著性。',q3_n:'正確答案已標示：避免 pseudoreplication。',
+     q4_y:'正解。右上角＝大幅上調（x 遠）且高度顯著（y 高），是最值得注意的 marker。',q4_n:'正確答案已標示：右上角的點最值得注意。',
+     q5_y:'正解。log2FC 只有 0.04 幾乎沒變，即使 p 值極小也可能沒有生物意義——顯著≠重要。',q5_n:'正確答案已標示：統計顯著但效應極小，生物意義可能不大。'},
+ en:{q1_y:'Correct. Venice compares the full distribution, catching modality/proportion differences that mean tests miss.',q1_n:'Correct answer highlighted: Venice compares the whole distribution, not a single mean.',
+     q2_y:'Correct. Same mean but unimodal vs bimodal is DM (modality) — exactly Venice’s strength.',q2_n:'Correct answer highlighted: Venice captures DM (modality).',
+     q3_y:'Correct. Cross-sample comparisons need the individual as the unit (e.g. pseudobulk), or you pseudoreplicate and inflate significance.',q3_n:'Correct answer highlighted: avoid pseudoreplication.',
+     q4_y:'Correct. Upper-right = strongly up (far on x) and highly significant (high on y) — the markers worth your attention.',q4_n:'Correct answer highlighted: the upper-right points matter most.',
+     q5_y:'Correct. A log2FC of 0.04 is barely any change; even a tiny p-value may carry little biology — significant ≠ important.',q5_n:'Correct answer highlighted: significant but tiny effect, likely little biological meaning.'}
+};
+document.querySelectorAll('.quiz-q').forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll('.quiz-opt').forEach(o=>{o.addEventListener('click',()=>{if(q.classList.contains('answered'))return;q.classList.add('answered');const fb=document.getElementById('fb'+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?'correct':'wrong');if(!ok)q.querySelectorAll('.quiz-opt')[ans].classList.add('correct');const L=I18n.get();fb.className='quiz-feedback show '+(ok?'correct-fb':'wrong-fb');fb.textContent=(ok?'✅ ':'❌ ')+(QF[L]['q'+(qi+1)+'_'+(ok?'y':'n')]||'');});});});
+</script>
+</body></html>
