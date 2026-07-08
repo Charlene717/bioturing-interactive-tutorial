@@ -1,0 +1,412 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Step 2: QC — BioTuring Tutorial</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>.page-hero{background:linear-gradient(160deg,#2b1a5e 0%,#3b2a86 35%,#5b3fb0 70%,#2563a8 100%)}</style></head><body>
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="BioTuring 教學" data-en="BioTuring Tutorial">BioTuring 教學</span></a>
+  <ul class="top-nav-links"><li><a href="overview.html" data-zh="總覽" data-en="Overview">總覽</a></li><li><a href="import.html">Import</a></li><li><a href="qc.html" class="active">QC</a></li><li><a href="normalization.html">Norm.</a></li><li><a href="clustering.html">Cluster</a></li><li><a href="annotation.html">Annot.</a></li><li><a href="dge.html">DE</a></li><li><a href="trajectory.html">Traj.</a></li><li><a href="multimodal.html">Multi</a></li><li><a href="spatialx.html">SpatialX</a></li><li><a href="talk2data.html">Talk2Data</a></li><li><a href="references/index.html" data-zh="📚 參考資料" data-en="📚 References">📚 參考資料</a></li></ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">STEP 2 · <span data-zh="品質管控" data-en="Quality Control">品質管控</span></div>
+<h1 data-zh="品質管控 (Quality Control)" data-en="Quality Control (QC)">品質管控 (Quality Control)</h1>
+<p class="subtitle" data-lang="zh">在 BBrowserX 中，用小提琴圖與散佈圖「看見」資料品質，再以互動式滑桿設定過濾閾值——不寫任何程式碼。</p>
+<p class="subtitle" data-lang="en">In BBrowserX you "see" data quality with violin & scatter plots, then set filter thresholds interactively with sliders — no code required.</p>
+</header>
+<main class="content-wrap">
+
+<!-- ===== Section 1: Why QC in BBrowserX ===== -->
+<section class="section">
+<div class="section-label" data-zh="概覽" data-en="OVERVIEW">概覽</div>
+<h2 data-zh="為什麼 QC 是第一件事？把它想成「細胞的健康檢查 + 夜店門禁」" data-en="Why is QC the first thing? Think of it as a “cell health check-up + nightclub door policy”">為什麼 QC 是第一件事？把它想成「細胞的健康檢查 + 夜店門禁」</h2>
+<div data-lang="zh">
+<p>想像你剛辦了一場超級盛大的派對（也就是你的定序實驗）。你的定序儀把幾萬顆細胞一顆一顆裝進微小的<strong>油滴 (droplet)</strong> 裡，理論上「一顆油滴 = 一顆細胞」。但現實很殘酷：有些油滴根本是空的、只裝了漂浮在液體裡的殘渣；有些細胞在被抓進去之前就<strong>已經半死不活</strong>；還有些油滴貪心地把兩顆細胞塞在一起。這些「混進來的雜客」就是我們必須在門口攔下的對象。</p>
+<p>所以匯入資料後（見 <a href="import.html">Step 1</a>），第一件永遠要做的事就是<strong>品質管控 (Quality Control)</strong>。你可以把 QC 想成兩件事的合體：一是幫每顆細胞做<strong>「健康檢查」</strong>（它還活著嗎？基因表現正常嗎？），二是當一名<strong>「夜店門禁」</strong>（活得好、來歷清楚的細胞放行；空袋子、快死的、擠兩個人進來的一律擋在門外）。若不先清理，這些「壞細胞」會在後續的降維、分群 (clustering) 與差異表達 (differential expression) 中製造出根本不存在的假群體，讓你把「垂死細胞」誤認為一種「新細胞型態」——這是初學者最常踩的坑。</p>
+<p>BioTuring <strong>BBrowserX</strong> 把這整個流程<strong>視覺化、按鈕化</strong>：你不需要寫 <code>subset()</code> 或背任何 R 語法，而是在 GUI 中打開<strong>小提琴圖 (violin plot)</strong> 與<strong>散佈圖 (scatter plot)</strong>，親眼看見 QC 指標的分佈長什麼樣，再直接拖動閾值滑桿，即時看到有多少細胞被放行、多少被攔下。這正是 BBrowserX 的核心哲學：<strong>先互動地看見，再設閾值</strong>——絕不是背一組數字就套上去。</p>
+</div>
+<div data-lang="en">
+<p>Picture the grandest party you've ever thrown (that's your sequencing experiment). The sequencer packs tens of thousands of cells, one at a time, into tiny oil <strong>droplets</strong> — in theory, "one droplet = one cell." But reality is messy: some droplets are empty, holding only debris floating in the buffer; some cells were <strong>already half-dead</strong> before they got captured; and some droplets greedily crammed two cells together. These "gate-crashers" are exactly who we need to stop at the door.</p>
+<p>So after importing your data (see <a href="import.html">Step 1</a>), the very first thing you always do is <strong>Quality Control (QC)</strong>. Think of QC as two jobs fused together: a <strong>"health check-up"</strong> for every cell (is it alive? is its gene expression normal?), and a <strong>"nightclub door policy"</strong> (let in the healthy, well-behaved cells; turn away the empty bags, the dying, and the two-in-one crashers). If you don't clean up first, these "bad cells" will manufacture populations that don't actually exist in downstream dimensionality reduction, clustering, and differential expression — leading you to mistake a cluster of <strong>dying cells</strong> for a "new cell type." That's the single most common beginner trap.</p>
+<p>BioTuring <strong>BBrowserX</strong> makes this whole flow <strong>visual and button-driven</strong>: instead of writing <code>subset()</code> or memorizing any R syntax, you open a <strong>violin plot</strong> and <strong>scatter plot</strong> in the GUI to actually see how your QC metrics are distributed, then drag threshold sliders to watch, in real time, how many cells get let in versus turned away. This is BBrowserX's core philosophy: <strong>visualize interactively first, then threshold</strong> — never just slap on a number you memorized.</p>
+</div>
+<div class="callout tip"><span class="callout-icon">💡</span><div>
+<span data-lang="zh"><strong>為什麼重要：QC 沒有放諸四海皆準的閾值。</strong>正確做法是先在 BBrowserX 打開小提琴圖 / 散佈圖，觀察<strong>你自己資料</strong>的分佈，再依物種、組織（例如心肌細胞粒線體天生偏高）與定序技術決定閾值。抄別人論文裡的「MT% &lt; 5%」而不看圖，就像照別人的體檢報告吃自己的藥——很危險。想深入了解演算法細節，可對照我們的 <a href="../scrna-interactive-tutorial/qc.html">scRNA-seq 互動教學 QC 章節</a>。</span>
+<span data-lang="en"><strong>Why it matters: there is no universal QC threshold.</strong> The right approach is to first open violin / scatter plots in BBrowserX and inspect <strong>your own data's</strong> distribution, then set thresholds according to species, tissue (e.g., cardiomyocytes are naturally high in mitochondria), and sequencing technology. Copying "MT% &lt; 5%" from someone else's paper without looking at your plots is like taking medicine based on a stranger's health report — dangerous. For algorithm depth, pair this with our <a href="../scrna-interactive-tutorial/qc.html">scRNA-seq interactive QC chapter</a>.</span>
+</div></div>
+</section>
+
+<!-- ===== Section 2: Meet the gate-crashers ===== -->
+<section class="section">
+<div class="section-label" data-zh="認識雜客" data-en="MEET THE CRASHERS">認識雜客</div>
+<h2 data-zh="一、門口要攔下的三種「雜客」" data-en="I. The Three “Gate-Crashers” to Stop at the Door">一、門口要攔下的三種「雜客」</h2>
+<div data-lang="zh"><p>在看指標之前，先認識我們到底在防誰。單細胞資料裡有三種典型的「壞客人」，每一種在後面的圖上都會留下獨特的「指紋」。認得它們，你之後看散佈圖就會像老鳥一樣一眼看穿。</p></div>
+<div data-lang="en"><p>Before we look at metrics, let's get to know who we're actually screening out. Single-cell data has three classic "bad guests," and each leaves a distinctive "fingerprint" on the plots you'll see later. Learn to recognize them, and you'll read a scatter plot like a seasoned pro.</p></div>
+<div class="card-grid cols-3">
+<div class="card"><div class="card-icon">🛍️</div><h4><span data-zh="空液滴（只買了空袋子的客人）" data-en="Empty droplets (bought an empty bag)">空液滴</span></h4>
+<div data-lang="zh"><p>油滴裡<strong>根本沒有完整細胞</strong>，只有漂在液體中的少量<strong>環境 RNA (ambient RNA)</strong>。就像有人買了門票、拎著購物袋進場，袋子裡卻空空如也。指紋：<strong>基因數極少、UMI 極少</strong>——擠在散佈圖左下角。</p></div>
+<div data-lang="en"><p>The droplet holds <strong>no intact cell at all</strong> — just a little <strong>ambient RNA</strong> drifting in the buffer. Like someone who bought a ticket and walked in carrying a shopping bag that turns out to be empty. Fingerprint: <strong>very few genes, very few UMIs</strong> — clustered in the lower-left of the scatter.</p></div>
+</div>
+<div class="card"><div class="card-icon">💀</div><h4><span data-zh="垂死細胞（已經不行了的細胞）" data-en="Dying cells (already fading)">垂死／死亡細胞</span></h4>
+<div data-lang="zh"><p>細胞膜破了，細胞質的 mRNA 漏光光，只剩下粒線體裡的 RNA 苟延殘喘。就像已經醉倒趴在沙發上、快被架出去的客人。指紋：<strong>高粒線體比例 (percent.mt)</strong>——像細胞發出的「求救信號」。</p></div>
+<div data-lang="en"><p>The membrane has broken, cytoplasmic mRNA has leaked out, and only mitochondrial RNA lingers on. Like the guest who's already passed out on the couch and is about to be carried out. Fingerprint: <strong>high mitochondrial fraction (percent.mt)</strong> — a cell's "distress signal."</p></div>
+</div>
+<div class="card"><div class="card-icon">👯</div><h4><span data-zh="雙細胞（兩個人擠進一張門票）" data-en="Doublets (two people, one ticket)">雙細胞 (doublet)</span></h4>
+<div data-lang="zh"><p>一顆油滴不小心抓進<strong>兩顆細胞</strong>，兩者的轉錄本被合併、貼上同一個條碼。就像兩個人硬擠著用一張門票混進場。指紋：<strong>基因數與 UMI 都異常偏高</strong>，可能同時表現本來不該共存的 marker（例如 T 細胞的 <em>CD3D</em> 又混著 B 細胞的 <em>CD79A</em>）。</p></div>
+<div data-lang="en"><p>One droplet accidentally captured <strong>two cells</strong>, whose transcripts got merged under a single barcode. Like two people squeezing through the door on one ticket. Fingerprint: <strong>abnormally high gene count AND UMI count</strong>, sometimes co-expressing markers that shouldn't coexist (e.g., T-cell <em>CD3D</em> mixed with B-cell <em>CD79A</em>).</p></div>
+</div>
+</div>
+<div class="callout tip"><span class="callout-icon">🔎</span><div>
+<span data-lang="zh"><strong>實戰情境：</strong>假設你分析一份 10,000 顆細胞的 PBMC（周邊血單核細胞）資料。典型情況下，大約 5–10% 是空液滴、5–8% 是雙細胞（細胞裝載越多、雙細胞比例越高）、另有數個百分比是高 MT% 的垂死細胞。也就是說，一份看似「一萬顆細胞」的資料，真正乾淨可用的往往只有 <strong>8,000 顆上下</strong>——這就是 QC 存在的理由。</span>
+<span data-lang="en"><strong>Real-world scenario:</strong> say you're analyzing a 10,000-cell PBMC (peripheral blood mononuclear cell) dataset. Typically ~5–10% are empty droplets, ~5–8% are doublets (the more cells you load, the higher the doublet rate), and a few more percent are high-MT% dying cells. So a dataset that looks like "10,000 cells" often yields only about <strong>8,000 truly clean, usable cells</strong> — and that's exactly why QC exists.</span>
+</div></div>
+</section>
+
+<!-- ===== Section 3: The 3 core metrics ===== -->
+<section class="section">
+<div class="section-label" data-zh="核心指標" data-en="CORE METRICS">核心指標</div>
+<h2 data-zh="二、你要盯著的三個核心細胞指標" data-en="II. The Three Core Cell Metrics to Watch">二、你要盯著的三個核心細胞指標</h2>
+<div data-lang="zh"><p>認識了雜客，接下來就是「怎麼抓到他們」。在 BBrowserX 匯入資料後，軟體會自動幫每顆細胞算好下面三個 QC 指標，並可一鍵畫成小提琴圖。整個門禁工作，九成都靠這三把尺：</p></div>
+<div data-lang="en"><p>Now that you know the crashers, the next question is "how do we catch them." After import, BBrowserX automatically computes the following three QC metrics for every cell and can plot them as violins in one click. Nine-tenths of the entire door policy runs on these three rulers:</p></div>
+<div class="card-grid cols-3">
+<div class="card"><div class="card-icon">🔢</div><h4>nFeature_RNA</h4>
+<div data-lang="zh"><p>白話：這顆細胞裡「<strong>偵測到幾種不同的基因</strong>」（genes / cell）。像在檢查一個人的口袋裡有多少<em>種類</em>的東西。<br>• <strong>過低（如 &lt; 200）</strong>：口袋幾乎是空的 → 空液滴或破裂細胞，只捕到一點環境 RNA。<br>• <strong>過高（如 &gt; 5000，且 nCount 也高）</strong>：口袋塞爆了 → 很可能是<strong>雙細胞</strong>，兩顆細胞的基因合併撐大了數字。</p></div>
+<div data-lang="en"><p>Plain words: how many <strong>distinct genes were detected</strong> in this cell (genes / cell). Like counting how many <em>kinds</em> of things are in someone's pockets.<br>• <strong>Too low (e.g., &lt; 200)</strong>: nearly empty pockets → empty droplet or lysed cell, only a trace of ambient RNA.<br>• <strong>Too high (e.g., &gt; 5000, with high nCount too)</strong>: overstuffed pockets → likely a <strong>doublet</strong>, where two cells' genes merged and inflated the number.</p></div>
+</div>
+<div class="card"><div class="card-icon">📊</div><h4>nCount_RNA</h4>
+<div data-lang="zh"><p>白話：這顆細胞抓到的「<strong>轉錄本分子總量</strong>」（總 UMI 數 / cell）。注意 UMI 數的是「<em>幾個</em>分子」，不是「幾種」——像數口袋裡總共有幾件東西。健康細胞的「種類數 (nFeature)」與「總量 (nCount)」會<strong>高度正相關</strong>，在散佈圖上沿對角線漂亮排開。偏離對角線、或異常偏高／偏低，通常就有品質問題。</p></div>
+<div data-lang="en"><p>Plain words: the <strong>total number of transcript molecules</strong> this cell captured (total UMIs / cell). Note that UMI counts <em>how many</em> molecules, not how many kinds — like counting the total number of items in the pockets. In healthy cells, "kinds (nFeature)" and "total (nCount)" are <strong>strongly correlated</strong>, lining up neatly along the diagonal of a scatter. Cells off the diagonal, or abnormally high/low, usually have a quality problem.</p></div>
+</div>
+<div class="card"><div class="card-icon">🔋</div><h4>percent.mt</h4>
+<div data-lang="zh"><p>白話：<strong>粒線體基因佔比 (mitochondrial %)</strong>——判斷細胞死活最靈敏的一把尺，也是那個「求救信號」。細胞破裂時細胞質 mRNA 流失，但粒線體 RNA 被<strong>雙層膜</strong>牢牢護住而殘留，於是分母縮小、MT% 飆高。所以 <strong>高 MT% ≈ 垂死／死亡細胞</strong>。BBrowserX 依 <code>MT-</code>（人）/<code>mt-</code>（鼠）基因前綴自動計算。</p></div>
+<div data-lang="en"><p>Plain words: the <strong>mitochondrial gene percentage (mitochondrial %)</strong> — the most sensitive ruler for viability, and that "distress signal." When a cell ruptures, cytoplasmic mRNA leaks away, but mitochondrial RNA is shielded by a <strong>double membrane</strong> and stays behind, so the denominator shrinks and MT% spikes. Hence <strong>high MT% ≈ dying/dead cells</strong>. BBrowserX computes it automatically from the <code>MT-</code> (human) / <code>mt-</code> (mouse) gene prefix.</p></div>
+</div>
+</div>
+
+<div class="callout warn"><span class="callout-icon">🧠</span><div>
+<span data-lang="zh"><strong>專家小撇步：搞懂「為什麼」高 MT% 就代表死亡，你才不會誤殺好細胞。</strong>關鍵在那層<strong>雙層膜</strong>。想像細胞是一顆裝滿水的氣球（外膜），裡面還有幾顆小水球（粒線體，各自有雙層膜）。氣球一破，大部分的水（細胞質 mRNA）嘩啦流光；但裡面那幾顆小水球比較耐操，還撐著沒破。結果被測到的 RNA 裡，粒線體的占比就變得異常高。<em>但要小心：</em>心肌細胞、肝細胞、棕色脂肪這類「能量工廠」型組織，本來活著的時候粒線體就特別多，MT% 天生就偏高——這時候硬套 5% 會把一堆健康細胞冤枉成死細胞。</span>
+<span data-lang="en"><strong>Pro tip: understand *why* high MT% signals death, so you don't kill good cells by mistake.</strong> The key is that <strong>double membrane</strong>. Picture a cell as a water balloon (outer membrane) with a few tiny water balloons inside (mitochondria, each with its own double membrane). Pop the big balloon and most of the water (cytoplasmic mRNA) gushes out — but those little inner balloons are tougher and hold on. So among the RNA you still detect, the mitochondrial share becomes abnormally high. <em>But beware:</em> "energy-factory" tissues like cardiomyocytes, hepatocytes, and brown fat carry loads of mitochondria even when perfectly alive, so their MT% is naturally high — force a 5% cutoff there and you'll wrongly condemn scores of healthy cells as dead.</span>
+</div></div>
+
+<table class="comp-table">
+<thead><tr>
+<th data-zh="指標" data-en="Metric">指標</th>
+<th data-zh="過低代表" data-en="Low means">過低代表</th>
+<th data-zh="過高代表" data-en="High means">過高代表</th>
+<th data-zh="散佈圖位置" data-en="Where on the scatter">散佈圖位置</th>
+</tr></thead>
+<tbody>
+<tr><td><strong>nFeature_RNA</strong></td><td data-lang="zh">空液滴 / 破裂細胞</td><td data-lang="zh">可能是雙細胞 (doublet)</td><td data-lang="zh">低→左下角；高→右上角</td><td data-lang="en">Empty droplet / lysed cell</td><td data-lang="en">Possible doublet</td><td data-lang="en">Low → lower-left; high → upper-right</td></tr>
+<tr><td><strong>nCount_RNA</strong></td><td data-lang="zh">低品質 / 資訊量不足細胞</td><td data-lang="zh">可能是雙細胞或超高活性細胞</td><td data-lang="zh">與 nFeature 同向沿對角線</td><td data-lang="en">Low-quality / uninformative cell</td><td data-lang="en">Possible doublet or highly active cell</td><td data-lang="en">Moves with nFeature along the diagonal</td></tr>
+<tr><td><strong>percent.mt</strong></td><td data-lang="zh">通常正常（除非幾乎全空）</td><td data-lang="zh">垂死 / 死亡細胞（求救信號）</td><td data-lang="zh">用點的大小 / 顏色呈現</td><td data-lang="en">Usually fine (unless nearly empty)</td><td data-lang="en">Dying / dead cell (distress signal)</td><td data-lang="en">Shown via dot size / color</td></tr>
+</tbody></table>
+
+<div class="callout danger"><span class="callout-icon">🚫</span><div>
+<span data-lang="zh"><strong>常見誤區：只看單一指標。</strong>光看 nFeature 或光看 MT% 都會漏抓或誤殺。例如：一顆基因數中等、UMI 也中等，看起來很正常的細胞，若 MT% 高達 20%，它其實是垂死細胞；反過來，一顆 MT% 正常但 nFeature/nCount 雙雙爆高的細胞，很可能是雙細胞。<strong>三把尺要一起看</strong>，這正是散佈圖比小提琴圖更強大的原因——下一節見真章。</span>
+<span data-lang="en"><strong>Common mistake: judging by one metric alone.</strong> Looking only at nFeature, or only at MT%, will make you miss bad cells or kill good ones. Example: a cell with moderate genes and moderate UMIs looks perfectly normal — but if its MT% hits 20%, it's actually dying. Conversely, a cell with normal MT% but both nFeature and nCount sky-high is very likely a doublet. <strong>Read all three rulers together</strong> — which is exactly why the scatter plot beats the violin plot. See it in action next.</span>
+</div></div>
+</section>
+
+<!-- ===== Section 4: Why joint distribution beats single metrics ===== -->
+<section class="section">
+<div class="section-label" data-zh="聯合分佈的威力" data-en="POWER OF JOINT VIEW">聯合分佈的威力</div>
+<h2 data-zh="三、為什麼「散佈圖對角線」比單一指標更會抓人" data-en="III. Why the “Scatter Diagonal” Catches More than Any Single Metric">三、為什麼「散佈圖對角線」比單一指標更會抓人</h2>
+<div data-lang="zh">
+<p>小提琴圖一次只看一把尺，就像門口只檢查「身高」——你會放行一個很高但明顯醉倒的人。散佈圖則同時看兩把尺（nCount × nFeature），一下子把每顆細胞的「<strong>個性</strong>」攤開。健康細胞有一個很美的性質：<strong>基因種類越多，分子總量也越多</strong>，兩者成比例，於是它們會乖乖沿著一條<strong>對角線 (diagonal)</strong> 排成一片雲。這條對角線就是「正常人的隊伍」。</p>
+<p>真正的壞細胞往往就是那些<strong>脫離對角線</strong>的離群點：</p>
+<ul style="color:var(--c-ink-light);margin:0 0 16px 20px;line-height:1.9;">
+<li><strong>對角線左下角那一坨</strong>：低 nFeature + 低 nCount → 空液滴 / 破裂細胞。</li>
+<li><strong>對角線右上角飄出去的</strong>：超高 nFeature + 超高 nCount → 疑似雙細胞。</li>
+<li><strong>對角線下方偏離的點</strong>：nCount 不低、nFeature 卻偏少（分子很多但種類很少）→ 可能是特殊細胞（如紅血球被血紅素基因灌爆），或技術假象。</li>
+</ul>
+<p>這種「靠關係、不靠單一數字」的思維，就是專家和新手最大的差別。BBrowserX 讓你直接在散佈圖上<strong>框選 (gating)</strong> 出對角線那片健康雲，門禁工作瞬間變得直覺又精準。</p>
+</div>
+<div data-lang="en">
+<p>A violin plot looks at one ruler at a time — like a bouncer checking only "height," who'd wave through a very tall man who's obviously passed out. A scatter plot uses two rulers at once (nCount × nFeature), instantly revealing each cell's <strong>"personality."</strong> Healthy cells have a lovely property: <strong>the more gene kinds they have, the more total molecules too</strong> — the two scale together, so they line up along a tidy <strong>diagonal</strong> as a dense cloud. That diagonal is "the line of normal folks."</p>
+<p>The truly bad cells are usually the outliers that <strong>fall off the diagonal</strong>:</p>
+<ul style="color:var(--c-ink-light);margin:0 0 16px 20px;line-height:1.9;">
+<li><strong>The blob at the lower-left</strong>: low nFeature + low nCount → empty droplets / lysed cells.</li>
+<li><strong>The stragglers drifting off the upper-right</strong>: very high nFeature + very high nCount → suspected doublets.</li>
+<li><strong>Points sagging below the diagonal</strong>: nCount not low but nFeature unusually small (lots of molecules, few kinds) → possibly a special cell type (e.g., red blood cells flooded with hemoglobin genes) or a technical artifact.</li>
+</ul>
+<p>This "reason from relationships, not from a single number" mindset is the biggest difference between an expert and a novice. BBrowserX lets you <strong>gate</strong> the healthy diagonal cloud directly on the scatter, making the whole door policy instantly intuitive and precise.</p>
+</div>
+<div class="callout tip"><span class="callout-icon">📐</span><div>
+<span data-lang="zh"><strong>專家小撇步：</strong>很多人喜歡在散佈圖上多加一條輔助資訊——把每個點的<strong>顏色或大小</strong>對應到 MT%。這樣一來，那些「明明在對角線上、看似健康、卻紅通通（高 MT%）」的細胞就會現形。下一節的互動模擬器就是這樣設計的：<strong>點越大 = MT% 越高</strong>，你會親眼看到潛伏在健康雲裡的死細胞。</span>
+<span data-lang="en"><strong>Pro tip:</strong> many people layer one more signal onto the scatter — mapping each dot's <strong>color or size</strong> to MT%. That way, cells that "sit right on the diagonal, look healthy, yet glow red (high MT%)" reveal themselves. The interactive simulator in the next section is built exactly this way: <strong>bigger dot = higher MT%</strong>, so you'll literally see dead cells lurking inside the healthy cloud.</span>
+</div></div>
+</section>
+
+<!-- ===== Section 5: Interactive Sim ===== -->
+<section class="section">
+<div class="section-label" data-zh="互動模擬" data-en="INTERACTIVE">互動模擬</div>
+<h2 data-zh="四、互動：親手當一次「細胞門禁」" data-en="IV. Interactive: Be the “Cell Bouncer” Yourself">四、互動：親手當一次「細胞門禁」</h2>
+<div data-lang="zh"><p>紙上談兵到此為止——現在換你上工。這個模擬器重現 BBrowserX 的操作感受：拖動滑桿設定 Min nFeature（門檻太低的空液滴擋掉）、Max nFeature（門檻太高的雙細胞擋掉）與 Max MT%（求救信號太強的死細胞擋掉），右方即時更新<strong>保留 / 過濾</strong>細胞數與<strong>保留率</strong>。散佈圖呈現 nCount × nFeature 聯合分佈（<span style="color:#175c44;font-weight:600;">綠 = 放行</span>、<span style="color:var(--c-danger);font-weight:600;">紅 = 攔下</span>），<strong>點越大代表 MT% 越高</strong>；下方三張分佈圖對應各指標。試著把 Max MT% 從 25% 一路拉到 5%，看那些藏在對角線上的大紅點如何被揪出來。<strong>切記：「過濾」只代表「在當前閾值下被移除」，不等於該細胞一定是壞的——請配合生物學情境判斷。</strong></p></div>
+<div data-lang="en"><p>Enough theory — your shift starts now. This simulator mirrors the BBrowserX experience: drag the sliders to set Min nFeature (block empty droplets below the floor), Max nFeature (block doublets above the ceiling), and Max MT% (block dead cells whose distress signal is too strong), and watch the <strong>kept / filtered</strong> counts and <strong>retention rate</strong> update live. The scatter shows the joint nCount × nFeature distribution (<span style="color:#175c44;font-weight:600;">green = let in</span>, <span style="color:var(--c-danger);font-weight:600;">red = turned away</span>), and <strong>bigger dots mean higher MT%</strong>; the three plots below track each metric. Try sweeping Max MT% from 25% down to 5% and watch the big red dots hiding on the diagonal get flushed out. <strong>Remember: "filtered" only means "removed under the current threshold" — it does not automatically mean the cell is bad. Interpret with biological context.</strong></p></div>
+<div class="interactive-panel">
+<div class="sim-stats"><span class="sim-stat pass" id="statPass">—</span><span class="sim-stat fail" id="statFail">—</span><span class="sim-stat" style="background:var(--c-bg-alt);color:var(--c-ink-light);" id="statRate">—</span></div>
+<div class="slider-group"><label><span data-zh="最少基因數 (Min nFeature)" data-en="Min genes (Min nFeature)">最少基因數</span> <span id="valMinFeat">200</span></label><input type="range" id="sliderMinFeat" min="50" max="500" value="200" step="10"></div>
+<div class="slider-group"><label><span data-zh="最多基因數 (Max nFeature)" data-en="Max genes (Max nFeature)">最多基因數</span> <span id="valMaxFeat">4000</span></label><input type="range" id="sliderMaxFeat" min="2000" max="6000" value="4000" step="100"></div>
+<div class="slider-group"><label><span data-zh="最高粒線體比例 (Max MT%)" data-en="Max mitochondrial % (Max MT%)">最高 MT%</span> <span id="valMT">10%</span></label><input type="range" id="sliderMT" min="3" max="25" value="10" step="1"></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:14px;">
+  <div><div style="font-size:.82rem;font-weight:600;text-align:center;margin-bottom:4px;color:var(--c-ink-light);"><span data-zh="① nCount × nFeature 散佈" data-en="① nCount × nFeature scatter">① nCount × nFeature 散佈</span></div><div class="chart-container" style="height:220px;"><canvas id="qcChart"></canvas></div></div>
+  <div><div style="font-size:.82rem;font-weight:600;text-align:center;margin-bottom:4px;color:var(--c-ink-light);"><span data-zh="② nFeature 分佈" data-en="② nFeature distribution">② nFeature 分佈</span></div><div class="chart-container" style="height:220px;"><canvas id="distFeat"></canvas></div></div>
+  <div><div style="font-size:.82rem;font-weight:600;text-align:center;margin-bottom:4px;color:var(--c-ink-light);"><span data-zh="③ nCount 分佈" data-en="③ nCount distribution">③ nCount 分佈</span></div><div class="chart-container" style="height:220px;"><canvas id="distCount"></canvas></div></div>
+  <div><div style="font-size:.82rem;font-weight:600;text-align:center;margin-bottom:4px;color:var(--c-ink-light);"><span data-zh="④ MT% 分佈" data-en="④ MT% distribution">④ MT% 分佈</span></div><div class="chart-container" style="height:220px;"><canvas id="distMt"></canvas></div></div>
+</div>
+<p style="font-size:.78rem;color:var(--c-ink-muted);text-align:center;margin-top:8px;"><span data-zh="散佈圖中點大小代表 MT%；三張分佈圖中綠色 = 閾值內（保留）、紅色 = 閾值外（過濾）。此為示範用模擬資料。" data-en="In the scatter, dot size encodes MT%; in the distributions, green = inside threshold (kept), red = outside (filtered). Data are simulated for illustration.">散佈圖中點大小代表 MT%；三張分佈圖綠色 = 閾值內（保留）、紅色 = 閾值外（過濾）。此為示範用模擬資料。</span></p>
+</div>
+<div class="callout tip"><span class="callout-icon">🖱️</span><div>
+<span data-lang="zh"><strong>對應到 BBrowserX 操作：</strong>散佈圖上「沿對角線的綠色點雲」就是健康細胞的隊伍；左下角低 nFeature／低 nCount 的紅點是空液滴（買了空袋子的客人），右上角異常高的紅點是疑似雙細胞（兩個人擠一張票），而點很大又變紅的則是高 MT% 的垂死細胞。在真實軟體中，你會用滑桿、或直接在圖上拉方框<strong>框選 (gating)</strong> 來設定這些閾值。</span>
+<span data-lang="en"><strong>Mapping to BBrowserX:</strong> the green "cloud along the diagonal" is the line of healthy cells; the red points in the lower-left (low nFeature / low nCount) are empty droplets (guests with empty bags), the abnormally high red points in the upper-right are suspected doublets (two people on one ticket), and the big dots that turn red are high-MT% dying cells. In the real software you set these thresholds with sliders, or by drawing a box to <strong>gate</strong> directly on the plot.</span>
+</div></div>
+<div class="callout warn"><span class="callout-icon">🎯</span><div>
+<span data-lang="zh"><strong>實戰情境：找出你的「甜蜜點」。</strong>試試看：把 Min nFeature 拉到 500、Max MT% 壓到 3%，你會發現保留率驟降——過濾太狠，連健康的靜止期小細胞都被冤殺了。反過來全部放到最寬，紅點幾乎消失，但你也把死細胞和雙細胞放進場了。好的門禁是<strong>剛好攔住三坨離群點、又不動到對角線主雲</strong>的那個平衡。多數 PBMC 資料的常見起點大約落在 nFeature 200–5000、MT% &lt; 10%，但請務必以你自己的圖為準。</span>
+<span data-lang="en"><strong>Real-world scenario: find your "sweet spot."</strong> Try this: push Min nFeature to 500 and squeeze Max MT% to 3%, and watch retention crater — filter too hard and you kill even healthy, quiescent small cells. Now open everything wide and the red almost vanishes — but you've just let dead cells and doublets into the party. Good bouncing is the balance that <strong>catches exactly the three outlier blobs while leaving the main diagonal cloud untouched</strong>. A common starting point for PBMC data is roughly nFeature 200–5000 and MT% &lt; 10% — but always defer to your own plots.</span>
+</div></div>
+</section>
+
+<!-- ===== Section 6: Gene-level filtering + artifacts ===== -->
+<section class="section">
+<div class="section-label" data-zh="基因層級與假象" data-en="GENE LEVEL & ARTIFACTS">基因層級與假象</div>
+<h2 data-zh="五、基因層級過濾與技術性假象" data-en="V. Gene-Level Filtering & Technical Artifacts">五、基因層級過濾與技術性假象</h2>
+<div data-lang="zh"><p>到目前為止我們都在「篩細胞」（篩<em>客人</em>）。但別忘了還有另一個方向的清理：「<strong>篩基因</strong>」。想像資料是一張超大的 Excel 表，橫列是細胞、直行是基因。我們不只刪掉爛的橫列（壞細胞），也要刪掉幾乎全是 0 的直行（沒用的基因）。匯入時 BBrowserX 通常提供「<strong>最少細胞數 (min cells)</strong>」門檻——只在極少數細胞出現的基因多半是雜訊或定序假象，剔除它們可降低運算負擔、減少統計雜訊，也讓後續分群更乾淨。</p></div>
+<div data-lang="en"><p>So far we've been "filtering cells" (screening <em>guests</em>). But don't forget the other cleanup direction: "<strong>filtering genes</strong>." Picture the data as a giant Excel sheet — rows are cells, columns are genes. We remove not only the bad rows (bad cells) but also the columns that are almost entirely zeros (useless genes). At import BBrowserX typically offers a "<strong>min cells</strong>" threshold — genes seen in only a handful of cells are usually noise or sequencing artifacts, and removing them reduces compute burden, cuts statistical noise, and makes downstream clustering cleaner.</p></div>
+<div class="card-grid cols-2">
+<div class="card"><h4>🧬 <span data-zh="基因層級：最少細胞數" data-en="Gene-level: min cells">基因層級：最少細胞數</span></h4>
+<div data-lang="zh"><p>常見做法是剔除「在少於 3 個細胞中表現」的基因。想想看：一個基因如果在一萬顆細胞裡只有 2 顆偵測到，它幾乎不可能在下游提供任何統計顯著性，反而拖慢運算、放大雜訊。BBrowserX 於匯入 / 過濾步驟提供這個門檻選項。<em>但別把門檻設太高</em>——某些真正稀有的細胞型態 marker 本來就只在少數細胞出現，設得太嚴會連它們一起清掉。</p></div>
+<div data-lang="en"><p>A common rule removes genes detected in fewer than ~3 cells. Think about it: a gene seen in only 2 of 10,000 cells can almost never yield statistical significance downstream — it just slows compute and amplifies noise. BBrowserX exposes this threshold at the import / filtering step. <em>But don't set it too high</em> — some genuinely rare cell-type markers appear in only a few cells by nature, and an overly strict cutoff wipes them out too.</p></div>
+</div>
+<div class="card"><h4>👯 <span data-zh="雙細胞與環境 RNA（那鍋「湯」）" data-en="Doublets & ambient RNA (the “soup”)">雙細胞與環境 RNA（那鍋「湯」）</span></h4>
+<div data-lang="zh"><p>殘酷的真相：單靠 nFeature／nCount 上限<strong>抓不乾淨</strong>兩顆<em>小</em>細胞組成的雙細胞——它們的合併數字可能剛好落在正常範圍裡。另外，整鍋反應液裡漂著破裂細胞漏出的游離 mRNA，這鍋<strong>環境 RNA（「soup」）</strong>會被隨機分裝進每顆油滴，讓細胞「莫名其妙」表現一些根本不屬於它的基因（例如非免疫細胞卻測到一點血紅素）。程式碼世界用 <strong>Scrublet / DoubletFinder</strong>（雙細胞）與 <strong>SoupX / CellBender</strong>（環境 RNA）專門對付——就算在無程式碼的 BBrowserX 裡，也要對這些假象保持警覺。</p></div>
+<div data-lang="en"><p>The hard truth: upper limits on nFeature/nCount <strong>can't fully catch</strong> doublets made of two <em>small</em> cells — their merged numbers may land right inside the normal range. On top of that, free-floating mRNA leaked from ruptured cells drifts through the whole reaction mix; this <strong>ambient RNA ("soup")</strong> gets randomly parceled into every droplet, making cells "inexplicably" express genes that aren't theirs (e.g., a non-immune cell showing a whiff of hemoglobin). In code these are handled by dedicated tools — <strong>Scrublet / DoubletFinder</strong> (doublets) and <strong>SoupX / CellBender</strong> (ambient RNA) — so stay aware of these artifacts even in a no-code GUI.</p></div>
+</div>
+</div>
+<div class="callout danger"><span class="callout-icon">👻</span><div>
+<span data-lang="zh"><strong>常見誤區：以為「篩過細胞就沒事了」。</strong>環境 RNA 這鍋湯不會被 nFeature/MT% 過濾掉，它是「均勻污染」——每顆細胞都沾一點。它最陰險的後果是讓兩群其實不同的細胞在分群時「假裝相似」，或讓 marker 基因看起來到處都有微弱表現。若你發現「幾乎每一群都表現某個高丰度基因（如血紅素 <em>HBB</em>）」，先別急著下生物學結論——很可能是 soup 在搗亂。</span>
+<span data-lang="en"><strong>Common mistake: assuming "filtering cells is enough."</strong> The ambient RNA soup won't be removed by nFeature/MT% filters — it's "uniform contamination," a little smeared onto every cell. Its most insidious effect is making two genuinely different populations "pretend to be similar" during clustering, or making marker genes look faintly expressed everywhere. If you notice "nearly every cluster expresses some high-abundance gene (e.g., hemoglobin <em>HBB</em>)," don't rush to a biological conclusion — it's very likely the soup causing mischief.</span>
+</div></div>
+<div class="callout warn"><span class="callout-icon">⚠️</span><div>
+<span data-lang="zh"><strong>版本差異提醒：</strong>BBrowserX 的選單名稱、按鈕位置與預設值會<strong>隨版本而異</strong>。本頁描述的是通用流程與概念；實際操作請以你安裝的版本畫面為準。</span>
+<span data-lang="en"><strong>Version note:</strong> BBrowserX menu names, button locations, and defaults <strong>vary by version</strong>. This page describes the general workflow and concepts; follow the exact screens in your installed build.</span>
+</div></div>
+</section>
+
+<!-- ===== Section 7: Threshold strategy — fixed vs adaptive + decision tree ===== -->
+<section class="section">
+<div class="section-label" data-zh="閾值策略" data-en="THRESHOLD STRATEGY">閾值策略</div>
+<h2 data-zh="六、閾值怎麼設？固定 vs 自適應" data-en="VI. How to Set Thresholds: Fixed vs Adaptive">六、閾值怎麼設？固定 vs 自適應</h2>
+<div data-lang="zh"><p>門禁的鬆緊沒有標準答案，但有一套可靠的「決策心法」。與其死背數字，不如照著下面這棵決策樹一步步問自己。</p></div>
+<div data-lang="en"><p>There's no single right setting for how tight to run the door — but there is a reliable "decision playbook." Rather than memorizing numbers, walk yourself through the tree below step by step.</p></div>
+
+<div class="decision-tree">
+<h4>🌳 <span data-zh="閾值決策流程" data-en="Threshold Decision Tree">閾值決策流程</span></h4>
+<div data-lang="zh">
+<div class="dt-node"><span class="dt-q">Q1:</span><div>先畫小提琴圖 / 散佈圖了嗎？ <span class="dt-arrow">→ 否 →</span> <strong>先畫再說。</strong>絕不要在沒看過分佈前套用別人的數字。</div></div>
+<div class="dt-node"><span class="dt-q">Q2:</span><div>有多個樣本 / 批次嗎？ <span class="dt-arrow">→ 是 →</span> 考慮<strong>自適應閾值</strong>（中位數 ± 3×MAD），讓每個樣本依自身分佈決定。</div></div>
+<div class="dt-node"><span class="dt-q">Q3:</span><div>組織 MT% 天生偏高嗎？（如心肌、肝）<span class="dt-arrow">→ 是 →</span> <strong>不要</strong>硬套 5%，依組織背景調高。</div></div>
+<div class="dt-node"><span class="dt-q">Q4:</span><div>在找稀有細胞群嗎？ <span class="dt-arrow">→ 是 →</span> <strong>寧鬆勿嚴</strong>；過嚴會把靜止期 / 小型細胞誤刪。</div></div>
+<div class="dt-node"><span class="dt-q">Q5:</span><div>過濾後某群仍全是高 MT%、無特異 marker？ <span class="dt-arrow">→ 是 →</span> <strong>回頭再收緊</strong>，把 QC 當迭代過程。</div></div>
+</div>
+<div data-lang="en">
+<div class="dt-node"><span class="dt-q">Q1:</span><div>Did you plot violins / scatter first? <span class="dt-arrow">→ No →</span> <strong>Plot first.</strong> Never apply someone else's numbers before seeing your distribution.</div></div>
+<div class="dt-node"><span class="dt-q">Q2:</span><div>Multiple samples / batches? <span class="dt-arrow">→ Yes →</span> Consider <strong>adaptive thresholds</strong> (median ± 3×MAD) so each sample decides from its own distribution.</div></div>
+<div class="dt-node"><span class="dt-q">Q3:</span><div>Tissue with naturally high MT%? (heart, liver) <span class="dt-arrow">→ Yes →</span> <strong>Do not</strong> force 5%; raise it based on tissue biology.</div></div>
+<div class="dt-node"><span class="dt-q">Q4:</span><div>Hunting rare populations? <span class="dt-arrow">→ Yes →</span> <strong>Be lenient</strong>; strict filtering can delete quiescent / small cells.</div></div>
+<div class="dt-node"><span class="dt-q">Q5:</span><div>After filtering, a cluster is still all high-MT% with no specific markers? <span class="dt-arrow">→ Yes →</span> <strong>Go back and tighten</strong> — treat QC as iterative.</div></div>
+</div>
+</div>
+
+<table class="comp-table">
+<thead><tr>
+<th data-zh="面向" data-en="Aspect">面向</th>
+<th data-zh="固定閾值（傳統）" data-en="Fixed thresholds (traditional)">固定閾值</th>
+<th data-zh="自適應閾值（推薦多樣本）" data-en="Adaptive thresholds (multi-sample)">自適應閾值</th>
+</tr></thead>
+<tbody>
+<tr><td data-zh="概念" data-en="Concept"><strong>概念</strong></td><td data-lang="zh">主觀死板數值（如 MT% &lt; 5%）</td><td data-lang="zh">資料驅動，依實際分佈決定</td><td data-lang="en">Fixed subjective values (e.g., MT% &lt; 5%)</td><td data-lang="en">Data-driven, from actual distribution</td></tr>
+<tr><td data-zh="方法" data-en="Method"><strong>方法</strong></td><td data-lang="zh">文獻經驗值</td><td data-lang="zh"><strong>中位數 ± 3 × MAD</strong></td><td data-lang="en">Literature-based values</td><td data-lang="en"><strong>Median ± 3 × MAD</strong></td></tr>
+<tr><td data-zh="優點" data-en="Pros"><strong>優點</strong></td><td data-lang="zh">簡單、透明、好溝通</td><td data-lang="zh">自動適應各樣本，公平一致</td><td data-lang="en">Simple, transparent, easy to communicate</td><td data-lang="en">Auto-adapts per sample, fair & consistent</td></tr>
+<tr><td data-zh="在 BBrowserX" data-en="In BBrowserX"><strong>在 BBrowserX</strong></td><td data-lang="zh">用滑桿 / 手動框選設定</td><td data-lang="zh">觀察各樣本分佈後分別設定</td><td data-lang="en">Set via sliders / manual gating</td><td data-lang="en">Set per-sample after inspecting distributions</td></tr>
+<tr><td data-zh="適用" data-en="Use case"><strong>適用</strong></td><td data-lang="zh">單樣本、快速探索</td><td data-lang="zh">多樣本整合、正式分析</td><td data-lang="en">Single sample, quick exploration</td><td data-lang="en">Multi-sample integration, formal analysis</td></tr>
+</tbody></table>
+
+<div class="callout tip"><span class="callout-icon">🧮</span><div>
+<span data-lang="zh"><strong>白話解釋 MAD：</strong>MAD（中位數絕對偏差, Median Absolute Deviation）就是「大家離中位數平均差多遠」的一把穩健尺——比標準差更不怕極端值搗亂。「中位數 ± 3×MAD」的意思是：<em>離群超過 3 個 MAD 就當作異常</em>。它的美妙之處在於<strong>讓資料自己決定門檻</strong>：品質好的樣本尺會收緊，品質差的樣本尺會放寬，你不必為每個樣本手動猜數字。這也是為什麼多樣本整合分析特別推薦它。</span>
+<span data-lang="en"><strong>MAD in plain words:</strong> MAD (Median Absolute Deviation) is a robust ruler for "how far, on average, everyone sits from the median" — far less rattled by extreme values than standard deviation. "Median ± 3×MAD" means: <em>anything more than 3 MADs out counts as abnormal</em>. Its beauty is that it <strong>lets the data set its own cutoff</strong>: the ruler tightens for a clean sample and loosens for a messy one, so you don't hand-guess a number per sample. That's why it's especially recommended for multi-sample integration.</span>
+</div></div>
+
+<div class="callout warn"><span class="callout-icon">⚠️</span><div>
+<div data-lang="zh"><strong>專家五原則（貼在牆上）：</strong><br>① 沒有放諸四海皆準的閾值。<br>② 聯合分佈（散佈圖）比單一指標更有用——好細胞沿對角線。<br>③ 寧可稍寬鬆也別過度過濾——過嚴可能刪掉稀有亞群。<br>④ 別忘了 soup 與雙細胞——它們躲得過簡單閾值。<br>⑤ 把 QC 當迭代過程——先寬鬆分群，若某 cluster 全是高 MT% 且無特異 marker，再回頭收緊。</div>
+<div data-lang="en"><strong>Five expert rules (pin to the wall):</strong><br>① No universal thresholds exist.<br>② Joint distributions (scatter) beat single metrics — good cells follow the diagonal.<br>③ Better slightly lenient than over-filtered — strict QC may delete rare subpopulations.<br>④ Don't forget soup & doublets — they slip past simple thresholds.<br>⑤ Treat QC as iterative — cluster leniently first; if a cluster is all high-MT% with no specific markers, go back and tighten.</div>
+</div></div>
+</section>
+
+<!-- ===== Section 8: Quiz ===== -->
+<section class="quiz-section">
+<h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">1. 在 BBrowserX 中，一個細胞的 nFeature_RNA 與 nCount_RNA 同時異常偏高，最可能是什麼？</p>
+<p data-lang="en">1. In BBrowserX, a cell shows abnormally high nFeature_RNA AND nCount_RNA. Most likely?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 空液滴</span><span data-lang="en">A. An empty droplet</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 高粒線體的死細胞</span><span data-lang="en">B. A dead cell with high MT%</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 可能是雙細胞 (doublet)</span><span data-lang="en">C. Likely a doublet</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 一定是最健康的細胞</span><span data-lang="en">D. Definitely the healthiest cell</span></div>
+</div><div class="quiz-feedback" id="fb1"></div></div>
+
+<div class="quiz-q" data-answer="1">
+<p data-lang="zh">2. 關於 BBrowserX 的 QC 哲學，下列何者<strong>最正確</strong>？</p>
+<p data-lang="en">2. Which statement about BBrowserX's QC philosophy is <strong>most correct</strong>?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 直接套用固定的 5% MT% 就好，不必看圖</span><span data-lang="en">A. Just apply a fixed 5% MT% — no need to look at plots</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 先用小提琴圖 / 散佈圖互動地觀察分佈，再設閾值；沒有通用閾值</span><span data-lang="en">B. Inspect distributions interactively with violin/scatter plots first, then threshold; no universal cutoff</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. QC 需要自己寫 R 程式才能做</span><span data-lang="en">C. QC requires writing your own R code</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 閾值越嚴越好，能刪多少刪多少</span><span data-lang="en">D. Stricter is always better — delete as much as possible</span></div>
+</div><div class="quiz-feedback" id="fb2"></div></div>
+
+<div class="quiz-q" data-answer="0">
+<p data-lang="zh">3. 你在分析心肌組織，發現許多細胞 MT% 落在 8–15%。最佳做法是？</p>
+<p data-lang="en">3. Analyzing cardiac tissue, you find many cells with MT% between 8–15%. Best approach?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 依組織特性調高 MT% 閾值，因為心肌粒線體天生偏高</span><span data-lang="en">A. Raise the MT% threshold, since cardiomyocytes naturally have high mitochondrial content</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 仍用 5% 嚴格過濾，把它們全刪掉</span><span data-lang="en">B. Still use 5% and delete them all</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 移除所有 MT 開頭的基因</span><span data-lang="en">C. Remove every MT- gene</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 跳過 QC 直接分群</span><span data-lang="en">D. Skip QC and cluster directly</span></div>
+</div><div class="quiz-feedback" id="fb3"></div></div>
+
+<div class="quiz-q" data-answer="3">
+<p data-lang="zh">4. 為什麼細胞死亡時 percent.mt 會升高？下列解釋<strong>最正確</strong>的是？</p>
+<p data-lang="en">4. Why does percent.mt rise when a cell dies? Which explanation is <strong>most correct</strong>?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 死細胞會主動製造更多粒線體 RNA</span><span data-lang="en">A. Dying cells actively produce more mitochondrial RNA</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 定序儀對死細胞特別敏感</span><span data-lang="en">B. The sequencer is extra sensitive to dead cells</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 死細胞的粒線體基因會突變</span><span data-lang="en">C. Mitochondrial genes mutate in dead cells</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 細胞膜破裂後細胞質 mRNA 流失，但雙層膜保護的粒線體 RNA 殘留，比例因而升高</span><span data-lang="en">D. The membrane ruptures and cytoplasmic mRNA leaks out, but double-membrane-protected mitochondrial RNA remains, raising its proportion</span></div>
+</div><div class="quiz-feedback" id="fb4"></div></div>
+
+<div class="quiz-q" data-answer="1">
+<p data-lang="zh">5. 你發現「幾乎每一群細胞都微弱表現血紅素基因 HBB」。最可能的原因是？</p>
+<p data-lang="en">5. You notice "nearly every cluster faintly expresses the hemoglobin gene HBB." Most likely cause?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 所有細胞都變成了紅血球</span><span data-lang="en">A. All cells turned into red blood cells</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 環境 RNA（soup）均勻污染，被隨機分裝進每顆油滴</span><span data-lang="en">B. Ambient RNA (soup) uniformly contaminating and randomly parceled into every droplet</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. nFeature 閾值設得太高</span><span data-lang="en">C. The nFeature threshold was set too high</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 這代表資料品質完美，不用擔心</span><span data-lang="en">D. It means the data is perfect — nothing to worry about</span></div>
+</div><div class="quiz-feedback" id="fb5"></div></div>
+</section>
+
+<nav class="page-nav">
+<a href="import.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Prev">← 上一步</span><span class="nav-title" data-zh="Step 1: 資料匯入 / Data Import" data-en="Step 1: 資料匯入 / Data Import">Step 1: 資料匯入 / Data Import</span></a>
+<a href="normalization.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 3: 標準化與降維 / Normalization &amp; Dim-Reduction" data-en="Step 3: 標準化與降維 / Normalization &amp; Dim-Reduction">Step 3: 標準化與降維 / Normalization &amp; Dim-Reduction</span></a>
+</nav>
+</main>
+<footer class="site-footer">© Charlene — BioTuring Interactive Tutorial · <span data-zh="教學用途，非 BioTuring 官方文件" data-en="Educational use — not official BioTuring documentation">教學用途，非 BioTuring 官方文件</span></footer>
+<script src="i18n.js"></script>
+<script>
+// Progress bar
+window.addEventListener('scroll',()=>{const h=document.documentElement;document.getElementById('progressBar').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+'%';});
+
+// ===== QC simulator (adapted from scRNA-seq qc.html) =====
+function randn(){let u=0,v=0;while(u===0)u=Math.random();while(v===0)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+const cells=[];
+for(let i=0;i<800;i++){
+  const r=Math.random();let nC,nF,mt;
+  if(r<0.08){ // empty droplets / debris
+    nC=Math.max(100, 500+randn()*250);
+    nF=Math.max(30, 120+randn()*60);
+    mt=Math.abs(5+randn()*6);
+  } else if(r<0.14){ // doublets
+    nC=Math.max(8000, 15000+randn()*4000);
+    nF=Math.max(3000, 4500+randn()*800);
+    mt=Math.max(0.5, 3+randn()*1.5);
+  } else if(r<0.24){ // dead/dying cells — high MT
+    nC=Math.max(500, 3000+randn()*1500);
+    nF=Math.max(200, 800+randn()*400);
+    mt=Math.max(8, 18+randn()*5);
+  } else { // healthy cells along diagonal
+    const base=Math.random();
+    nC=Math.max(1000, 2000+base*10000+randn()*1500);
+    nF=Math.max(300, 500+base*2800+randn()*300);
+    mt=Math.max(0.3, 3+randn()*2);
+  }
+  cells.push({nCount:nC,nFeature:nF,mt});
+}
+const qcChart=new Chart(document.getElementById('qcChart'),{type:'bubble',data:{datasets:[
+  {label:'Pass',data:[],backgroundColor:'rgba(26,107,90,0.55)',borderColor:'rgba(26,107,90,0.8)',borderWidth:1},
+  {label:'Fail',data:[],backgroundColor:'rgba(192,57,43,0.45)',borderColor:'rgba(192,57,43,0.7)',borderWidth:1}
+]},options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{position:'top',labels:{boxWidth:10,font:{size:10}}}},scales:{x:{title:{display:true,text:'nCount_RNA',font:{size:10}},min:0,max:32000,ticks:{font:{size:9}}},y:{title:{display:true,text:'nFeature_RNA',font:{size:10}},min:0,max:7500,ticks:{font:{size:9}}}}}});
+
+function makeHist(vals,bins,minV,maxV){
+  const h=new Array(bins).fill(0);const w=(maxV-minV)/bins;
+  vals.forEach(v=>{if(v<minV||v>maxV)return;const idx=Math.min(bins-1,Math.floor((v-minV)/w));h[idx]++;});
+  const labels=h.map((_,i)=>(minV+i*w).toFixed(0));
+  return {labels,counts:h,binW:w,minV};
+}
+function buildDist(canvasId,xLabel){
+  return new Chart(document.getElementById(canvasId),{type:'bar',data:{labels:[],datasets:[
+    {label:'In range',data:[],backgroundColor:'rgba(26,107,90,0.7)'},
+    {label:'Out of range',data:[],backgroundColor:'rgba(192,57,43,0.55)'}
+  ]},options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false}},scales:{x:{stacked:true,title:{display:true,text:xLabel,font:{size:10}},ticks:{font:{size:9},maxRotation:0,autoSkipPadding:8}},y:{stacked:true,title:{display:true,text:'count',font:{size:10}},ticks:{font:{size:9}}}}}});
+}
+const featChart=buildDist('distFeat','nFeature_RNA');
+const countChart=buildDist('distCount','nCount_RNA');
+const mtChart=buildDist('distMt','MT% (per cell)');
+
+function fillDist(chart,vals,bins,minV,maxV,inLo,inHi){
+  const h=makeHist(vals,bins,minV,maxV);
+  const inArr=[],outArr=[];
+  for(let i=0;i<h.counts.length;i++){
+    const center=h.minV+(i+0.5)*h.binW;
+    if(center>=inLo && center<=inHi){inArr.push(h.counts[i]);outArr.push(0);}
+    else {inArr.push(0);outArr.push(h.counts[i]);}
+  }
+  chart.data.labels=h.labels;
+  chart.data.datasets[0].data=inArr;chart.data.datasets[1].data=outArr;
+  chart.update('none');
+}
+function fillDistByMask(chart,vals,passMask,bins,minV,maxV){
+  const w=(maxV-minV)/bins;
+  const inArr=new Array(bins).fill(0),outArr=new Array(bins).fill(0);
+  vals.forEach((v,i)=>{if(v<minV||v>maxV)return;const idx=Math.min(bins-1,Math.floor((v-minV)/w));if(passMask[i])inArr[idx]++;else outArr[idx]++;});
+  const labels=Array.from({length:bins},(_,i)=>(minV+i*w).toFixed(0));
+  chart.data.labels=labels;
+  chart.data.datasets[0].data=inArr;chart.data.datasets[1].data=outArr;
+  chart.update('none');
+}
+
+function updateQC(){
+  const L=I18n.get();
+  const minF=+document.getElementById('sliderMinFeat').value,maxF=+document.getElementById('sliderMaxFeat').value,maxMT=+document.getElementById('sliderMT').value;
+  document.getElementById('valMinFeat').textContent=minF;
+  document.getElementById('valMaxFeat').textContent=maxF;
+  document.getElementById('valMT').textContent=maxMT+'%';
+  const pass=[],fail=[];
+  cells.forEach(c=>{const pt={x:c.nCount,y:c.nFeature,r:Math.max(3,c.mt*0.6)};(c.nFeature>=minF&&c.nFeature<=maxF&&c.mt<=maxMT?pass:fail).push(pt);});
+  const kl=L==='zh'?'保留':'Retained',rl=L==='zh'?'過濾':'Filtered';
+  document.getElementById('statPass').textContent=kl+': '+pass.length;
+  document.getElementById('statFail').textContent=rl+': '+fail.length;
+  const rate=pass.length/(pass.length+fail.length)*100;
+  document.getElementById('statRate').textContent=(L==='zh'?'保留率 ':'Retention rate ')+rate.toFixed(1)+'%';
+
+  qcChart.data.datasets[0].data=pass;qcChart.data.datasets[1].data=fail;
+  qcChart.data.datasets[0].label=kl;qcChart.data.datasets[1].label=rl;
+  qcChart.update('none');
+
+  const featVals=cells.map(c=>c.nFeature),countVals=cells.map(c=>c.nCount),mtVals=cells.map(c=>c.mt);
+  fillDist(featChart,featVals,30,0,7500,minF,maxF);
+  fillDistByMask(countChart,countVals,cells.map(c=>(c.nFeature>=minF&&c.nFeature<=maxF&&c.mt<=maxMT)),30,0,32000);
+  fillDist(mtChart,mtVals,25,0,30,0,maxMT);
+}
+['sliderMinFeat','sliderMaxFeat','sliderMT'].forEach(id=>document.getElementById(id).addEventListener('input',updateQC));
+document.addEventListener('langchange',updateQC);
+updateQC();
+
+// Quiz
+const QF={
+  zh:{q1_y:'nFeature 與 nCount 同時異常偏高，是 doublet 的典型特徵。',q1_n:'正確答案已標示。',q2_y:'BBrowserX 的哲學就是先用小提琴圖 / 散佈圖互動觀察，再設閾值——沒有通用閾值。',q2_n:'正確答案已標示。',q3_y:'不同組織 MT% 基線不同，心肌細胞粒線體天生偏高，應依組織調高閾值。',q3_n:'正確答案已標示。',q4_y:'關鍵在雙層膜：細胞質 mRNA 漏光，受保護的粒線體 RNA 殘留，MT% 比例因而升高。',q4_n:'正確答案已標示。',q5_y:'這是典型的環境 RNA（soup）污染——高丰度基因被隨機分裝進每顆油滴，讓各群都微弱表現。',q5_n:'正確答案已標示。'},
+  en:{q1_y:'Simultaneously high nFeature + nCount is a hallmark of doublets.',q1_n:'Correct answer is highlighted.',q2_y:'BBrowserX\'s philosophy is to inspect violin/scatter interactively, then threshold — there is no universal cutoff.',q2_n:'Correct answer is highlighted.',q3_y:'MT% baselines differ by tissue; cardiomyocytes are naturally high, so raise the threshold for the tissue.',q3_n:'Correct answer is highlighted.',q4_y:'The key is the double membrane: cytoplasmic mRNA leaks out while protected mitochondrial RNA remains, so its proportion rises.',q4_n:'Correct answer is highlighted.',q5_y:'This is classic ambient RNA (soup) contamination — a high-abundance gene randomly parceled into every droplet, so all clusters faintly express it.',q5_n:'Correct answer is highlighted.'}
+};
+document.querySelectorAll('.quiz-q').forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll('.quiz-opt').forEach(o=>{o.addEventListener('click',()=>{if(q.classList.contains('answered'))return;q.classList.add('answered');const fb=document.getElementById('fb'+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?'correct':'wrong');if(!ok)q.querySelectorAll('.quiz-opt')[ans].classList.add('correct');const L=I18n.get();fb.className='quiz-feedback show '+(ok?'correct-fb':'wrong-fb');fb.textContent=(ok?'✅ ':'❌ ')+(QF[L]['q'+(qi+1)+'_'+(ok?'y':'n')]||'');});});});
+</script>
+</body></html>
+
