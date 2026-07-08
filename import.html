@@ -1,0 +1,417 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Data Import & Formats — BioTuring Tutorial</title>
+<link rel="stylesheet" href="styles.css">
+<style>.page-hero{background:linear-gradient(160deg,#2b1a5e 0%,#3b2a86 35%,#5b3fb0 70%,#2563a8 100%)}
+.fmt-pick{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.rec-box{margin-top:16px;padding:18px 20px;border-radius:var(--radius-lg);background:var(--c-accent-light);border-left:4px solid var(--c-accent);font-size:.95rem}
+.rec-box b{color:var(--c-accent-dark)}
+.rec-box code{font-family:var(--font-mono);font-size:.85rem;background:rgba(0,0,0,.06);padding:1px 6px;border-radius:4px}
+.matrix-grid{display:grid;grid-template-columns:auto repeat(4,1fr);gap:3px;margin:16px 0;font-family:var(--font-mono);font-size:.72rem;max-width:520px}
+.matrix-grid .mg-cell{padding:6px 4px;text-align:center;border-radius:4px;background:var(--c-surface-alt)}
+.matrix-grid .mg-head{background:var(--c-highlight);color:#fff;font-weight:600}
+.matrix-grid .mg-row{background:var(--c-accent);color:#fff;font-weight:600;text-align:right;padding-right:8px}
+.matrix-grid .mg-nz{background:#5b3fb0;color:#fff}
+.matrix-grid .mg-zero{color:var(--c-ink-muted);opacity:.5}
+.file-tree{background:var(--c-code-bg);color:var(--c-code-text);border-radius:var(--radius-lg);padding:20px 24px;margin:18px 0;font-family:var(--font-mono);font-size:.82rem;line-height:1.8;overflow-x:auto;box-shadow:var(--shadow-md)}
+.file-tree .ft-dir{color:#7dd3fc}.file-tree .ft-key{color:#fcd34d}.file-tree .ft-note{color:#6b8a7a}
+.mini-legend{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;font-size:.74rem;color:var(--c-ink-muted);margin-top:4px}
+.mini-legend span{display:inline-flex;align-items:center;gap:6px}
+.mini-legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.plug-row{display:flex;gap:14px;flex-wrap:wrap;margin:18px 0}
+.plug-chip{flex:1;min-width:150px;background:var(--c-surface);border:1px solid var(--c-border-light);border-radius:var(--radius-lg);padding:16px 18px;box-shadow:var(--shadow-sm)}
+.plug-chip .pc-emoji{font-size:1.6rem}
+.plug-chip h5{font-family:var(--font-display);font-size:1rem;margin:6px 0 4px}
+.plug-chip p{font-size:.82rem;color:var(--c-ink-muted);margin:0}</style></head><body>
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="BioTuring 教學" data-en="BioTuring Tutorial">BioTuring 教學</span></a>
+  <ul class="top-nav-links"><li><a href="overview.html" data-zh="總覽" data-en="Overview">總覽</a></li><li><a href="import.html" class="active">Import</a></li><li><a href="qc.html">QC</a></li><li><a href="normalization.html">Norm.</a></li><li><a href="clustering.html">Cluster</a></li><li><a href="annotation.html">Annot.</a></li><li><a href="dge.html">DE</a></li><li><a href="trajectory.html">Traj.</a></li><li><a href="multimodal.html">Multi</a></li><li><a href="spatialx.html">SpatialX</a></li><li><a href="talk2data.html">Talk2Data</a></li><li><a href="references/index.html" data-zh="📚 參考資料" data-en="📚 References">📚 參考資料</a></li></ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">STEP 1 · <span data-zh="資料匯入與格式" data-en="Data Import & Formats">資料匯入與格式</span></div>
+<h1 data-zh="把資料放進 BBrowserX" data-en="Getting Data into BBrowserX">把資料放進 BBrowserX</h1>
+<p class="subtitle" data-lang="zh">認識 BBrowserX 支援的檔案格式與資料型態，理解「計數矩陣」的本質，並學會如何建立 Study、加入多個樣本，甚至直接匯入 NCBI GEO 上已發表的公開資料。</p>
+<p class="subtitle" data-lang="en">Learn the file formats and data types BBrowserX supports, understand what a count matrix really is, and how to build a Study — with multiple samples, or even published public data pulled straight from NCBI GEO.</p>
+</header>
+<main class="content-wrap">
+
+<section class="section">
+<div class="section-label" data-zh="開場比喻" data-en="THE BIG PICTURE">開場比喻</div>
+<h2 data-zh="先講個比喻：檔案格式就像「不同國家的插頭」" data-en="An analogy first: file formats are like power plugs">先講個比喻：檔案格式就像「不同國家的插頭」</h2>
+<div data-lang="zh">
+<p>想像你帶著一台筆電飛到世界各地。電力（也就是你的「資料」）本質上都一樣，但每個國家的<strong>插頭形狀</strong>都不同——台灣是扁腳、英國是三方腳、歐洲是圓腳。你需要的不是換一顆新電池，而是一個能<strong>對上插座</strong>的轉接頭。單細胞資料的<strong>檔案格式 (file format)</strong> 正是這個道理：同一份「基因表達計數」，Python 的人習慣裝進 <code style="font-family:var(--font-mono)">.h5ad</code>、R 的人習慣裝進 <code style="font-family:var(--font-mono)">.rds</code>、10x 儀器則吐出 <code style="font-family:var(--font-mono)">.h5</code> 或一疊 MTX 檔。內容是同一套資料，只是「插頭」不一樣。</p>
+<p>換個角度，格式也像<strong>同一份班級點名表被翻成不同語言</strong>：中文版、英文版、日文版，內容（誰、哪個基因、多少數量）完全一致，只是排版與封裝方式不同。BBrowserX 的厲害之處，就是它自帶了各國插座的<strong>萬用轉接頭</strong>——你只要認得手上的「插頭」是哪一種，把對的檔案交給它，剩下的它自己讀懂。這一章的目標，就是讓你一眼認出手上的插頭，並知道該把哪個檔（或哪個資料夾）遞過去。</p>
+</div>
+<div data-lang="en">
+<p>Picture flying around the world with your laptop. The electricity — your "data" — is essentially the same everywhere, but every country has a different <strong>plug shape</strong>: flat pins in Taiwan, three fat pins in the UK, round pins in Europe. You don't need a new battery; you need an <strong>adapter that fits the socket</strong>. A single-cell <strong>file format</strong> works exactly like this: the very same "gene-expression counts" get packed into <code style="font-family:var(--font-mono)">.h5ad</code> by Python folks, into <code style="font-family:var(--font-mono)">.rds</code> by R folks, while a 10x instrument spits out a <code style="font-family:var(--font-mono)">.h5</code> or a stack of MTX files. Same data inside — just a different "plug."</p>
+<p>Another way to see it: formats are like <strong>the same class roster translated into different languages</strong> — a Chinese edition, an English edition, a Japanese edition. The content (who, which gene, how many) is identical; only the layout and packaging differ. BBrowserX's superpower is that it ships with a <strong>universal adapter</strong> for all those sockets — you just have to recognize which "plug" you're holding, hand it the right file, and it reads the rest on its own. The goal of this chapter is to make you spot your plug at a glance and know exactly which file (or folder) to pass over.</p>
+</div>
+<div class="plug-row">
+<div class="plug-chip"><div class="pc-emoji">🐍</div><h5>.h5ad</h5><p data-lang="zh">Python / Scanpy 的「插頭」</p><p data-lang="en">The Python / Scanpy "plug"</p></div>
+<div class="plug-chip"><div class="pc-emoji">📘</div><h5>.rds</h5><p data-lang="zh">R / Seurat 的「插頭」</p><p data-lang="en">The R / Seurat "plug"</p></div>
+<div class="plug-chip"><div class="pc-emoji">📦</div><h5>10x .h5 / MTX</h5><p data-lang="zh">儀器（Cell Ranger）的「插頭」</p><p data-lang="en">The instrument (Cell Ranger) "plug"</p></div>
+</div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="核心概念" data-en="CORE CONCEPT">核心概念</div>
+<h2 data-zh="一、什麼是計數矩陣 (count matrix)？" data-en="I. What is a Count Matrix?">一、什麼是計數矩陣 (count matrix)？</h2>
+<div data-lang="zh">
+<p>把計數矩陣想成<strong>一張超大的「細胞 × 基因」點名表</strong>：想像一間可容納數十萬人的體育館，橫排坐著一個個<strong>細胞</strong>、直欄列著兩萬多個<strong>基因</strong>，每個格子填的是「這個基因在這個細胞裡被抓到幾個分子」。這就是所有 scRNA-seq 分析的起點——<strong>計數矩陣 (count matrix)</strong>。</p>
+<p>更精確地說，它是一個<strong>基因 × 細胞</strong>的表格（在 BBrowserX 內部，列 row 常是基因、行 column 常是細胞），每一格記錄「某個基因在某個細胞裡被偵測到的 <strong>UMI</strong>（Unique Molecular Identifier，獨特分子標籤）數量」。UMI 是黏在每一條 mRNA 分子上的小條碼，作用像<strong>演唱會入場的手環</strong>——同一個人（同一條原始分子）不管被 PCR 複製幾次，都只算一次，避免重複灌水。一個典型的實驗，大概是 <strong>2 萬多個基因 × 數千到數百萬個細胞</strong>。</p>
+<p>這裡有個關鍵事實：絕大多數基因在絕大多數細胞裡<strong>根本沒被偵測到</strong>（值為 0）。這不是壞事——一個 T 細胞本來就不會表現 B 細胞的基因。這種「格子大多是空的」特性，讓矩陣變成<strong>稀疏 (sparse)</strong> 的——單細胞資料通常有 <strong>90% 到 95% 以上都是 0</strong>。因此所有格式（.h5ad、10x HDF5、MTX）都聰明地只儲存<strong>非零值</strong>（誰、在哪、多少），空格一律省略，檔案才不會爆炸。舉例：一份 5,000 細胞 × 20,000 基因、若真的把一億個格子全存下來會非常笨重，但因為只有約 5% 非零，稀疏儲存後可能只剩幾十 MB。</p>
+<p>最後一個重點——<strong>你該交什麼給 BBrowserX？</strong>答案是<strong>原始／過濾後的整數計數 (raw / filtered counts)</strong>，也就是「還沒被加工過的生米」，而不是已經標準化 (normalized) 或取過對數 (log) 的「熟飯」。因為 QC、標準化、批次校正等後續烹調步驟，平台會在裡面自己執行（見 <a href="qc.html">Step 2</a>、<a href="normalization.html">Step 3</a>）。若你事先亂加工，反而會讓平台的計算失準。</p>
+</div>
+<div data-lang="en">
+<p>Think of a count matrix as <strong>one enormous "cells × genes" roll-call sheet</strong>. Picture a stadium seating hundreds of thousands of people: each row is a <strong>cell</strong>, each of the 20,000-plus columns is a <strong>gene</strong>, and every cell of the table says "how many molecules of this gene were caught in this cell." This is where every scRNA-seq analysis begins — the <strong>count matrix</strong>.</p>
+<p>More precisely, it's a <strong>genes × cells</strong> table (inside BBrowserX, rows are usually genes and columns are usually cells), where each entry records "how many <strong>UMIs</strong> (Unique Molecular Identifiers) of a given gene were detected in a given cell." A UMI is a tiny barcode stuck onto each mRNA molecule — it works like a <strong>wristband at a concert entrance</strong>: no matter how many times one person (one original molecule) is duplicated by PCR, they're counted only once, so nobody inflates the headcount. A typical experiment is roughly <strong>20,000+ genes × thousands to millions of cells</strong>.</p>
+<p>Here's a key fact: most genes are <strong>simply not detected</strong> in most cells (value = 0). That's not a flaw — a T cell isn't supposed to express B-cell genes. This "mostly empty" property makes the matrix <strong>sparse</strong> — single-cell data is usually <strong>90–95%+ zeros</strong>. So every format (.h5ad, 10x HDF5, MTX) cleverly stores only the <strong>non-zero values</strong> (who, where, how many) and skips the blanks, keeping files manageable. For example: a 5,000-cell × 20,000-gene matrix has 100 million potential entries — storing them all would be absurd, but since only ~5% are non-zero, sparse storage may shrink it to tens of MB.</p>
+<p>One last point — <strong>what should you hand BBrowserX?</strong> The answer is <strong>raw / filtered integer counts</strong>, the "raw rice" that hasn't been cooked yet, not values that are already normalized or log-transformed ("cooked rice"). QC, normalization, and batch correction are cooking steps the platform runs internally (see <a href="qc.html">Step 2</a>, <a href="normalization.html">Step 3</a>). If you pre-process too aggressively, you can actually throw off the platform's calculations.</p>
+</div>
+<div class="matrix-grid" aria-hidden="true">
+  <div class="mg-cell"></div><div class="mg-cell mg-head">Cell_1</div><div class="mg-cell mg-head">Cell_2</div><div class="mg-cell mg-head">Cell_3</div><div class="mg-cell mg-head">Cell_4</div>
+  <div class="mg-cell mg-row">CD3D</div><div class="mg-cell mg-nz">5</div><div class="mg-cell mg-zero">0</div><div class="mg-cell mg-nz">3</div><div class="mg-cell mg-zero">0</div>
+  <div class="mg-cell mg-row">MS4A1</div><div class="mg-cell mg-zero">0</div><div class="mg-cell mg-nz">8</div><div class="mg-cell mg-zero">0</div><div class="mg-cell mg-zero">0</div>
+  <div class="mg-cell mg-row">GAPDH</div><div class="mg-cell mg-nz">12</div><div class="mg-cell mg-nz">9</div><div class="mg-cell mg-nz">14</div><div class="mg-cell mg-nz">11</div>
+  <div class="mg-cell mg-row">LYZ</div><div class="mg-cell mg-zero">0</div><div class="mg-cell mg-zero">0</div><div class="mg-cell mg-zero">0</div><div class="mg-cell mg-nz">7</div>
+</div>
+<div class="mini-legend"><span><i style="background:#5b3fb0"></i><span data-zh="非零計數（有偵測到）" data-en="Non-zero count (detected)">非零計數（有偵測到）</span></span><span><i style="background:var(--c-surface-alt);border:1px solid var(--c-border)"></i><span data-zh="0（沒偵測到，占大多數）" data-en="0 (undetected, the majority)">0（沒偵測到，占大多數）</span></span></div>
+<p style="font-size:.78rem;color:var(--c-ink-muted);text-align:center;"><span data-zh="示意：基因（列）× 細胞（行）的整數計數矩陣。CD3D（T 細胞）與 MS4A1（B 細胞）幾乎不重疊，GAPDH（管家基因）處處都有——大量的 0 讓它成為稀疏矩陣。" data-en="Illustration: a genes (rows) × cells (columns) integer count matrix. CD3D (T cells) and MS4A1 (B cells) barely overlap, while GAPDH (a housekeeping gene) is everywhere — the many zeros make it sparse.">示意：基因（列）× 細胞（行）的整數計數矩陣。CD3D（T 細胞）與 MS4A1（B 細胞）幾乎不重疊，GAPDH（管家基因）處處都有——大量的 0 讓它成為稀疏矩陣。</span></p>
+<div class="callout tip"><span class="callout-icon">💡</span><div>
+<span data-lang="zh"><strong>記住這句話：</strong>「原始計數進、分析結果出」。你只要負責把<strong>乾淨、未標準化的整數計數</strong>交給 BBrowserX，剩下的 log 轉換、批次校正 (Harmony) 等都在平台內處理。</span>
+<span data-lang="en"><strong>Remember:</strong> "raw counts in, results out." Your job is to hand BBrowserX <strong>clean, un-normalized integer counts</strong>; log transformation, batch correction (Harmony), and the rest happen inside the platform.</span>
+</div></div>
+<div class="callout warn"><span class="callout-icon">🎯</span><div>
+<span data-lang="zh"><strong>為什麼重要：</strong>理解「稀疏」不只是技術細節。它解釋了為什麼單細胞資料能塞進小小的檔案、為什麼降維（PCA/UMAP）能有效壓縮資訊，也為什麼一個「值為 0」的格子通常代表「沒測到」而非「表達量真的是零」——這在後面的標準化與差異表達會一再出現。</span>
+<span data-lang="en"><strong>Why it matters:</strong> "sparsity" isn't just a technical footnote. It explains why single-cell data fits in tiny files, why dimensionality reduction (PCA/UMAP) can compress the information so well, and why a zero usually means "not detected" rather than "truly zero expression" — a distinction that resurfaces again and again in normalization and differential expression.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="矩陣的組成" data-en="ANATOMY OF THE MATRIX">矩陣的組成</div>
+<h2 data-zh="二、raw vs. filtered、barcodes 與 features 到底是什麼？" data-en="II. Raw vs. Filtered, Barcodes & Features">二、raw vs. filtered、barcodes 與 features 到底是什麼？</h2>
+<div data-lang="zh">
+<p>要真正看懂 10x 的輸出，你需要認識三個關鍵角色。它們就像一張點名表的「三個座標系統」：<strong>barcodes 是每一位學生的學號、features 是每一個科目、matrix 是分數本身</strong>。缺任何一個，這張表就讀不懂。</p>
+</div>
+<div data-lang="en">
+<p>To truly read a 10x output, you need three key characters. Think of them as a roll-call sheet's "three coordinate systems": <strong>barcodes are each student's ID number, features are each subject, and the matrix is the scores themselves</strong>. Miss any one and the sheet becomes unreadable.</p>
+</div>
+<div class="card-grid cols-3">
+<div class="card"><div class="card-icon">🧾</div><h4 data-zh="Barcodes（細胞 ID）" data-en="Barcodes (cell IDs)">Barcodes（細胞 ID）</h4>
+<div data-lang="zh"><p>每個細胞被一段獨特的 DNA 條碼「標記」，就像每位客人手上的<strong>寄物牌號碼</strong>。一份 <code style="font-family:var(--font-mono)">barcodes.tsv</code> 就是一長串細胞 ID（例如 <code style="font-family:var(--font-mono)">AAACCTGAGAAACCAT-1</code>），一行一個細胞。矩陣的「行」順序，就靠它對應。</p></div>
+<div data-lang="en"><p>Every cell is tagged with a unique DNA barcode, like a <strong>coat-check ticket number</strong> in each guest's hand. A <code style="font-family:var(--font-mono)">barcodes.tsv</code> is just a long list of cell IDs (e.g. <code style="font-family:var(--font-mono)">AAACCTGAGAAACCAT-1</code>), one cell per line. The matrix's "column" order maps to this list.</p></div>
+</div>
+<div class="card"><div class="card-icon">🧬</div><h4 data-zh="Features（基因）" data-en="Features (genes)">Features（基因）</h4>
+<div data-lang="zh"><p>每一列代表一個<strong>基因（feature）</strong>。<code style="font-family:var(--font-mono)">features.tsv</code>（舊版叫 <code style="font-family:var(--font-mono)">genes.tsv</code>）通常有兩欄：Ensembl ID（如 <code style="font-family:var(--font-mono)">ENSG00000167286</code>）與基因符號（如 <code style="font-family:var(--font-mono)">CD3D</code>）。CITE-seq 資料還會多一欄標明是「Gene Expression」還是「Antibody Capture」。</p></div>
+<div data-lang="en"><p>Each row is a <strong>gene (feature)</strong>. <code style="font-family:var(--font-mono)">features.tsv</code> (older name: <code style="font-family:var(--font-mono)">genes.tsv</code>) usually has two columns: an Ensembl ID (e.g. <code style="font-family:var(--font-mono)">ENSG00000167286</code>) and a gene symbol (e.g. <code style="font-family:var(--font-mono)">CD3D</code>). CITE-seq data adds a third column marking "Gene Expression" vs "Antibody Capture."</p></div>
+</div>
+<div class="card"><div class="card-icon">🔢</div><h4 data-zh="Matrix（計數本體）" data-en="Matrix (the counts)">Matrix（計數本體）</h4>
+<div data-lang="zh"><p><code style="font-family:var(--font-mono)">matrix.mtx</code> 存的是稀疏矩陣的「非零清單」：第幾列（基因）、第幾行（細胞）、值是多少。它必須靠 barcodes 與 features 兩張<strong>座標索引</strong>才知道每個數字對應到哪個細胞、哪個基因。</p></div>
+<div data-lang="en"><p><code style="font-family:var(--font-mono)">matrix.mtx</code> stores the sparse matrix as a "non-zero list": which row (gene), which column (cell), and the value. It relies on the barcodes and features <strong>coordinate indexes</strong> to know which cell and which gene each number belongs to.</p></div>
+</div>
+</div>
+<h3 data-zh="raw 與 filtered 差在哪？" data-en="What's the difference between raw and filtered?">raw 與 filtered 差在哪？</h3>
+<div data-lang="zh">
+<p>Cell Ranger 會吐出兩個版本的矩陣，名字很像但意義天差地別，這是新手最常搞混的一步：</p>
+<ul style="color:var(--c-ink-light);margin:0 0 16px 20px;line-height:1.9">
+<li><strong>raw（未過濾）</strong>：把所有偵測到的 barcode 都算進來——包含<strong>幾十萬個「空油滴」</strong>（droplet 裡沒有真細胞，只有背景 RNA）。就像一張把「來賓」和「路過的空氣」都寫進去的名單。檔名常見 <code style="font-family:var(--font-mono)">raw_feature_bc_matrix</code>。</li>
+<li><strong>filtered（已過濾）</strong>：Cell Ranger 已經用演算法（如 EmptyDrops）判斷哪些 barcode 是<strong>真正的細胞</strong>，只留下它們。這才是你<strong>絕大多數情況要匯入的版本</strong>。檔名常見 <code style="font-family:var(--font-mono)">filtered_feature_bc_matrix</code>。</li>
+</ul>
+<p>一個直覺的例子：raw 可能有 <strong>737,000 個 barcode</strong>（10x 的理論上限），但 filtered 只留下 <strong>約 5,000 個真細胞</strong>。差距那麼大，正是因為絕大多數油滴是空的。</p>
+</div>
+<div data-lang="en">
+<p>Cell Ranger emits two versions of the matrix with confusingly similar names but wildly different meaning — this trips up beginners more than anything else:</p>
+<ul style="color:var(--c-ink-light);margin:0 0 16px 20px;line-height:1.9">
+<li><strong>raw (unfiltered)</strong>: includes <em>every</em> barcode detected — including <strong>hundreds of thousands of "empty droplets"</strong> (droplets with no real cell, just ambient RNA). It's a guest list that also records "the air that walked past." Often named <code style="font-family:var(--font-mono)">raw_feature_bc_matrix</code>.</li>
+<li><strong>filtered</strong>: Cell Ranger has already used an algorithm (e.g. EmptyDrops) to decide which barcodes are <strong>real cells</strong> and kept only those. This is the version you'll <strong>import in the vast majority of cases</strong>. Often named <code style="font-family:var(--font-mono)">filtered_feature_bc_matrix</code>.</li>
+</ul>
+<p>An intuitive example: raw might contain <strong>737,000 barcodes</strong> (10x's theoretical ceiling), while filtered keeps only <strong>~5,000 real cells</strong>. The gap is enormous precisely because most droplets are empty.</p>
+</div>
+<div class="callout tip"><span class="callout-icon">🧠</span><div>
+<span data-lang="zh"><strong>專家小撇步：</strong>初學者<strong>幾乎都選 filtered</strong>。只有在你想自己用進階方法（如 SoupX / CellBender）去除背景 RNA「湯汁」污染時，才會刻意載入 raw。看到檔名開頭是 <code style="font-family:var(--font-mono)">filtered_</code> 就對了。</span>
+<span data-lang="en"><strong>Pro tip:</strong> beginners should <strong>almost always pick filtered</strong>. You'd only deliberately load raw when you want to remove ambient-RNA "soup" contamination yourself with advanced tools (like SoupX / CellBender). If the filename starts with <code style="font-family:var(--font-mono)">filtered_</code>, you're good.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="支援格式" data-en="SUPPORTED FORMATS">支援格式</div>
+<h2 data-zh="三、BBrowserX 支援哪些檔案格式？" data-en="III. Which File Formats Does BBrowserX Support?">三、BBrowserX 支援哪些檔案格式？</h2>
+<div data-lang="zh"><p>單細胞資料在不同工具間流通時，會以幾種標準容器儲存。BBrowserX 直接支援下列四大類，涵蓋 Python (Scanpy)、R (Seurat) 與 10x Cell Ranger 的原生輸出。它們最大的分野其實只有一句話：<strong>是「一個檔案打包全部」，還是「一疊檔案一起才算數」。</strong></p></div>
+<div data-lang="en"><p>Single-cell data travels between tools in a handful of standard containers. BBrowserX directly supports the four families below, covering the native outputs of Python (Scanpy), R (Seurat), and 10x Cell Ranger. Their biggest distinction boils down to one line: <strong>is it "one file packs everything," or "a stack of files that only counts together"?</strong></p></div>
+<div class="card-grid cols-2">
+<div class="card"><div class="card-icon">🐍</div><h4>.h5ad (AnnData)</h4>
+<div data-lang="zh"><p>Python / <strong>Scanpy</strong> 生態系的標準格式，副檔名 <code style="font-family:var(--font-mono)">.h5ad</code>。以 HDF5 為底——把它想成一個<strong>整理得井井有條的行李箱</strong>：一個檔案同時裝下計數矩陣、細胞與基因的中繼資料（<code style="font-family:var(--font-mono)">obs</code> 存細胞資訊、<code style="font-family:var(--font-mono)">var</code> 存基因資訊）、降維座標 (UMAP/PCA)、分群結果等。單檔、可攜、最常見，也最不容易出錯。</p></div>
+<div data-lang="en"><p>The standard for the Python / <strong>Scanpy</strong> ecosystem, extension <code style="font-family:var(--font-mono)">.h5ad</code>. Built on HDF5 — think of it as a <strong>neatly packed suitcase</strong>: one file holds the count matrix, cell & gene metadata (<code style="font-family:var(--font-mono)">obs</code> for cells, <code style="font-family:var(--font-mono)">var</code> for genes), embeddings (UMAP/PCA), clustering, and more. One file, portable, the most common — and the least error-prone.</p></div>
+</div>
+<div class="card"><div class="card-icon">📘</div><h4>Seurat 物件 (.rds)</h4>
+<div data-lang="zh"><p>R / <strong>Seurat</strong> 生態系的物件，通常存為 <code style="font-family:var(--font-mono)">.rds</code>。可想成 R 世界的行李箱，內含計數、分群結果、metadata、甚至多個 assay（如 RNA 與 ADT）。若你的合作者用 R 分析，直接請他 <code style="font-family:var(--font-mono)">saveRDS()</code> 存下物件給你即可匯入。</p></div>
+<div data-lang="en"><p>The object of the R / <strong>Seurat</strong> ecosystem, usually saved as <code style="font-family:var(--font-mono)">.rds</code>. Think of it as R's version of the suitcase — carrying counts, clustering, metadata, even multiple assays (like RNA and ADT). If a collaborator works in R, just have them <code style="font-family:var(--font-mono)">saveRDS()</code> the object; it imports directly.</p></div>
+</div>
+<div class="card"><div class="card-icon">📦</div><h4>10x HDF5 (.h5)</h4>
+<div data-lang="zh"><p>10x Genomics <strong>Cell Ranger</strong> 的單檔輸出，檔名常為 <code style="font-family:var(--font-mono)">filtered_feature_bc_matrix.h5</code>（或 <code style="font-family:var(--font-mono)">raw_..._bc_matrix.h5</code>）。一個 <code style="font-family:var(--font-mono)">.h5</code> 檔就把稀疏矩陣＋基因＋barcode 全包在裡面——等於把 MTX 那三個檔壓成<strong>一個手提包</strong>，方便許多。</p></div>
+<div data-lang="en"><p>The single-file output of 10x Genomics <strong>Cell Ranger</strong>, typically named <code style="font-family:var(--font-mono)">filtered_feature_bc_matrix.h5</code> (or <code style="font-family:var(--font-mono)">raw_..._bc_matrix.h5</code>). One <code style="font-family:var(--font-mono)">.h5</code> file wraps the sparse matrix + genes + barcodes together — it's basically the three MTX files zipped into <strong>a single handbag</strong>, much more convenient.</p></div>
+</div>
+<div class="card"><div class="card-icon">🗂️</div><h4>10x MTX bundle（三檔）</h4>
+<div data-lang="zh"><p>經典的 Matrix Market 資料夾，<strong>三個檔缺一不可</strong>：<code style="font-family:var(--font-mono)">matrix.mtx</code>（稀疏計數）＋ <code style="font-family:var(--font-mono)">barcodes.tsv</code>（細胞 ID）＋ <code style="font-family:var(--font-mono)">features.tsv</code> 或 <code style="font-family:var(--font-mono)">genes.tsv</code>（基因）。常見副檔名帶 <code style="font-family:var(--font-mono)">.gz</code>。像<strong>一組三件式行李</strong>，匯入時要選整個資料夾，分開就讀不了。</p></div>
+<div data-lang="en"><p>The classic Matrix Market folder — <strong>three files, none optional</strong>: <code style="font-family:var(--font-mono)">matrix.mtx</code> (sparse counts) + <code style="font-family:var(--font-mono)">barcodes.tsv</code> (cell IDs) + <code style="font-family:var(--font-mono)">features.tsv</code> or <code style="font-family:var(--font-mono)">genes.tsv</code> (genes). Often <code style="font-family:var(--font-mono)">.gz</code>-compressed. Like <strong>a matching three-piece luggage set</strong>: point the import at the whole folder — split them up and it won't read.</p></div>
+</div>
+</div>
+<h3 data-zh="它們從哪裡來？看一眼 Cell Ranger 的 outs/ 資料夾" data-en="Where do they come from? A peek at Cell Ranger's outs/ folder">它們從哪裡來？看一眼 Cell Ranger 的 outs/ 資料夾</h3>
+<div data-lang="zh"><p>10x 的資料經過 Cell Ranger（比對＋計數的官方軟體）處理後，會產生一個 <code style="font-family:var(--font-mono)">outs/</code> 資料夾。你要找的兩個「金礦」，都在裡面：</p></div>
+<div data-lang="en"><p>After 10x data passes through Cell Ranger (the official align-and-count software), you get an <code style="font-family:var(--font-mono)">outs/</code> folder. The two "gold nuggets" you're looking for both live inside:</p></div>
+<div class="file-tree">
+<span class="ft-dir">sample_A/outs/</span>
+<br>├── <span class="ft-key">filtered_feature_bc_matrix.h5</span>   <span class="ft-note"># ← 單檔，最省事 / single file, easiest</span>
+<br>├── <span class="ft-dir">filtered_feature_bc_matrix/</span>       <span class="ft-note"># ← MTX 三檔資料夾 / the MTX trio</span>
+<br>│&nbsp;&nbsp;&nbsp;├── <span class="ft-key">matrix.mtx.gz</span>
+<br>│&nbsp;&nbsp;&nbsp;├── <span class="ft-key">barcodes.tsv.gz</span>
+<br>│&nbsp;&nbsp;&nbsp;└── <span class="ft-key">features.tsv.gz</span>
+<br>├── <span class="ft-dir">raw_feature_bc_matrix/</span>            <span class="ft-note"># ← 含空油滴，通常不用 / has empty droplets, usually skip</span>
+<br>├── web_summary.html                    <span class="ft-note"># ← QC 報告，值得先看 / QC report, worth a look</span>
+<br>└── molecule_info.h5
+</div>
+<div class="callout warn"><span class="callout-icon">⚠️</span><div>
+<span data-lang="zh"><strong>MTX 最容易出錯：</strong>三個檔必須在<strong>同一個資料夾</strong>、名稱正確、且屬於<strong>同一個樣本</strong>。若你自己重新命名、或把不同樣本的檔混進同一夾，匯入就會失敗。單檔格式（.h5ad / .h5 / .rds）通常最不容易出問題——能拿到 <code style="font-family:var(--font-mono)">.h5</code> 就別跟自己過不去。</span>
+<span data-lang="en"><strong>MTX trips people up most:</strong> all three files must sit in the <strong>same folder</strong>, be correctly named, and belong to the <strong>same sample</strong>. Renaming them yourself, or mixing files from different samples into one folder, breaks the import. Single-file formats (.h5ad / .h5 / .rds) are usually the least error-prone — if you can grab the <code style="font-family:var(--font-mono)">.h5</code>, don't make life harder.</span>
+</div></div>
+</section>
+<section class="section">
+<div class="section-label" data-zh="互動" data-en="INTERACTIVE">互動</div>
+<h2 data-zh="四、我的資料要載入哪個檔案？" data-en="IV. Which File Do I Load?">四、我的資料要載入哪個檔案？</h2>
+<div data-lang="zh"><p>點選你手上的資料來源，看看該把<strong>哪個檔案或資料夾</strong>交給 BBrowserX，以及要注意什麼。</p></div>
+<div data-lang="en"><p>Click your data source to see <strong>which file or folder</strong> to hand to BBrowserX, and what to watch out for.</p></div>
+<div class="interactive-panel">
+<div class="fmt-pick" id="fmtPick">
+  <button class="toggle-btn active" data-k="scanpy"><span data-zh="來自 Scanpy (Python)" data-en="From Scanpy (Python)">來自 Scanpy (Python)</span></button>
+  <button class="toggle-btn" data-k="seurat"><span data-zh="來自 Seurat (R)" data-en="From Seurat (R)">來自 Seurat (R)</span></button>
+  <button class="toggle-btn" data-k="cellranger"><span data-zh="來自 Cell Ranger" data-en="From Cell Ranger">來自 Cell Ranger</span></button>
+  <button class="toggle-btn" data-k="mtx"><span data-zh="只有 MTX 三檔" data-en="Only MTX files">只有 MTX 三檔</span></button>
+  <button class="toggle-btn" data-k="geo"><span data-zh="下載自 NCBI GEO" data-en="Downloaded from GEO">下載自 NCBI GEO</span></button>
+</div>
+<div class="rec-box" id="recBox"></div>
+</div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="格式對照" data-en="FORMAT TABLE">格式對照</div>
+<h2 data-zh="五、四大格式一覽表" data-en="V. The Four Formats at a Glance">五、四大格式一覽表</h2>
+<div data-lang="zh"><p>把四種「插頭」並排比較：它們各是什麼、要載入的是「單檔」還是「一整組」、以及最常從哪裡拿到。挑格式時，只要記住<strong>「能拿單檔就拿單檔」</strong>這個大原則，多數麻煩都能避開。</p></div>
+<div data-lang="en"><p>Here are the four "plugs" side by side: what each one is, whether you load a <strong>single file</strong> or a <strong>whole set</strong>, and where you most often get it. When choosing, one rule of thumb — <strong>grab a single file whenever you can</strong> — avoids most of the trouble.</p></div>
+<table class="comp-table">
+<thead><tr>
+<th data-zh="格式" data-en="Format">格式</th>
+<th data-zh="它是什麼" data-en="What it is">它是什麼</th>
+<th data-zh="單檔 / 一整組" data-en="Single vs bundle">單檔 / 一整組</th>
+<th data-zh="典型來源" data-en="Typical source">典型來源</th>
+</tr></thead>
+<tbody>
+<tr><td><strong>.h5ad</strong></td>
+<td data-lang="zh">AnnData 容器，含計數＋<code>obs</code>/<code>var</code> metadata＋降維</td><td data-lang="zh"><strong>單檔</strong>（1 個 <code>.h5ad</code>）</td><td data-lang="zh">Python / Scanpy 匯出</td>
+<td data-lang="en">AnnData container: counts + <code>obs</code>/<code>var</code> metadata + embeddings</td><td data-lang="en"><strong>Single file</strong> (1 × <code>.h5ad</code>)</td><td data-lang="en">Exported from Python / Scanpy</td></tr>
+<tr><td><strong>Seurat (.rds)</strong></td>
+<td data-lang="zh">序列化的 Seurat 物件，含計數、分群、多個 assay</td><td data-lang="zh"><strong>單檔</strong>（1 個 <code>.rds</code>）</td><td data-lang="zh">R / Seurat 用 <code>saveRDS()</code></td>
+<td data-lang="en">Serialized Seurat object: counts, clustering, multiple assays</td><td data-lang="en"><strong>Single file</strong> (1 × <code>.rds</code>)</td><td data-lang="en">R / Seurat via <code>saveRDS()</code></td></tr>
+<tr><td><strong>10x HDF5 (.h5)</strong></td>
+<td data-lang="zh">HDF5 包裝的稀疏矩陣＋barcodes＋features 於一檔</td><td data-lang="zh"><strong>單檔</strong>（1 個 <code>.h5</code>）</td><td data-lang="zh">Cell Ranger <code>outs/</code>；GEO</td>
+<td data-lang="en">HDF5 wrapping sparse matrix + barcodes + features in one file</td><td data-lang="en"><strong>Single file</strong> (1 × <code>.h5</code>)</td><td data-lang="en">Cell Ranger <code>outs/</code>; GEO</td></tr>
+<tr><td><strong>10x MTX bundle</strong></td>
+<td data-lang="zh">Matrix Market 三檔：<code>matrix.mtx</code> + <code>barcodes.tsv</code> + <code>features/genes.tsv</code></td><td data-lang="zh"><strong>一整組</strong>（3 檔一夾）</td><td data-lang="zh">Cell Ranger <code>outs/</code>；GEO（常 <code>.gz</code>）</td>
+<td data-lang="en">Matrix Market trio: <code>matrix.mtx</code> + <code>barcodes.tsv</code> + <code>features/genes.tsv</code></td><td data-lang="en"><strong>Bundle</strong> (3 files, one folder)</td><td data-lang="en">Cell Ranger <code>outs/</code>; GEO (often <code>.gz</code>)</td></tr>
+</tbody></table>
+<div class="callout warn"><span class="callout-icon">🧭</span><div>
+<span data-lang="zh"><strong>版本注意：</strong>不同 BBrowserX 版本的<strong>選單名稱與按鈕位置</strong>可能不同（例如「Import」「Add data」「New Study」等字樣會變），支援的格式清單也可能隨版本增修。本教程教你<strong>概念與檔案結構</strong>——認得格式、知道要載入哪個檔，就能對應到任何版本的介面；請以你手上版本的官方說明為準。</span>
+<span data-lang="en"><strong>Version note:</strong> exact <strong>menu names and button locations</strong> differ across BBrowserX versions (labels like "Import," "Add data," or "New Study" may vary), and the exact list of supported formats can change between releases. This tutorial teaches the <strong>concepts and file structures</strong> — once you recognize the formats and know which file to load, you can map that onto any version's UI. Always defer to the official docs for your specific build.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="Study 與資料型態" data-en="STUDY & DATA TYPES">Study 與資料型態</div>
+<h2 data-zh="六、建立 Study、加入多樣本、匯入公開資料" data-en="VI. Building a Study, Adding Samples & Public Data">六、建立 Study、加入多樣本、匯入公開資料</h2>
+<div data-lang="zh">
+<p>把 <strong>Study（研究專案）</strong>想成一本<strong>相簿</strong>，每個<strong>樣本 (sample)</strong> 是相簿裡的一張照片。你通常會先建立一本相簿（新的 Study），再把一張張照片（樣本）夾進去。在 BBrowserX 裡的操作邏輯就是這樣：先 <em>New Study</em>，再 <em>Add sample</em>。</p>
+<p>為什麼要把多個樣本放進<strong>同一本</strong>相簿？因為只有在同一個 Study 裡，你才能把它們放上<strong>同一張 UMAP</strong>、直接比較（例如處理組 vs. 對照組、腫瘤 vs. 正常組織）。但這也帶來一個經典難題：不同時間、不同 10x lane、不同病人的樣本，會夾帶各自的<strong>技術性色差</strong>——就像用不同相機、不同光線拍的照片，色調會不一致。這種色差叫<strong>批次效應 (batch effect)</strong>，若不處理，它會偽裝成「生物差異」騙過你的分析。這正是為什麼平台會在後續用 <strong>Harmony</strong> 幫你把各樣本「對齊色調」（見 <a href="normalization.html">Step 3</a>）。</p>
+<p>還有個好消息：你不一定要自己跑實驗產生資料——BBrowserX 也能直接匯入<strong>已發表的公開資料集</strong>。最大的寶庫就是 <strong>NCBI GEO</strong>（Gene Expression Omnibus），全世界的研究者把論文用到的原始資料存在那裡供人重現。下一段就帶你走一遍。</p>
+</div>
+<div data-lang="en">
+<p>Think of a <strong>Study (project)</strong> as a <strong>photo album</strong>, and each <strong>sample</strong> as a photo in it. You usually create the album first (a new Study), then slip the photos (samples) in one by one. That's the logic in BBrowserX: first <em>New Study</em>, then <em>Add sample</em>.</p>
+<p>Why put several samples in the <strong>same</strong> album? Because only within one Study can you place them on the <strong>same UMAP</strong> and compare them directly (e.g. treated vs. control, tumor vs. normal). But that raises a classic problem: samples from different days, 10x lanes, or patients carry their own <strong>technical color casts</strong> — like photos shot on different cameras under different lighting, the tones don't match. That cast is called a <strong>batch effect</strong>, and left unaddressed it disguises itself as "biological difference" and fools your analysis. This is exactly why the platform later uses <strong>Harmony</strong> to "color-match" your samples (see <a href="normalization.html">Step 3</a>).</p>
+<p>Good news too: you don't have to run your own experiment to get data — BBrowserX can import <strong>published public datasets</strong> directly. The biggest treasure trove is <strong>NCBI GEO</strong> (Gene Expression Omnibus), where researchers worldwide deposit the raw data behind their papers for others to reproduce. The next section walks you through it.</p>
+</div>
+<h3 data-zh="BBrowserX 能處理的單細胞資料型態" data-en="Single-cell data types BBrowserX handles">BBrowserX 能處理的單細胞資料型態</h3>
+<div class="card-grid cols-3">
+<div class="card"><div class="card-icon">🧫</div><h4 data-zh="scRNA / snRNA-seq" data-en="scRNA / snRNA-seq">scRNA / snRNA-seq</h4>
+<div data-lang="zh"><p>單細胞與單細胞核 RNA 定序——最核心的基因表達計數，是整個流程的主軸。</p></div>
+<div data-lang="en"><p>Single-cell and single-nucleus RNA-seq — the core gene-expression counts and the backbone of the whole pipeline.</p></div>
+</div>
+<div class="card"><div class="card-icon">🛡️</div><h4 data-zh="TCR / BCR" data-en="TCR / BCR">TCR / BCR</h4>
+<div data-lang="zh"><p>T／B 細胞受體 repertoire（免疫組庫）資料，用於免疫圖譜與 clonotype 分析（見 <a href="multimodal.html">多模態</a>）。</p></div>
+<div data-lang="en"><p>T/B-cell receptor repertoire data for immune profiling and clonotype analysis (see <a href="multimodal.html">Multimodal</a>).</p></div>
+</div>
+<div class="card"><div class="card-icon">🎯</div><h4 data-zh="ADT / CITE-seq" data-en="ADT / CITE-seq">ADT / CITE-seq</h4>
+<div data-lang="zh"><p>抗體衍生標籤 (ADT) 的表面蛋白計數，與 RNA 同步量測——多模態單細胞分析。</p></div>
+<div data-lang="en"><p>Antibody-derived tag (ADT) surface-protein counts measured alongside RNA — multimodal single-cell analysis.</p></div>
+</div>
+<div class="card"><div class="card-icon">🏷️</div><h4 data-zh="Hashing / Demultiplexing" data-en="Hashing / Demultiplexing">Hashing / Demultiplexing</h4>
+<div data-lang="zh"><p>樣本標籤 (hashtag) 資料，用於把混合 (pooled) 的多樣本拆分回各自來源。</p></div>
+<div data-lang="en"><p>Sample-hashtag data used to demultiplex pooled multi-sample runs back to their sources.</p></div>
+</div>
+<div class="card"><div class="card-icon">🔀</div><h4 data-zh="多樣本 / 多批次" data-en="Multi-sample / batch">多樣本 / 多批次</h4>
+<div data-lang="zh"><p>一個 Study 內合併多個樣本；批次效應由 Harmony 校正（<a href="normalization.html">Step 3</a>）。</p></div>
+<div data-lang="en"><p>Multiple samples merged in one Study; batch effects corrected by Harmony (<a href="normalization.html">Step 3</a>).</p></div>
+</div>
+<div class="card"><div class="card-icon">🌐</div><h4 data-zh="公開資料 (GEO)" data-en="Public data (GEO)">公開資料 (GEO)</h4>
+<div data-lang="zh"><p>直接匯入 NCBI GEO 等已發表資料集，重現或延伸他人研究。</p></div>
+<div data-lang="en"><p>Import published datasets from NCBI GEO and beyond, to reproduce or extend others' work.</p></div>
+</div>
+</div>
+<div class="callout tip"><span class="callout-icon">💡</span><div>
+<span data-lang="zh"><strong>先想好「Study 的邊界」：</strong>把你打算<strong>一起比較</strong>的樣本放進同一個 Study（例如處理組 vs. 對照組）。分屬不同 Study 的資料無法在同一張 UMAP 上直接比較。規劃時可以自問：「這幾個樣本，我最後想不想放在同一張圖上講故事？」想，就放同一個 Study。</span>
+<span data-lang="en"><strong>Decide your Study's scope first:</strong> put the samples you intend to <strong>compare together</strong> into one Study (e.g. treated vs. control). Data split across separate Studies can't be compared on the same UMAP. A useful question while planning: "Do I ultimately want to tell one story with these samples on the same figure?" If yes, one Study.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="實戰走查" data-en="MINI WALKTHROUGH">實戰走查</div>
+<h2 data-zh="七、實戰：從 NCBI GEO 匯入一份已發表資料" data-en="VII. Hands-on: Importing Published Data from NCBI GEO">七、實戰：從 NCBI GEO 匯入一份已發表資料</h2>
+<div data-lang="zh"><p>假設你讀到一篇很棒的論文，想親手重跑它的單細胞資料。作者幾乎一定會把資料存在 <strong>GEO</strong>，並在論文的「Data Availability」段落給你一組編號（像 <code style="font-family:var(--font-mono)">GSE123456</code>）。跟著下面五步走，你就能把它變成 BBrowserX 裡一個可分析的 Study。</p></div>
+<div data-lang="en"><p>Say you read a great paper and want to re-run its single-cell data yourself. The authors almost always deposit it in <strong>GEO</strong> and give you an accession number (like <code style="font-family:var(--font-mono)">GSE123456</code>) in the paper's "Data Availability" section. Follow these five steps to turn it into an analyzable Study in BBrowserX.</p></div>
+<div class="workflow">
+<div class="workflow-step" data-step="1">
+<h4 data-zh="找到 GEO 編號 (accession)" data-en="Find the GEO accession">找到 GEO 編號 (accession)</h4>
+<div data-lang="zh"><p>在論文末尾或方法段找 <code style="font-family:var(--font-mono)">GSExxxxxx</code>。到 <code style="font-family:var(--font-mono)">ncbi.nlm.nih.gov/geo</code> 搜這串編號，打開該研究的頁面。</p></div>
+<div data-lang="en"><p>Look for a <code style="font-family:var(--font-mono)">GSExxxxxx</code> in the paper's end matter or methods. Search that string at <code style="font-family:var(--font-mono)">ncbi.nlm.nih.gov/geo</code> and open the study page.</p></div>
+</div>
+<div class="workflow-step" data-step="2">
+<h4 data-zh="看 Supplementary files 提供什麼" data-en="Check the supplementary files">看 Supplementary files 提供什麼</h4>
+<div data-lang="zh"><p>捲到頁面底部的 <strong>Supplementary file</strong> 區。你希望看到的是能對上前面四大格式的檔案：最理想是 <code style="font-family:var(--font-mono)">*_filtered_feature_bc_matrix.h5</code>（單檔），其次是一組 <code style="font-family:var(--font-mono)">matrix.mtx.gz + barcodes.tsv.gz + features.tsv.gz</code>。</p></div>
+<div data-lang="en"><p>Scroll to the <strong>Supplementary file</strong> section at the bottom. You want files that map to one of the four formats above: ideally a <code style="font-family:var(--font-mono)">*_filtered_feature_bc_matrix.h5</code> (single file), otherwise a set of <code style="font-family:var(--font-mono)">matrix.mtx.gz + barcodes.tsv.gz + features.tsv.gz</code>.</p></div>
+</div>
+<div class="workflow-step" data-step="3">
+<h4 data-zh="下載並依樣本整理資料夾" data-en="Download & organize by sample">下載並依樣本整理資料夾</h4>
+<div data-lang="zh"><p>下載後，若是 MTX，請<strong>每個樣本各自一個資料夾</strong>，並把檔名整理成標準的 <code style="font-family:var(--font-mono)">matrix.mtx.gz / barcodes.tsv.gz / features.tsv.gz</code>——GEO 常會在檔名前加一堆前綴（如 <code style="font-family:var(--font-mono)">GSM111_S1_matrix.mtx.gz</code>），要把前綴去掉、拆進各自資料夾。</p></div>
+<div data-lang="en"><p>After downloading, if it's MTX, give <strong>each sample its own folder</strong> and rename files to the standard <code style="font-family:var(--font-mono)">matrix.mtx.gz / barcodes.tsv.gz / features.tsv.gz</code> — GEO often prepends clutter (like <code style="font-family:var(--font-mono)">GSM111_S1_matrix.mtx.gz</code>), so strip the prefixes and split them into per-sample folders.</p></div>
+</div>
+<div class="workflow-step" data-step="4">
+<h4 data-zh="建立 Study 並逐一 Add sample" data-en="Create a Study & add samples">建立 Study 並逐一 Add sample</h4>
+<div data-lang="zh"><p>在 BBrowserX 新建一個 Study，把整理好的每個樣本依序加入（<code style="font-family:var(--font-mono)">.h5</code> 選檔、MTX 選資料夾）。替每個樣本取有意義的名字（如 <code style="font-family:var(--font-mono)">Tumor_P1</code>、<code style="font-family:var(--font-mono)">Normal_P1</code>），日後比較才不會混。</p></div>
+<div data-lang="en"><p>Create a new Study in BBrowserX and add each tidied sample in turn (pick the file for <code style="font-family:var(--font-mono)">.h5</code>, pick the folder for MTX). Give each sample a meaningful name (like <code style="font-family:var(--font-mono)">Tumor_P1</code>, <code style="font-family:var(--font-mono)">Normal_P1</code>) so comparisons stay clear later.</p></div>
+</div>
+<div class="workflow-step" data-step="5">
+<h4 data-zh="讓平台接手 QC 與整合" data-en="Let the platform take over">讓平台接手 QC 與整合</h4>
+<div data-lang="zh"><p>資料進來後，就交給後續步驟：QC 過濾（<a href="qc.html">Step 2</a>）、標準化與 Harmony 批次校正（<a href="normalization.html">Step 3</a>）。你已完成最關鍵的一步——把對的資料，用對的方式，放進了對的地方。</p></div>
+<div data-lang="en"><p>Once the data is in, hand it to the later steps: QC filtering (<a href="qc.html">Step 2</a>), normalization and Harmony batch correction (<a href="normalization.html">Step 3</a>). You've done the most critical part — putting the right data, the right way, in the right place.</p></div>
+</div>
+</div>
+<div class="callout warn"><span class="callout-icon">🧭</span><div>
+<span data-lang="zh"><strong>實戰情境：</strong>GEO 上偶爾只提供作者已經標準化／log 過的矩陣，或非標準的 <code style="font-family:var(--font-mono)">.txt</code> / <code style="font-family:var(--font-mono)">.csv</code> 表格。這時要多留意：優先找<strong>原始整數計數</strong>；若只有處理過的值，分析結果會受限，且務必在報告中註明資料來源與處理狀態。</span>
+<span data-lang="en"><strong>Real-world scenario:</strong> GEO sometimes only offers an author's already-normalized/log matrix, or a non-standard <code style="font-family:var(--font-mono)">.txt</code> / <code style="font-family:var(--font-mono)">.csv</code> table. Be careful here: prefer <strong>raw integer counts</strong>; if only processed values exist, your analysis is constrained — and always note the data's source and processing state in your report.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="除錯" data-en="COMMON PITFALLS">除錯</div>
+<h2 data-zh="八、常見匯入錯誤與怎麼救" data-en="VIII. Common Import Errors & How to Fix Them">八、常見匯入錯誤與怎麼救</h2>
+<div data-lang="zh"><p>就算格式選對了，還有幾個「隱形陷阱」會讓匯入後的資料看起來怪怪的。先認識它們，遇到時就不會慌。</p></div>
+<div data-lang="en"><p>Even with the right format, a few "invisible traps" can make the imported data look off. Knowing them in advance means you won't panic when they show up.</p></div>
+<div class="card-grid cols-3">
+<div class="card"><div class="card-icon">🆔</div><h4 data-zh="用錯基因 ID 型態" data-en="Wrong gene-ID type">用錯基因 ID 型態</h4>
+<div data-lang="zh"><p>同一個基因有兩種寫法：<strong>基因符號</strong>（<code style="font-family:var(--font-mono)">CD3D</code>）與 <strong>Ensembl ID</strong>（<code style="font-family:var(--font-mono)">ENSG00000167286</code>）。就像同一個人有「小名」和「身分證字號」。若匯入後你搜尋 <code style="font-family:var(--font-mono)">CD3D</code> 卻找不到基因，很可能資料存的是 Ensembl ID。<strong>解法：</strong>確認 features 檔用的是哪一欄，必要時對照轉換。</p></div>
+<div data-lang="en"><p>The same gene has two spellings: a <strong>gene symbol</strong> (<code style="font-family:var(--font-mono)">CD3D</code>) and an <strong>Ensembl ID</strong> (<code style="font-family:var(--font-mono)">ENSG00000167286</code>) — like a person's nickname vs. national ID number. If you search <code style="font-family:var(--font-mono)">CD3D</code> after import and find nothing, the data probably stores Ensembl IDs. <strong>Fix:</strong> check which column the features file uses and map between them if needed.</p></div>
+</div>
+<div class="card"><div class="card-icon">🧬</div><h4 data-zh="混到不同物種" data-en="Mixing species">混到不同物種</h4>
+<div data-lang="zh"><p>人類基因習慣<strong>全大寫</strong>（<code style="font-family:var(--font-mono)">CD3D</code>），小鼠則<strong>首字母大寫</strong>（<code style="font-family:var(--font-mono)">Cd3d</code>）。若把人類與小鼠樣本混進同一 Study，或用錯物種的 marker 註釋，結果會一團亂。<strong>解法：</strong>確認每個樣本的物種一致，marker/參考也要對應同一物種。</p></div>
+<div data-lang="en"><p>Human gene symbols are conventionally <strong>ALL CAPS</strong> (<code style="font-family:var(--font-mono)">CD3D</code>), while mouse uses <strong>Title Case</strong> (<code style="font-family:var(--font-mono)">Cd3d</code>). Mixing human and mouse samples in one Study, or annotating with the wrong species' markers, produces a mess. <strong>Fix:</strong> confirm every sample is the same species, and match markers/references to that species.</p></div>
+</div>
+<div class="card"><div class="card-icon">🔄</div><h4 data-zh="矩陣被轉置了" data-en="Transposed matrix">矩陣被轉置了</h4>
+<div data-lang="zh"><p>「基因 × 細胞」被存成了「細胞 × 基因」——行列顛倒。徵兆很明顯：軟體以為你有兩萬個「細胞」、卻只有幾千個「基因」。就像把班級點名表<strong>橫著讀成直的</strong>。<strong>解法：</strong>匯入前確認方向；多數標準格式方向固定，但自製的 <code style="font-family:var(--font-mono)">.csv</code> 最容易出這種錯。</p></div>
+<div data-lang="en"><p>"genes × cells" got saved as "cells × genes" — rows and columns swapped. The tell is obvious: the software thinks you have 20,000 "cells" but only a few thousand "genes." Like reading a roll-call sheet <strong>sideways</strong>. <strong>Fix:</strong> verify orientation before import; standard formats are usually fixed, but hand-made <code style="font-family:var(--font-mono)">.csv</code> files cause this most often.</p></div>
+</div>
+</div>
+<div class="callout danger"><span class="callout-icon">🚑</span><div>
+<span data-lang="zh"><strong>常見誤區：</strong>「匯入沒報錯 = 資料一定正確」。錯！匯入成功只代表格式讀得進去，不代表<strong>內容合理</strong>。養成習慣：匯入後先看三個數字——<strong>細胞數、基因數、每個細胞的 UMI/gene 分布</strong>。若細胞數與論文差一個數量級、或基因數只有幾百，八成中了上面某個陷阱。</span>
+<span data-lang="en"><strong>Common misconception:</strong> "no error on import = the data must be correct." Wrong! A successful import only means the format parsed — not that the <strong>content makes sense</strong>. Build the habit: right after import, check three numbers — <strong>cell count, gene count, and the per-cell UMI/gene distribution</strong>. If the cell count is an order of magnitude off from the paper, or gene count is only a few hundred, you've likely hit one of the traps above.</span>
+</div></div>
+</section>
+<section class="quiz-section">
+<h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">1. 一位合作者用 <strong>Scanpy (Python)</strong> 分析後把資料存成單一檔案給你。你最可能拿到的格式是？</p>
+<p data-lang="en">1. A collaborator analyzed data in <strong>Scanpy (Python)</strong> and saved it as a single file for you. What format are you most likely to receive?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. Seurat 的 .rds 物件</span><span data-lang="en">A. A Seurat .rds object</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. MTX 三檔資料夾</span><span data-lang="en">B. An MTX three-file folder</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. .h5ad (AnnData)</span><span data-lang="en">C. .h5ad (AnnData)</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 一份 PDF 報告</span><span data-lang="en">D. A PDF report</span></div>
+</div><div class="quiz-feedback" id="fb1"></div></div>
+
+<div class="quiz-q" data-answer="1">
+<p data-lang="zh">2. 關於匯入 BBrowserX 的資料，下列何者<strong>正確</strong>？</p>
+<p data-lang="en">2. Which statement about data you import into BBrowserX is <strong>correct</strong>?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 必須先自己做完標準化與 log 轉換</span><span data-lang="en">A. You must normalize and log-transform it yourself first</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 應提供原始／過濾後的整數計數，讓平台自己做後續處理</span><span data-lang="en">B. Provide raw/filtered integer counts; the platform handles the rest</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 計數矩陣通常是密集 (dense) 的，很少有 0</span><span data-lang="en">C. The count matrix is usually dense, with few zeros</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. BBrowserX 不支援 10x 的輸出</span><span data-lang="en">D. BBrowserX does not support 10x outputs</span></div>
+</div><div class="quiz-feedback" id="fb2"></div></div>
+
+<div class="quiz-q" data-answer="3">
+<p data-lang="zh">3. 你要匯入 10x 的 <strong>MTX bundle</strong>。下列何者是必要條件？</p>
+<p data-lang="en">3. You're importing a 10x <strong>MTX bundle</strong>. Which is a requirement?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 只要 matrix.mtx 一個檔就夠了</span><span data-lang="en">A. Only matrix.mtx is needed</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 三個檔可以分散在不同資料夾</span><span data-lang="en">B. The three files can live in different folders</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 必須先轉成 PDF</span><span data-lang="en">C. It must be converted to PDF first</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. matrix.mtx、barcodes.tsv、features/genes.tsv 三檔要在同一資料夾、屬同一樣本</span><span data-lang="en">D. matrix.mtx, barcodes.tsv & features/genes.tsv must be in one folder, same sample</span></div>
+</div><div class="quiz-feedback" id="fb3"></div></div>
+
+<div class="quiz-q" data-answer="1">
+<p data-lang="zh">4. 從 Cell Ranger 拿到資料，一般情況下你應該匯入哪一個？</p>
+<p data-lang="en">4. Getting data from Cell Ranger, which one should you normally import?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. raw_feature_bc_matrix（含大量空油滴）</span><span data-lang="en">A. raw_feature_bc_matrix (full of empty droplets)</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. filtered_feature_bc_matrix（已判定為真細胞）</span><span data-lang="en">B. filtered_feature_bc_matrix (already judged to be real cells)</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. web_summary.html（QC 報告）</span><span data-lang="en">C. web_summary.html (the QC report)</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. molecule_info.h5</span><span data-lang="en">D. molecule_info.h5</span></div>
+</div><div class="quiz-feedback" id="fb4"></div></div>
+
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">5. 匯入後你搜尋基因 <code style="font-family:var(--font-mono)">CD3D</code> 卻找不到，但資料明明是 T 細胞。最可能的原因是？</p>
+<p data-lang="en">5. After import you search for gene <code style="font-family:var(--font-mono)">CD3D</code> and can't find it, even though the data is T cells. Most likely reason?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. BBrowserX 不能搜尋基因</span><span data-lang="en">A. BBrowserX can't search genes</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 計數一定是密集矩陣</span><span data-lang="en">B. The counts must be a dense matrix</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 資料存的是 Ensembl ID（如 ENSG…）而非基因符號</span><span data-lang="en">C. The data stores Ensembl IDs (like ENSG…), not gene symbols</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 檔案一定壞了，只能重下載</span><span data-lang="en">D. The file must be corrupt; re-download is the only option</span></div>
+</div><div class="quiz-feedback" id="fb5"></div></div>
+</section>
+
+<nav class="page-nav">
+<a href="overview.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="總覽" data-en="Overview">總覽</span></a>
+<a href="qc.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 2: 品質管控 (QC)" data-en="Step 2: Quality Control">Step 2: 品質管控 (QC)</span></a>
+</nav>
+</main>
+<footer class="site-footer">© Charlene — BioTuring Interactive Tutorial · <span data-zh="教學用途，非 BioTuring 官方文件" data-en="Educational use — not official BioTuring documentation">教學用途，非 BioTuring 官方文件</span></footer>
+<script src="i18n.js"></script>
+<script>
+window.addEventListener('scroll',()=>{const h=document.documentElement;document.getElementById('progressBar').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+'%';});
+
+// Format recommender
+const REC={
+ scanpy:{zh:'<b>載入：</b>單一 <code>.h5ad</code> 檔（AnnData）。<br>Scanpy 用 <code>adata.write("data.h5ad")</code> 匯出的就是它——單檔、可攜、含計數與 metadata。<br>👉 直接把這個 <code>.h5ad</code> 交給 BBrowserX 即可。',en:'<b>Load:</b> a single <code>.h5ad</code> file (AnnData).<br>That\'s what Scanpy\'s <code>adata.write("data.h5ad")</code> produces — one portable file with counts and metadata.<br>👉 Hand this <code>.h5ad</code> straight to BBrowserX.'},
+ seurat:{zh:'<b>載入：</b>Seurat 物件 <code>.rds</code>。<br>R 裡用 <code>saveRDS(obj,"data.rds")</code> 存下的物件，內含計數與分群結果。<br>👉 若合作者用 R，請他直接給你 <code>.rds</code>。',en:'<b>Load:</b> a Seurat <code>.rds</code> object.<br>Saved in R via <code>saveRDS(obj,"data.rds")</code>, carrying counts and clustering.<br>👉 If a collaborator uses R, ask for the <code>.rds</code> directly.'},
+ cellranger:{zh:'<b>載入：</b><code>filtered_feature_bc_matrix.h5</code>（10x HDF5，單檔）。<br>這是 Cell Ranger 的 <code>outs/</code> 資料夾裡最方便的單檔輸出——比 MTX 三檔更省事，而且已排除空油滴。<br>👉 選這個 <code>.h5</code> 即可（別選 raw 版）。',en:'<b>Load:</b> <code>filtered_feature_bc_matrix.h5</code> (10x HDF5, single file).<br>The most convenient single-file output in Cell Ranger\'s <code>outs/</code> folder — easier than the MTX trio, and empty droplets are already removed.<br>👉 Pick this <code>.h5</code> (not the raw version).'},
+ mtx:{zh:'<b>載入：</b>整個 <b>MTX 資料夾</b>（三檔一組）：<code>matrix.mtx</code> + <code>barcodes.tsv</code> + <code>features.tsv</code>（或 <code>genes.tsv</code>）。<br>⚠️ 三檔必須同資料夾、同樣本、名稱正確（可帶 <code>.gz</code>）。<br>👉 匯入時指向<b>資料夾</b>，不是單一檔。',en:'<b>Load:</b> the whole <b>MTX folder</b> (three-file set): <code>matrix.mtx</code> + <code>barcodes.tsv</code> + <code>features.tsv</code> (or <code>genes.tsv</code>).<br>⚠️ All three must share one folder, one sample, correct names (<code>.gz</code> OK).<br>👉 Point the import at the <b>folder</b>, not a single file.'},
+ geo:{zh:'<b>載入：</b>先看 GEO 的 <b>Supplementary files</b> 提供什麼——常見是 <code>.h5</code>（單檔，最省事）或 MTX 三檔（.gz 壓縮）。<br>下載後依格式對應上面的步驟；MTX 記得每個樣本各自一夾、去掉 GEO 加的前綴。<br>👉 優先找 <code>filtered_..._bc_matrix.h5</code>，並確認是<b>原始整數計數</b>。',en:'<b>Load:</b> first check GEO\'s <b>Supplementary files</b> — often a <code>.h5</code> (single file, easiest) or an MTX trio (.gz).<br>Download, then follow the matching step above; for MTX, give each sample its own folder and strip GEO\'s filename prefixes.<br>👉 Prefer a <code>filtered_..._bc_matrix.h5</code>, and confirm it\'s <b>raw integer counts</b>.'}
+};
+function renderRec(k){const L=I18n.get();document.getElementById('recBox').innerHTML=REC[k][L];}
+document.querySelectorAll('#fmtPick .toggle-btn').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#fmtPick .toggle-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderRec(b.dataset.k);}));
+document.addEventListener('langchange',()=>{const a=document.querySelector('#fmtPick .toggle-btn.active');if(a)renderRec(a.dataset.k);});
+renderRec('scanpy');
+
+// Quiz
+const QF={
+ zh:{q1_y:'Scanpy 的原生格式就是 .h5ad (AnnData)，單檔即含計數與 metadata。',q1_n:'正確答案已標示。',q2_y:'BBrowserX 期望原始／過濾後的整數計數；QC、標準化、批次校正都在平台內執行。',q2_n:'正確答案已標示。',q3_y:'MTX 是三檔一組，必須在同一資料夾、屬同一樣本，缺一不可。',q3_n:'正確答案已標示。',q4_y:'一般情況匯入 filtered 版；它已排除空油滴，只留真細胞。raw 只在你想自己去除背景 RNA 時才用。',q4_n:'正確答案已標示。',q5_y:'同一基因有符號 (CD3D) 與 Ensembl ID (ENSG…) 兩種寫法；找不到多半是資料用了 Ensembl ID。',q5_n:'正確答案已標示。'},
+ en:{q1_y:'Scanpy\'s native format is .h5ad (AnnData) — one file with counts and metadata.',q1_n:'Correct answer highlighted.',q2_y:'BBrowserX expects raw/filtered integer counts; QC, normalization, and batch correction run inside the platform.',q2_n:'Correct answer highlighted.',q3_y:'MTX is a three-file set that must sit in one folder and belong to the same sample.',q3_n:'Correct answer highlighted.',q4_y:'Normally import the filtered version; it already removes empty droplets and keeps real cells. Use raw only when you want to remove ambient RNA yourself.',q4_n:'Correct answer highlighted.',q5_y:'A gene has both a symbol (CD3D) and an Ensembl ID (ENSG…); not finding it usually means the data uses Ensembl IDs.',q5_n:'Correct answer highlighted.'}
+};
+document.querySelectorAll('.quiz-q').forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll('.quiz-opt').forEach(o=>{o.addEventListener('click',()=>{if(q.classList.contains('answered'))return;q.classList.add('answered');const fb=document.getElementById('fb'+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?'correct':'wrong');if(!ok)q.querySelectorAll('.quiz-opt')[ans].classList.add('correct');const L=I18n.get();fb.className='quiz-feedback show '+(ok?'correct-fb':'wrong-fb');fb.textContent=(ok?'✅ ':'❌ ')+(QF[L]['q'+(qi+1)+'_'+(ok?'y':'n')]||'');});});});
+</script>
+</body></html>
