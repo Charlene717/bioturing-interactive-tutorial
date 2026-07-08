@@ -1,0 +1,337 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>SpatialX — BioTuring Tutorial</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>.page-hero{background:linear-gradient(160deg,#2b1a5e 0%,#3b2a86 35%,#5b3fb0 70%,#2563a8 100%)}
+.plat-pick{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.rec-box{margin-top:16px;padding:18px 20px;border-radius:var(--radius-lg);background:var(--c-accent-light);border-left:4px solid var(--c-accent);font-size:.95rem}
+.rec-box b{color:var(--c-accent-dark)}
+.rec-box .rec-tags{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.rec-box .rec-tag{background:#fff;border:1px solid var(--c-border-light);border-radius:20px;padding:3px 12px;font-size:.78rem;color:var(--c-ink-light)}</style></head><body>
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="BioTuring 教學" data-en="BioTuring Tutorial">BioTuring 教學</span></a>
+  <ul class="top-nav-links"><li><a href="overview.html" data-zh="總覽" data-en="Overview">總覽</a></li><li><a href="import.html">Import</a></li><li><a href="qc.html">QC</a></li><li><a href="normalization.html">Norm.</a></li><li><a href="clustering.html">Cluster</a></li><li><a href="annotation.html">Annot.</a></li><li><a href="dge.html">DE</a></li><li><a href="trajectory.html">Traj.</a></li><li><a href="multimodal.html">Multi</a></li><li><a href="spatialx.html" class="active">SpatialX</a></li><li><a href="talk2data.html">Talk2Data</a></li><li><a href="references/index.html" data-zh="📚 參考資料" data-en="📚 References">📚 參考資料</a></li></ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">SPATIAL · <span data-zh="空間生物學" data-en="Spatial Biology">空間生物學</span></div>
+<h1 data-zh="SpatialX：在組織脈絡中看細胞" data-en="SpatialX: Cells in Their Tissue Context">SpatialX：在組織脈絡中看細胞</h1>
+<p class="subtitle" data-lang="zh">當「細胞在哪裡」和「細胞是什麼」同樣重要——認識 BioTuring 的空間分析平台（前身 Lens）。</p>
+<p class="subtitle" data-lang="en">When "where a cell is" matters as much as "what a cell is" — meet BioTuring's spatial platform (formerly Lens).</p>
+</header>
+<main class="content-wrap">
+
+<section class="section">
+<div class="section-label" data-zh="核心觀念" data-en="CORE IDEA">核心觀念</div>
+<h2 data-zh="一、空間分析多帶來了什麼？" data-en="I. What Does Spatial Add?">一、空間分析多帶來了什麼？</h2>
+<div data-lang="zh">
+<p>先講個生活比喻。做傳統 scRNA-seq，就像你想調查一座城市的居民組成，於是<strong>把整座城市的人打散、全部抓到同一個大廳裡填問卷</strong>——你能問清楚每個人的職業、年齡、興趣（也就是每顆細胞的完整轉錄組），統計出「這座城有 30% 上班族、20% 學生、15% 醫護……」。問卷做得很細，但你付出了一個代價：<strong>大家的住址全被打亂了</strong>。你再也不知道誰住在河邊、誰住市中心、哪兩個人本來是隔壁鄰居。</p>
+<p>這正是 scRNA-seq 的<strong>解離 (dissociate)</strong> 步驟——把組織用酵素消化成單細胞懸浮液。這一步讓我們測到每顆細胞的完整轉錄組，卻也<strong>永久丟失了每顆細胞原本在組織裡的位置與鄰里關係</strong>。你知道「有哪些細胞、各佔多少」，卻答不出「它們排在哪、和誰做鄰居」。</p>
+<p><strong>空間轉錄組 (spatial transcriptomics)</strong> 換了一種問法：它不打散城市，而是<strong>改看一張標了每個人住址的衛星地圖</strong>。每顆細胞（或每個測量點）在切片上的座標都被完整保留，於是「WHERE（在哪裡）」這個維度回來了。你可以把細胞放回<strong>組織結構 (tissue architecture)</strong> 的脈絡中重新詮釋：這群 T 細胞是散落各處，還是<strong>沿著腫瘤邊界排成一道防線</strong>？某個分泌訊號分子的細胞，是否正好緊貼著帶有對應受體的細胞？這些「誰在哪、誰貼著誰」的問題，解離式資料永遠答不了。</p>
+<p>SpatialX 就是把「細胞身份 (what)」與「空間位置 (where)」重新縫合起來的<strong>無程式碼 (no-code)</strong> 平台——你在同一個介面裡，既做分群與細胞註釋，也做鄰近細胞、空間區域與原位細胞互動的分析。它是 BioTuring 空間生物學工具的最新一代，前身叫做 <strong>Lens</strong>。</p>
+</div>
+<div data-lang="en">
+<p>Start with an everyday picture. Classic scRNA-seq is like surveying a city's residents by <strong>rounding every person up, scattering them, and herding them into one big hall to fill out a questionnaire</strong>. You can ask each person about their job, age, and hobbies in exquisite detail (each cell's full transcriptome) and tally that "this city is 30% office workers, 20% students, 15% healthcare…". The survey is thorough — but at a price: <strong>everyone's home address has been scrambled</strong>. You can no longer tell who lived by the river, who lived downtown, or which two people used to be next-door neighbors.</p>
+<p>That is exactly the <strong>dissociation</strong> step in scRNA-seq — enzymatically digesting tissue into a single-cell suspension. It lets us profile each cell's full transcriptome, but it <strong>permanently discards where each cell sat and who its neighbors were</strong>. You learn "which cell types are present and in what proportion," but you cannot answer "where they sit and who they neighbor."</p>
+<p><strong>Spatial transcriptomics</strong> asks the question differently: instead of scattering the city, it <strong>reads a satellite map with every resident's address marked on it</strong>. The coordinates of every cell (or measurement spot) on the section are preserved, so the "WHERE" dimension comes back. You can reinterpret cells in the context of <strong>tissue architecture</strong>: are these T cells scattered, or <strong>lined up like a wall along the tumor boundary</strong>? Is the cell secreting a signal actually pressed against the cell bearing its receptor? These "who's where, who touches whom" questions are ones dissociated data can never answer.</p>
+<p>SpatialX is the <strong>no-code</strong> platform that stitches cell identity (<em>what</em>) back together with spatial position (<em>where</em>) — in one interface you cluster and annotate, and also analyze neighborhoods, spatial domains, and in-situ cell interactions. It is the latest generation of BioTuring's spatial tooling; its predecessor was called <strong>Lens</strong>.</p>
+</div>
+<div class="callout tip"><span class="callout-icon">💡</span><div>
+<span data-lang="zh"><strong>一句話記法：</strong>scRNA-seq 告訴你「<em>有什麼細胞</em>」；空間分析再加上「<em>它們排在哪、和誰做鄰居</em>」。SpatialX 的所有進階功能，都是圍繞這個「鄰居」概念展開的——記住「鄰居」二字，後面就都通了。</span>
+<span data-lang="en"><strong>One-liner:</strong> scRNA-seq tells you <em>which cells exist</em>; spatial adds <em>where they sit and who their neighbors are</em>. Every advanced SpatialX feature builds on that idea of <em>neighbors</em> — hold onto that word and the rest falls into place.</span>
+</div></div>
+<div class="card-grid cols-3">
+<div class="card"><div class="card-icon">🎯</div><h4><span data-zh="為什麼重要：腫瘤邊界" data-en="Why it matters: tumor margins">為什麼重要：腫瘤邊界</span></h4>
+<div data-lang="zh"><p>腫瘤是否已經「突破邊界、往外侵犯」，是判斷惡性程度的關鍵。只有保留位置，你才看得到癌細胞是否越過基底膜、和正常組織如何交界。</p></div>
+<div data-lang="en"><p>Whether a tumor has "broken through its margin and invaded outward" is central to grading malignancy. Only with position preserved can you see whether cancer cells cross the basement membrane and how they interface with normal tissue.</p></div>
+</div>
+<div class="card"><div class="card-icon">🛡️</div><h4><span data-zh="為什麼重要：免疫浸潤" data-en="Why it matters: immune infiltration">為什麼重要：免疫浸潤</span></h4>
+<div data-lang="zh"><p>同樣「有很多 T 細胞」，一種是 T 細胞真的<strong>鑽進</strong>腫瘤核心（熱腫瘤，免疫療法多半有效），一種是被擋在<strong>腫瘤外圍</strong>（冷腫瘤／免疫排除）。位置直接關係到能否用免疫療法。</p></div>
+<div data-lang="en"><p>Two tumors can both have "lots of T cells," yet one has T cells that truly <strong>penetrate</strong> the core (a hot tumor, often immunotherapy-responsive) while the other keeps them <strong>parked at the rim</strong> (a cold / immune-excluded tumor). Position directly informs whether immunotherapy can work.</p></div>
+</div>
+<div class="card"><div class="card-icon">🧱</div><h4><span data-zh="為什麼重要：組織分層" data-en="Why it matters: tissue layers">為什麼重要：組織分層</span></h4>
+<div data-lang="zh"><p>大腦皮質有六層、腸壁有黏膜到肌層、腎臟有皮質與髓質。這些「分層 (layering)」結構決定功能——沒有座標，你根本畫不出這些層。</p></div>
+<div data-lang="en"><p>The cortex has six layers, the gut wall runs mucosa to muscularis, the kidney has cortex and medulla. This <strong>layering</strong> defines function — and without coordinates you cannot draw these layers at all.</p></div>
+</div>
+</div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="支援平台" data-en="PLATFORMS">支援平台</div>
+<h2 data-zh="二、SpatialX 支援哪些空間技術？" data-en="II. Which Spatial Technologies Does SpatialX Support?">二、SpatialX 支援哪些空間技術？</h2>
+<div data-lang="zh"><p>空間技術聽起來品牌繁多，但只要抓住一個核心取捨就不會迷路：<strong>「空間看得多細」和「基因看得多全」，這兩件事永遠在拔河</strong>。因此所有技術大致落在<strong>兩大家族</strong>裡，SpatialX 兩者都支援：</p></div>
+<div data-lang="en"><p>The brand names look overwhelming, but one core trade-off keeps you oriented: <strong>"how finely you see space" and "how broadly you see genes" are always in a tug-of-war</strong>. So every technology falls into one of <strong>two families</strong> — and SpatialX supports both:</p></div>
+<div class="card-grid cols-2">
+<div class="card"><div class="card-icon">🟦</div><h4><span data-zh="(a) 定點／區域為主" data-en="(a) Spot / Region-based">(a) 定點／區域為主</span></h4>
+<div data-lang="zh"><p><strong>10x Visium</strong>（組織級、定點）、<strong>NanoString GeoMx DSP</strong>（使用者親手圈選 ROI 區域）。可以想成把切片鋪上一層<strong>棋盤格</strong>，每一格量一次。問題是<strong>一格常常住了好幾個人</strong>——一個「點 (spot)」或「區域」內通常含多顆細胞，並非單細胞解析度。所以想知道「這格裡各有多少種細胞」，需要 <strong>deconvolution（去卷積）</strong> 這個「拆帳」步驟去推估各細胞類型的比例。它最大的優點是<strong>全轉錄組覆蓋 (whole-transcriptome)</strong>——不預先挑基因，兩萬多個基因通通量。</p></div>
+<div data-lang="en"><p><strong>10x Visium</strong> (tissue-level, spot-based) and <strong>NanoString GeoMx DSP</strong> (regions the user draws by hand as ROIs). Picture laying a <strong>chessboard grid</strong> over the section and measuring each square once. The catch: <strong>each square usually houses several people</strong> — a "spot" or region typically holds multiple cells, not single-cell resolution. To learn "how many of each cell type live in this square," you need <strong>deconvolution</strong>, a "splitting-the-bill" step that estimates the cell-type proportions. Its biggest strength: <strong>whole-transcriptome</strong> coverage — no pre-selection; all ~20,000+ genes are measured.</p></div>
+</div>
+<div class="card"><div class="card-icon">🔬</div><h4><span data-zh="(b) 單細胞／次細胞成像" data-en="(b) Single-cell / Subcellular Imaging">(b) 單細胞／次細胞成像</span></h4>
+<div data-lang="zh"><p><strong>10x Xenium</strong>、<strong>NanoString CosMx</strong>、<strong>Vizgen MERFISH</strong>。這一家用顯微成像直接「看」每一個 RNA 分子亮起來，達到<strong>真正的單細胞、甚至次細胞 (subcellular)</strong> 解析度——你能看到<strong>單一 transcript</strong> 落在哪顆細胞的哪個位置。代價是它只問「名單上的人」：使用<strong>靶向基因套組 (targeted panel)</strong>，只測預先選定的數百到數千個基因，沒被選進名單的基因，這台機器根本不會去看。</p></div>
+<div data-lang="en"><p><strong>10x Xenium</strong>, <strong>NanoString CosMx</strong>, <strong>Vizgen MERFISH</strong>. This family uses microscopy to literally "watch" each RNA molecule light up, reaching <strong>true single-cell, even subcellular</strong> resolution — you can see <strong>a single transcript</strong> land inside a given cell. The cost: it only asks about "people on the list" — a <strong>targeted gene panel</strong> of hundreds to a few thousand pre-selected genes. Anything off the list is simply never looked at.</p></div>
+</div>
+</div>
+<div data-lang="zh"><p style="margin-top:8px;">此外還有第三種「折衷派」：<strong>Slide-seq</strong>（珠子為基礎的高解析度定點技術），解析度比 Visium 更細、更接近單細胞，但骨子裡仍屬定點式、走全轉錄組路線——它也在 SpatialX 支援之列。</p></div>
+<div data-lang="en"><p style="margin-top:8px;">There is also a third "compromise" option: <strong>Slide-seq</strong> (a bead-based, high-resolution spot technology). Its resolution is finer than Visium and closer to single-cell, but at heart it is still spot-based and whole-transcriptome — and it too is supported by SpatialX.</p></div>
+<div class="callout note"><span class="callout-icon">📝</span><div>
+<span data-lang="zh"><strong>記憶取捨（一句就懂）：</strong>定點技術＝<em>基因看得全，但空間看不細</em>；成像技術＝<em>空間看得細（單細胞），但基因看得少（靶向）</em>。沒有一種技術能兩者兼得，選哪一家永遠取決於你的科學問題——想「大海撈針找未知」選定點，想「精準定位已知」選成像。</span>
+<span data-lang="en"><strong>Remember the trade-off (in one line):</strong> spot methods = <em>sees genes broadly, space coarsely</em>; imaging methods = <em>sees space finely (single-cell), genes narrowly (targeted)</em>. No technology has both — the choice always follows your question: "cast a wide net for the unknown" → spot; "pinpoint the known" → imaging.</span>
+</div></div>
+<div class="callout tip"><span class="callout-icon">🧑‍🏫</span><div>
+<span data-lang="zh"><strong>專家小撇步：</strong>一個常見的實戰組合是「<em>先廣後窄</em>」——先用 Visium 全轉錄組掃過整片組織、找出哪些基因與區域值得關注，再設計一組靶向套組上 Xenium／CosMx，在單細胞解析度上把重點區域看仔細。兩種資料都能匯進 SpatialX 對照著看。</span>
+<span data-lang="en"><strong>Pro tip:</strong> a common real-world combo is "<em>wide first, then narrow</em>" — sweep the whole section with Visium's whole-transcriptome view to find which genes and regions matter, then design a targeted panel for Xenium/CosMx to examine the key regions at single-cell resolution. Both datasets can be brought into SpatialX and compared side by side.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="互動：平台選擇器" data-en="INTERACTIVE: PICKER">互動：平台選擇器</div>
+<h2 data-zh="三、點一個技術，看它的特性" data-en="III. Click a Technology to See Its Profile">三、點一個技術，看它的特性</h2>
+<div data-lang="zh"><p>光看文字容易糊成一團，動手點點看最快。選一個空間技術，SpatialX 會告訴你它的<strong>解析度</strong>（定點 vs 單細胞）、<strong>基因套組</strong>（全轉錄組 vs 靶向）、<strong>家族</strong>與<strong>典型用途</strong>。一邊點一邊在心裡問自己：這台適合「找未知」還是「定位已知」？</p></div>
+<div data-lang="en"><p>Words blur together; clicking is faster. Pick a spatial technology and SpatialX shows its <strong>resolution</strong> (spot vs single-cell), <strong>panel type</strong> (whole-tx vs targeted), <strong>family</strong>, and <strong>typical use</strong>. As you click, ask yourself: is this one built for "finding the unknown" or "pinpointing the known"?</p></div>
+<div class="interactive-panel">
+<div class="plat-pick" id="techPick">
+  <button class="toggle-btn active" data-k="visium"><span data-zh="10x Visium" data-en="10x Visium">10x Visium</span></button>
+  <button class="toggle-btn" data-k="geomx"><span data-zh="GeoMx DSP" data-en="GeoMx DSP">GeoMx DSP</span></button>
+  <button class="toggle-btn" data-k="xenium"><span data-zh="10x Xenium" data-en="10x Xenium">10x Xenium</span></button>
+  <button class="toggle-btn" data-k="cosmx"><span data-zh="NanoString CosMx" data-en="NanoString CosMx">NanoString CosMx</span></button>
+  <button class="toggle-btn" data-k="merfish"><span data-zh="Vizgen MERFISH" data-en="Vizgen MERFISH">Vizgen MERFISH</span></button>
+  <button class="toggle-btn" data-k="slideseq"><span data-zh="Slide-seq" data-en="Slide-seq">Slide-seq</span></button>
+</div>
+<div class="rec-box" id="techBox"></div>
+</div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="互動：組織切片" data-en="INTERACTIVE: TISSUE">互動：組織切片</div>
+<h2 data-zh="四、把細胞放回組織：鄰域視覺化" data-en="IV. Putting Cells Back: Neighborhood View">四、把細胞放回組織：鄰域視覺化</h2>
+<div data-lang="zh"><p>下方是一張<strong>模擬</strong>組織切片：每個點是一顆細胞，座標就是它在切片上的位置。這正是空間資料最迷人的地方——同一份座標，可以問<strong>兩種完全不同的問題</strong>。切換下面兩個按鈕感受一下：先看<strong>細胞類型的分佈</strong>（有哪些人），再看<strong>空間鄰域 (niche)</strong>（哪一區是同一個社區）。</p></div>
+<div data-lang="en"><p>Below is a <strong>synthetic</strong> tissue section: each dot is a cell, positioned by its coordinates on the slide. This is what makes spatial data so compelling — the same coordinates let you ask <strong>two completely different questions</strong>. Toggle the buttons to feel it: first view the <strong>cell-type distribution</strong> (which people), then the <strong>spatial niche</strong> (which region forms one community).</p></div>
+<div class="plat-pick" id="tissueMode" style="margin-bottom:0;">
+  <button class="toggle-btn active" data-m="celltype"><span data-zh="依細胞類型著色" data-en="Color by cell type">依細胞類型著色</span></button>
+  <button class="toggle-btn" data-m="niche"><span data-zh="依空間鄰域 (niche) 著色" data-en="Color by spatial niche">依空間鄰域 (niche) 著色</span></button>
+</div>
+<div class="chart-container" style="height:380px;"><canvas id="tissueChart"></canvas></div>
+<p style="font-size:.78rem;color:var(--c-ink-muted);text-align:center;"><span data-zh="合成示意資料，非真實切片。「細胞類型」模式回答『有哪些細胞』——三種細胞散佈全圖；「鄰域」模式回答『哪些區塊由相似鄰居構成一個社區』——同一份座標，兩種問法。試著切換，注意腫瘤細胞（紅）與免疫細胞（藍）在鄰域模式下如何被劃進不同的『社區』。" data-en="Synthetic illustrative data, not a real section. 'Cell type' mode answers 'which cells' — three types scattered across the image; 'niche' mode answers 'which regions form a community of similar neighbors' — same coordinates, two questions. Toggle and watch how tumor cells (red) and immune cells (blue) get sorted into different 'communities' in niche mode.">合成示意資料，非真實切片。「細胞類型」模式回答『有哪些細胞』——三種細胞散佈全圖；「鄰域」模式回答『哪些區塊由相似鄰居構成一個社區』——同一份座標，兩種問法。試著切換，注意腫瘤細胞（紅）與免疫細胞（藍）在鄰域模式下如何被劃進不同的『社區』。</span></p>
+<div class="callout tip"><span class="callout-icon">💡</span><div>
+<span data-lang="zh"><strong>怎麼看：</strong>在「細胞類型」模式下你看到三種細胞散佈全圖，這是 scRNA-seq 也做得到的層次（只是它畫的是 UMAP，不是真實座標）。切到「鄰域」模式，SpatialX 會依<strong>每顆細胞周圍的鄰居組成</strong>把切片分成幾個空間區域 (niche/domain)——腫瘤核心、免疫浸潤帶、基質區。這種「組織區塊」正是空間分析獨有、解離式資料<em>絕對生不出來</em>的產出。</span>
+<span data-lang="en"><strong>How to read it:</strong> in "cell type" mode you see three cell types spread across the image — a level scRNA-seq can also reach (except it plots a UMAP, not real coordinates). Switch to "niche" mode and SpatialX partitions the section into spatial domains based on <strong>the neighborhood composition around each cell</strong>: tumor core, immune-infiltrated rim, stromal zone. These "tissue blocks" are output unique to spatial analysis and something dissociated data <em>can never produce</em>.</span>
+</div></div>
+<div class="callout note"><span class="callout-icon">🔎</span><div>
+<span data-lang="zh"><strong>實戰情境：</strong>假設紅色是癌細胞、藍色是 T 細胞。在鄰域模式下，如果 T 細胞的藍點<strong>大量落在腫瘤核心 niche 裡</strong>，代表免疫細胞成功浸潤（熱腫瘤）；如果藍點只圍在<strong>免疫浸潤帶而進不了核心</strong>，就是被排除在外的冷腫瘤。這個「一眼看出浸潤與否」的判讀，就是空間分析在腫瘤免疫學裡最實用的價值。</span>
+<span data-lang="en"><strong>Real-world scenario:</strong> say red is cancer cells and blue is T cells. In niche mode, if the blue T-cell dots <strong>land heavily inside the tumor-core niche</strong>, immune cells have successfully infiltrated (a hot tumor); if the blue dots only ring the <strong>immune-rim and can't reach the core</strong>, it's an excluded, cold tumor. This at-a-glance "infiltrated or not" read-out is spatial analysis's most practical payoff in tumor immunology.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="工作流程" data-en="WORKFLOW">工作流程</div>
+<h2 data-zh="五、SpatialX 的典型流程" data-en="V. A Typical SpatialX Workflow">五、SpatialX 的典型流程</h2>
+<div data-lang="zh"><p>SpatialX 為<strong>無程式碼、Windows 版</strong>的桌面工具。好消息是：流程的前半段和你已經學過的 scRNA-seq <em>幾乎一模一樣</em>，你不必從零學起；真正的新東西集中在後半段的「空間專屬」分析。把它想成<strong>「熟悉的前菜 + 全新的主餐」</strong>：</p></div>
+<div data-lang="en"><p>SpatialX is a <strong>no-code, Windows-based</strong> desktop tool. The good news: the first half of the workflow is <em>almost identical</em> to the scRNA-seq you already learned — no need to start over; the genuinely new material lives in the "spatial-specific" second half. Think of it as <strong>"a familiar appetizer plus a brand-new main course"</strong>:</p></div>
+<div class="decision-tree">
+<h4><span data-zh="從載入到原位互動" data-en="From loading to in-situ interaction">從載入到原位互動</span></h4>
+<div data-lang="zh">
+<p><strong>1. 載入資料 + 影像：</strong>匯入表達矩陣<em>以及對應的組織影像／座標</em>。這是空間流程最關鍵、也最容易被忽略的一步——切片影像不是漂亮的裝飾，它是「地圖底圖」，之後每一個空間分析都要靠它定位。</p>
+<p><strong>2. 品質管制 (QC)：</strong>過濾低品質的定點／細胞。除了 scRNA 常見的「計數過低」外，成像資料還要特別留意<strong>細胞分割 (segmentation) 失敗</strong>的細胞（邊界切壞、面積異常）。</p>
+<p><strong>3. 分群與註釋：</strong>做分群並指定細胞類型。這裡有個省時神招——可從<strong>已註釋好的 scRNA 參考資料轉移標籤 (label transfer)</strong>，讓只測了幾百個基因的靶向空間資料，直接「借用」完整 scRNA 圖譜的細胞類型定義，不必從頭手動命名。</p>
+<p><strong>4. 空間專屬分析（主餐上桌）：</strong>
+① <strong>空間區域／niche（社區）</strong>——依每顆細胞的鄰居組成，把切片分成有意義的組織區塊；
+② <strong>鄰近分析／細胞類型共定位 (co-localization)</strong>——回答「誰跟誰住一起」，哪些細胞類型愛聚在同一區；
+③ <strong>原位細胞互動 (in-situ cell–cell interaction)</strong>——在<em>真實空間</em>中檢查 ligand–receptor 訊號：分泌訊號的細胞，是否真的緊鄰帶著受體的細胞？</p>
+</div>
+<div data-lang="en">
+<p><strong>1. Load data + image:</strong> import the expression matrix <em>and its matching tissue image/coordinates</em>. This is the most crucial and most overlooked step of a spatial workflow — the section image isn't pretty decoration, it's the "base map," and every spatial analysis afterward relies on it to place things.</p>
+<p><strong>2. QC:</strong> filter low-quality spots/cells. Beyond the usual scRNA "too-few counts," imaging data needs special attention to cells with <strong>failed segmentation</strong> (broken boundaries, abnormal areas).</p>
+<p><strong>3. Cluster &amp; annotate:</strong> cluster and assign cell types. Here's a time-saver — you can <strong>transfer labels from an already-annotated scRNA reference (label transfer)</strong>, letting targeted spatial data measuring only a few hundred genes directly "borrow" the cell-type definitions from a full scRNA atlas instead of naming everything by hand.</p>
+<p><strong>4. Spatial-specific analyses (the main course):</strong>
+① <strong>spatial domains / niches (communities)</strong> — partition the section into meaningful tissue blocks by each cell's neighborhood composition;
+② <strong>neighborhood / cell-type co-localization</strong> — answers "who lives with whom," which cell types cluster in the same region;
+③ <strong>in-situ cell–cell interaction</strong> — check ligand–receptor signaling in <em>real space</em>: is the signal-secreting cell truly adjacent to the receptor-bearing one?</p>
+</div>
+</div>
+<div class="callout note"><span class="callout-icon">📝</span><div>
+<span data-lang="zh"><strong>選單名稱會變（版本注意）：</strong>不同版本的 SpatialX，功能選單的<em>命名與位置可能不同</em>（例如「Niche」「Spatial domain」「Neighborhood」等叫法會隨版本調整）。請以你安裝的版本介面為準，本頁描述的是<strong>觀念流程</strong>而非固定的按鈕名稱——觀念學會了，換個介面也找得到對應功能。</span>
+<span data-lang="en"><strong>Menu names vary (version caveat):</strong> across SpatialX versions the menu <em>labels and locations may differ</em> (e.g., "Niche" / "Spatial domain" / "Neighborhood" naming shifts between releases). Trust your installed build's UI — this page describes the <strong>conceptual workflow</strong>, not fixed button names. Once you own the concepts, you can find the matching feature in any interface.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="三大空間分析" data-en="THREE SPATIAL ANALYSES">三大空間分析</div>
+<h2 data-zh="六、「主餐」三道菜：把空間問題拆開講" data-en="VI. The Three 'Main Courses,' Unpacked">六、「主餐」三道菜：把空間問題拆開講</h2>
+<div data-lang="zh"><p>流程第 4 步那三種「空間專屬」分析，是初學者最容易混淆的地方。其實它們回答的是三個層層遞進的問題，用一句社區生活的話就講清楚了：</p></div>
+<div data-lang="en"><p>The three "spatial-specific" analyses in step 4 are where beginners most often get muddled. In truth they answer three questions that build on each other — and one line of neighborhood-life language makes each clear:</p></div>
+<div class="card-grid cols-3">
+<div class="card"><div class="card-icon">🏘️</div><h4><span data-zh="① Niche／空間區域" data-en="① Niche / Spatial domain">① Niche／空間區域</span></h4>
+<div data-lang="zh"><p><strong>「這一區是哪種社區？」</strong>把地圖依鄰里組成分成幾個街區——住宅區、商業區、工業區。在組織裡就是腫瘤核心、免疫帶、基質區。它切的是<strong>區域</strong>，不是單一細胞。</p></div>
+<div data-lang="en"><p><strong>"What kind of neighborhood is this area?"</strong> Carve the map into districts by their mix of residents — residential, commercial, industrial. In tissue: tumor core, immune band, stromal zone. It slices <strong>regions</strong>, not single cells.</p></div>
+</div>
+<div class="card"><div class="card-icon">🤝</div><h4><span data-zh="② 共定位／鄰近分析" data-en="② Co-localization / Neighborhood">② 共定位／鄰近分析</span></h4>
+<div data-lang="zh"><p><strong>「誰跟誰住一起？」</strong>統計哪兩種細胞類型出現在彼此身邊的頻率，是否高於隨機。例如「巨噬細胞總是黏在腫瘤細胞旁」就是一個共定位訊號。</p></div>
+<div data-lang="en"><p><strong>"Who lives next to whom?"</strong> Quantify how often two cell types appear beside each other, above chance. "Macrophages always cling to tumor cells" is exactly such a co-localization signal.</p></div>
+</div>
+<div class="card"><div class="card-icon">📡</div><h4><span data-zh="③ 原位細胞互動" data-en="③ In-situ interaction">③ 原位細胞互動</span></h4>
+<div data-lang="zh"><p><strong>「鄰居之間真的在對話嗎？」</strong>不只看住在一起，還檢查一方是否分泌訊號 (ligand)、另一方是否帶著接收器 (receptor)。空間版比解離版更可信——因為訊號真的要「碰得到」才算數。</p></div>
+<div data-lang="en"><p><strong>"Are the neighbors actually talking?"</strong> Beyond living together, check whether one side secretes a signal (ligand) and the other bears the receiver (receptor). The spatial version is more trustworthy than the dissociated one — because a signal only counts if it can physically "reach."</p></div>
+</div>
+</div>
+<div class="callout tip"><span class="callout-icon">🧑‍🏫</span><div>
+<span data-lang="zh"><strong>專家小撇步：</strong>細胞通訊分析（如 CellChat）在解離式 scRNA-seq 裡是「憑基因表達<em>推測</em>誰可能跟誰講話」，但它不知道兩種細胞是不是真的挨在一起。空間資料把這個弱點補起來了——<strong>原位互動＝「有訊號＋距離夠近」兩個條件同時成立</strong>，可信度高得多。這是空間分析最能加值細胞通訊研究的地方。</span>
+<span data-lang="en"><strong>Pro tip:</strong> in dissociated scRNA-seq, cell-communication analysis (e.g., CellChat) <em>infers</em> "who might talk to whom" from gene expression alone — but it has no idea whether the two cell types are actually next to each other. Spatial data fixes that weakness: <strong>in-situ interaction requires both "a signal" and "close enough distance" at once</strong>, which is far more credible. This is where spatial analysis adds the most value to cell-communication studies.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="比較與注意事項" data-en="COMPARISON & CAVEATS">比較與注意事項</div>
+<h2 data-zh="七、定序式 vs 成像式：一張表看懂" data-en="VII. Sequencing- vs Imaging-based: One Table">七、定序式 vs 成像式：一張表看懂</h2>
+<table class="comp-table">
+<thead><tr>
+<th data-zh="面向" data-en="Aspect">面向</th>
+<th data-zh="定序式（Visium / GeoMx）" data-en="Sequencing-based (Visium / GeoMx)">定序式（Visium / GeoMx）</th>
+<th data-zh="成像式（Xenium / CosMx / MERFISH）" data-en="Imaging-based (Xenium / CosMx / MERFISH)">成像式（Xenium / CosMx / MERFISH）</th>
+</tr></thead>
+<tbody>
+<tr><td data-zh="空間解析度" data-en="Spatial resolution"><strong>空間解析度</strong></td><td data-lang="zh">定點／區域，一點常含多顆細胞</td><td data-lang="zh">單細胞～次細胞，可定位單一 transcript</td><td data-lang="en">Spot/region; a spot often holds several cells</td><td data-lang="en">Single-cell to subcellular; can localize single transcripts</td></tr>
+<tr><td data-zh="基因覆蓋" data-en="Gene coverage"><strong>基因覆蓋</strong></td><td data-lang="zh">全轉錄組（不預先選基因，~2 萬基因）</td><td data-lang="zh">靶向套組，數百～數千個預選基因</td><td data-lang="en">Whole-transcriptome (no pre-selection, ~20k genes)</td><td data-lang="en">Targeted panel of hundreds–thousands of pre-chosen genes</td></tr>
+<tr><td data-zh="單細胞分析" data-en="Single-cell analysis"><strong>單細胞分析</strong></td><td data-lang="zh">需 deconvolution 推估各點細胞組成</td><td data-lang="zh">直接以細胞為單位（需先做細胞分割）</td><td data-lang="en">Needs deconvolution to infer per-spot composition</td><td data-lang="en">Directly per-cell (after cell segmentation)</td></tr>
+<tr><td data-zh="發現 vs 定位" data-en="Discovery vs targeting"><strong>發現 vs 定位</strong></td><td data-lang="zh">適合「找未知」——沒預設立場，全基因掃描</td><td data-lang="zh">適合「定位已知」——先有假設，精準看指定基因</td><td data-lang="en">Good for "finding the unknown" — unbiased, all-gene scan</td><td data-lang="en">Good for "pinpointing the known" — hypothesis-first, precise on chosen genes</td></tr>
+<tr><td data-zh="主要限制" data-en="Main limitation"><strong>主要限制</strong></td><td data-lang="zh">解析度較粗；deconvolution 有不確定性</td><td data-lang="zh">靶向套組漏掉未選基因；分割誤差影響結果</td><td data-lang="en">Coarser resolution; deconvolution carries uncertainty</td><td data-lang="en">Targeted panel misses off-panel genes; segmentation errors affect results</td></tr>
+<tr><td data-zh="典型用途" data-en="Typical use"><strong>典型用途</strong></td><td data-lang="zh">全域探索、發現未知標記、組織區域比較</td><td data-lang="zh">已知標記的原位定位、稀有細胞、精細鄰域</td><td data-lang="en">Genome-wide discovery, comparing tissue regions</td><td data-lang="en">In-situ localization of known markers, rare cells, fine-grained niches</td></tr>
+</tbody></table>
+<div class="callout warn"><span class="callout-icon">⚠️</span><div>
+<span data-lang="zh"><strong>三個常見誤區（新手必踩，先看先避）：</strong>
+<strong>①</strong> <em>把 Visium spot 當單細胞</em>——這是最常見的錯。一個 spot 裡住了好幾顆、甚至十幾顆細胞，它的表達譜是<strong>混合訊號</strong>。把一個 spot 直接當成「一顆細胞」去做單細胞分析，結論會被稀釋、被汙染。想要細胞比例，得靠 deconvolution 去卷積推估，而且那是<strong>估計值</strong>，別在邊界上過度解讀。
+<strong>②</strong> <em>targeted panel 沒有的基因，誤當成「不表現」</em>——成像技術只測套組內的幾百個基因。你「沒看到某基因訊號」，真相通常是「這台機器<strong>根本沒去測它</strong>」，而不是「它不表現」。把「沒測」講成「陰性」是嚴重的邏輯錯誤。
+<strong>③</strong> <em>忽略影像分割 (segmentation) 誤差</em>——成像資料的細胞邊界是靠演算法切出來的。切錯了，一顆細胞的 transcript 會被歸到隔壁細胞，讓兩顆細胞的表達譜<strong>互相汙染</strong>（尤其細胞擠得密的地方）。空間結果務必回頭對照原始影像，別盡信數字。</span>
+<span data-lang="en"><strong>Three common pitfalls (rookies fall for all three — read them, dodge them):</strong>
+<strong>①</strong> <em>Treating a Visium spot as one cell</em> — the classic mistake. A spot houses several, even a dozen, cells, so its profile is a <strong>mixed signal</strong>. Run single-cell analysis on a spot as if it were "one cell" and your conclusions get diluted and contaminated. For cell proportions you need deconvolution — and those are <strong>estimates</strong>, so don't over-interpret boundaries.
+<strong>②</strong> <em>Mistaking "not on the panel" for "not expressed"</em> — imaging only measures the few hundred genes on the panel. "Not seeing a gene's signal" usually means "the instrument <strong>never measured it</strong>," not "it isn't expressed." Reporting "not measured" as "negative" is a serious logical error.
+<strong>③</strong> <em>Ignoring segmentation errors</em> — imaging cell boundaries are drawn by an algorithm. A bad cut assigns one cell's transcripts to its neighbor, so two cells' profiles <strong>contaminate each other</strong> (worst where cells are densely packed). Always cross-check spatial results against the raw image; don't trust the numbers blindly.</span>
+</div></div>
+</section>
+
+<section class="quiz-section">
+<h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">1. 相較於解離式 scRNA-seq，空間轉錄組「多」保留了什麼關鍵資訊？</p>
+<p data-lang="en">1. Compared with dissociated scRNA-seq, what key information does spatial transcriptomics additionally preserve?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 更高的定序深度</span><span data-lang="en">A. Higher sequencing depth</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 更多的細胞總數</span><span data-lang="en">B. A larger total cell count</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 每顆細胞在組織中的位置（WHERE）與鄰居關係</span><span data-lang="en">C. Each cell's position in the tissue (WHERE) and its neighbors</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 完全不需要品質管制</span><span data-lang="en">D. That QC is no longer needed</span></div>
+</div><div class="quiz-feedback" id="fb1"></div></div>
+
+<div class="quiz-q" data-answer="1">
+<p data-lang="zh">2. 下列哪一組屬於<strong>單細胞解析度、靶向套組</strong>的成像式空間技術？</p>
+<p data-lang="en">2. Which group is <strong>single-cell resolution, targeted-panel</strong> imaging-based spatial tech?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. Visium 與 GeoMx DSP</span><span data-lang="en">A. Visium and GeoMx DSP</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. Xenium、CosMx、MERFISH</span><span data-lang="en">B. Xenium, CosMx, MERFISH</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. Bulk RNA-seq 與 CITE-seq</span><span data-lang="en">C. Bulk RNA-seq and CITE-seq</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. Slide-seq 與 Visium</span><span data-lang="en">D. Slide-seq and Visium</span></div>
+</div><div class="quiz-feedback" id="fb2"></div></div>
+
+<div class="quiz-q" data-answer="0">
+<p data-lang="zh">3. 你用的是 10x Visium 資料，想知道「每個定點裡有哪些細胞類型、各佔多少」。最可能需要的步驟是？</p>
+<p data-lang="en">3. You have 10x Visium data and want to know "which cell types are in each spot, and in what proportion." Which step is most likely needed?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. Deconvolution（去卷積）估計各點細胞組成</span><span data-lang="en">A. Deconvolution to estimate per-spot composition</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 什麼都不用，Visium 本來就是單細胞解析度</span><span data-lang="en">B. Nothing — Visium is already single-cell resolution</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 改用 TCR/BCR 免疫圖譜分析</span><span data-lang="en">C. Switch to TCR/BCR immune profiling</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 增加靶向基因套組的基因數</span><span data-lang="en">D. Add more genes to the targeted panel</span></div>
+</div><div class="quiz-feedback" id="fb3"></div></div>
+
+<div class="quiz-q" data-answer="3">
+<p data-lang="zh">4. 你用 Xenium（靶向套組）分析，發現某個基因「完全沒有訊號」，但這個基因不在你選的套組裡。最正確的解讀是？</p>
+<p data-lang="en">4. Using Xenium (a targeted panel), you find a gene shows "no signal at all," but that gene isn't in your chosen panel. The most correct interpretation is?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 這個基因在此組織中確定不表現</span><span data-lang="en">A. The gene is definitely not expressed in this tissue</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 分割演算法把它切掉了</span><span data-lang="en">B. The segmentation algorithm cut it out</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 該做 deconvolution 才看得到</span><span data-lang="en">C. Deconvolution is needed to see it</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 「沒測」不等於「不表現」——它根本不在套組裡，無法判斷</span><span data-lang="en">D. "Not measured" ≠ "not expressed" — it's off-panel, so no conclusion is possible</span></div>
+</div><div class="quiz-feedback" id="fb4"></div></div>
+
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">5. SpatialX 的「空間區域／niche」分析，主要依據什麼把切片分成不同的組織區塊？</p>
+<p data-lang="en">5. SpatialX's "spatial domain / niche" analysis partitions the section into tissue blocks based mainly on what?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 每顆細胞的定序深度高低</span><span data-lang="en">A. Each cell's sequencing depth</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 細胞在 UMAP 上的距離</span><span data-lang="en">B. Cell distances on the UMAP</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 每顆細胞周圍的鄰居組成（鄰域組成）</span><span data-lang="en">C. The neighborhood composition around each cell</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 每顆細胞的細胞週期階段</span><span data-lang="en">D. Each cell's cell-cycle phase</span></div>
+</div><div class="quiz-feedback" id="fb5"></div></div>
+</section>
+
+<nav class="page-nav">
+<a href="multimodal.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Prev">← 上一步</span><span class="nav-title" data-zh="多模態與免疫圖譜" data-en="Multimodal & Immune Profiling">多模態與免疫圖譜</span></a>
+<a href="talk2data.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Talk2Data 資料庫" data-en="Talk2Data Database">Talk2Data 資料庫</span></a>
+</nav>
+</main>
+<footer class="site-footer">© Charlene — BioTuring Interactive Tutorial · <span data-zh="教學用途，非 BioTuring 官方文件" data-en="Educational use — not official BioTuring documentation">教學用途，非 BioTuring 官方文件</span></footer>
+<script src="i18n.js"></script>
+<script>
+window.addEventListener('scroll',()=>{const h=document.documentElement;document.getElementById('progressBar').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+'%';});
+
+// ---- Technology picker ----
+const TECH={
+ visium:{zh:{name:'10x Visium',res:'定點（組織級）',panel:'全轉錄組',fam:'定序式',use:'全域探索、發現未知標記、比較組織區域；一點含多細胞，常需 deconvolution。適合「找未知」。'},
+         en:{name:'10x Visium',res:'Spot (tissue-level)',panel:'Whole-transcriptome',fam:'Sequencing-based',use:'Genome-wide discovery, novel markers, region comparison; a spot holds several cells → often needs deconvolution. Great for "finding the unknown".'}},
+ geomx:{zh:{name:'NanoString GeoMx DSP',res:'區域 (ROI，使用者圈選)',panel:'全轉錄組 / 大套組',fam:'定序式',use:'比較使用者親手定義的組織區域（如腫瘤 vs 基質）；區域級而非單細胞。'},
+        en:{name:'NanoString GeoMx DSP',res:'Region (user-drawn ROI)',panel:'Whole-tx / large panel',fam:'Sequencing-based',use:'Compare user-defined regions (e.g., tumor vs stroma); region-level, not single-cell.'}},
+ xenium:{zh:{name:'10x Xenium',res:'單細胞～次細胞',panel:'靶向套組',fam:'成像式',use:'已知標記的原位定位、稀有細胞、精細鄰域分析；需細胞分割。適合「定位已知」。'},
+         en:{name:'10x Xenium',res:'Single-cell to subcellular',panel:'Targeted panel',fam:'Imaging-based',use:'In-situ localization of known markers, rare cells, fine niches; requires segmentation. Great for "pinpointing the known".'}},
+ cosmx:{zh:{name:'NanoString CosMx',res:'單細胞～次細胞',panel:'靶向套組（可達千基因級）',fam:'成像式',use:'單細胞原位分析、細胞互動；Stanford、東京大學等使用者採用。'},
+        en:{name:'NanoString CosMx',res:'Single-cell to subcellular',panel:'Targeted (up to ~1000s genes)',fam:'Imaging-based',use:'Single-cell in-situ analysis and interactions; used at Stanford, Univ. of Tokyo.'}},
+ merfish:{zh:{name:'Vizgen MERFISH',res:'單細胞～次細胞',panel:'靶向套組',fam:'成像式',use:'高多工原位 RNA 成像，精細空間鄰域與共定位。'},
+          en:{name:'Vizgen MERFISH',res:'Single-cell to subcellular',panel:'Targeted panel',fam:'Imaging-based',use:'Highly multiplexed in-situ RNA imaging; fine spatial niches and co-localization.'}},
+ slideseq:{zh:{name:'Slide-seq',res:'高解析定點（珠子為基礎）',panel:'全轉錄組',fam:'定序式',use:'比 Visium 更細的定點解析度，仍為定點級（非嚴格單細胞）；折衷派。'},
+           en:{name:'Slide-seq',res:'High-res spots (bead-based)',panel:'Whole-transcriptome',fam:'Sequencing-based',use:'Finer spot resolution than Visium, still spot-level (not strictly single-cell); a compromise option.'}}
+};
+function renderTech(k){const L=I18n.get();const d=TECH[k][L];const lab=L==='zh'?{res:'解析度',panel:'基因套組',fam:'家族',use:'典型用途'}:{res:'Resolution',panel:'Panel',fam:'Family',use:'Typical use'};
+ document.getElementById('techBox').innerHTML='<b>'+d.name+'</b><div class="rec-tags"><span class="rec-tag">'+lab.fam+'：'+d.fam+'</span><span class="rec-tag">'+lab.res+'：'+d.res+'</span><span class="rec-tag">'+lab.panel+'：'+d.panel+'</span></div>'+lab.use+'：'+d.use;}
+document.querySelectorAll('#techPick .toggle-btn').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#techPick .toggle-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderTech(b.dataset.k);}));
+document.addEventListener('langchange',()=>{const a=document.querySelector('#techPick .toggle-btn.active');if(a)renderTech(a.dataset.k);});
+renderTech('visium');
+
+// ---- Synthetic tissue slice ----
+function rnd(seed){let s=seed;return()=>{s=(s*9301+49297)%233280;return s/233280;};}
+const R=rnd(42);
+// build cells: three cell types arranged in loose spatial niches
+const CELLS=[];
+// niche layout: A=tumor core (bottom-left), B=immune rim (mid diag), C=stroma (top-right)
+for(let i=0;i<220;i++){
+  const r=R();let niche,cx,cy;
+  if(r<0.4){niche=0;cx=2.2;cy=2.2;}      // core
+  else if(r<0.72){niche=1;cx=5.2;cy=5.0;}// rim
+  else{niche=2;cx=8.0;cy=7.6;}           // stroma
+  const x=cx+(R()-0.5)*3.4, y=cy+(R()-0.5)*3.4;
+  // cell type: correlated with niche but with mixing
+  let ct;const q=R();
+  if(niche===0) ct=q<0.7?0:(q<0.85?1:2);       // tumor cells dominate core
+  else if(niche===1) ct=q<0.6?1:(q<0.8?0:2);   // immune dominate rim
+  else ct=q<0.7?2:(q<0.85?1:0);                // stroma dominate outer
+  CELLS.push({x:+x.toFixed(2),y:+y.toFixed(2),ct,niche});
+}
+const CT_COLORS=['#c0392b','#2563a8','#1a6b5a'];              // tumor / immune / stroma
+const NICHE_COLORS=['#8e44ad','#d4a03c','#2b8a7a'];          // core / rim / stroma
+const CT_LABELS={zh:['腫瘤細胞','免疫細胞','基質細胞'],en:['Tumor cells','Immune cells','Stromal cells']};
+const NICHE_LABELS={zh:['腫瘤核心 niche','免疫浸潤帶 niche','基質區 niche'],en:['Tumor-core niche','Immune-rim niche','Stromal niche']};
+function tissueDatasets(mode){
+  const groups=mode==='celltype'?CT_LABELS:NICHE_LABELS;const colors=mode==='celltype'?CT_COLORS:NICHE_COLORS;
+  const L=I18n.get();const key=mode==='celltype'?'ct':'niche';
+  return groups[L].map((lab,gi)=>({label:lab,data:CELLS.filter(c=>c[key]===gi).map(c=>({x:c.x,y:c.y})),backgroundColor:colors[gi],pointRadius:4,pointHoverRadius:6}));
+}
+let tissueMode='celltype';
+const tissueChart=new Chart(document.getElementById('tissueChart'),{type:'scatter',data:{datasets:tissueDatasets('celltype')},
+ options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11}}},tooltip:{enabled:false}},
+ scales:{x:{min:0,max:10,title:{display:true,text:'x (µm)'},ticks:{font:{size:10}}},y:{min:0,max:10,title:{display:true,text:'y (µm)'},ticks:{font:{size:10}}}}});
+function updateTissue(){tissueChart.data.datasets=tissueDatasets(tissueMode);tissueChart.update();}
+document.querySelectorAll('#tissueMode .toggle-btn').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#tissueMode .toggle-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');tissueMode=b.dataset.m;updateTissue();}));
+document.addEventListener('langchange',updateTissue);
+
+// ---- Quiz ----
+const QF={
+ zh:{q1_y:'空間分析的核心正是保留每顆細胞的位置與鄰居關係（WHERE）。',q1_n:'正確答案已標示。',q2_y:'Xenium、CosMx、MERFISH 皆為成像式、單細胞解析度、使用靶向套組。',q2_n:'正確答案已標示。',q3_y:'Visium 是定點技術，一點含多細胞，需 deconvolution 推估各細胞類型比例。',q3_n:'正確答案已標示。',q4_y:'沒被選進靶向套組的基因，機器根本沒測——「沒測」不等於「不表現」，無法下結論。',q4_n:'正確答案已標示。',q5_y:'niche／空間區域分析依每顆細胞「周圍鄰居的組成」把切片分成有意義的組織區塊。',q5_n:'正確答案已標示。'},
+ en:{q1_y:'Preserving each cell\'s position and neighbors (WHERE) is exactly what spatial adds.',q1_n:'Correct answer highlighted.',q2_y:'Xenium, CosMx and MERFISH are all imaging-based, single-cell resolution, targeted-panel.',q2_n:'Correct answer highlighted.',q3_y:'Visium is spot-based; a spot holds several cells, so deconvolution estimates the per-spot composition.',q3_n:'Correct answer highlighted.',q4_y:'An off-panel gene was never measured — "not measured" ≠ "not expressed," so no conclusion is possible.',q4_n:'Correct answer highlighted.',q5_y:'Niche / spatial-domain analysis partitions the section by the neighborhood composition around each cell.',q5_n:'Correct answer highlighted.'}
+};
+document.querySelectorAll('.quiz-q').forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll('.quiz-opt').forEach(o=>{o.addEventListener('click',()=>{if(q.classList.contains('answered'))return;q.classList.add('answered');const fb=document.getElementById('fb'+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?'correct':'wrong');if(!ok)q.querySelectorAll('.quiz-opt')[ans].classList.add('correct');const L=I18n.get();fb.className='quiz-feedback show '+(ok?'correct-fb':'wrong-fb');fb.textContent=(ok?'✅ ':'❌ ')+(QF[L]['q'+(qi+1)+'_'+(ok?'y':'n')]||'');});});});
+</script>
+</body></html>
