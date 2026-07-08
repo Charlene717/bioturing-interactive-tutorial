@@ -1,0 +1,289 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Overview — BioTuring Tutorial</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>.page-hero{background:linear-gradient(160deg,#2b1a5e 0%,#3b2a86 35%,#5b3fb0 70%,#2563a8 100%)}
+.plat-pick{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.rec-box{margin-top:16px;padding:18px 20px;border-radius:var(--radius-lg);background:var(--c-accent-light);border-left:4px solid var(--c-accent);font-size:.95rem}
+.rec-box b{color:var(--c-accent-dark)}</style></head><body>
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="BioTuring 教學" data-en="BioTuring Tutorial">BioTuring 教學</span></a>
+  <ul class="top-nav-links"><li><a href="overview.html" class="active" data-zh="總覽" data-en="Overview">總覽</a></li><li><a href="import.html">Import</a></li><li><a href="qc.html">QC</a></li><li><a href="normalization.html">Norm.</a></li><li><a href="clustering.html">Cluster</a></li><li><a href="annotation.html">Annot.</a></li><li><a href="dge.html">DE</a></li><li><a href="trajectory.html">Traj.</a></li><li><a href="multimodal.html">Multi</a></li><li><a href="spatialx.html">SpatialX</a></li><li><a href="talk2data.html">Talk2Data</a></li><li><a href="references/index.html" data-zh="📚 參考資料" data-en="📚 References">📚 參考資料</a></li></ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">START · <span data-zh="平台總覽" data-en="Platform Overview">平台總覽</span></div>
+<h1 data-zh="BioTuring 生態系總覽" data-en="The BioTuring Ecosystem">BioTuring 生態系總覽</h1>
+<p class="subtitle" data-lang="zh">認識四大無程式碼平台，理解 BioTuring 在單細胞與空間分析中的定位與取捨。</p>
+<p class="subtitle" data-lang="en">Meet the four no-code platforms and understand where BioTuring fits in single-cell & spatial analysis.</p>
+</header>
+<main class="content-wrap">
+
+<section class="section">
+<div class="section-label" data-zh="概覽" data-en="OVERVIEW">概覽</div>
+<h2 data-zh="BioTuring 是什麼？為誰而做？" data-en="What is BioTuring, and who is it for?">BioTuring 是什麼？為誰而做？</h2>
+<div data-lang="zh">
+<p>想像你剛買了一台高階洗衣機。裡面其實藏著複雜的馬達控制、水溫演算法、脫水轉速曲線——但你面對的只是一片面板：「快洗」「羽絨」「除菌」，按一下就好。你不需要懂電機工程，衣服照樣洗得乾淨。<strong>BioTuring 做的，就是把繁複的單細胞分析變成像操作智慧家電面板</strong>：底層是一整套嚴謹的統計與機器學習演算法，但你看到的是一顆顆清楚的按鈕。</p>
+<p><strong>BioTuring, Inc.</strong>（總部位於美國加州 San Diego）打造一系列<strong>免寫程式的圖形化分析平台</strong>（no-code GUI），讓沒有 R / Python 經驗的實驗室科學家，也能獨立完成單細胞與空間體學分析。它的核心理念很單純：把標準的 scRNA-seq 與空間分析流程「按鈕化」——你在介面上點選，軟體就在背後跑對應的演算法，並即時把結果畫成圖給你看。</p>
+<p>這家公司不算小眾玩具：官網宣稱服務超過 <strong>1 萬名科學家、90+ 家企業、300+ 研究機構、遍及 20 個國家</strong>，並通過 ISO/IEC 27001（資訊安全）與 27701（隱私）認證——對處理病人檢體的臨床實驗室來說，這是重要的信任門檻。</p>
+<p>因此本教程有兩個目標：<strong>①</strong> 教你在 BioTuring 平台上「怎麼點」；<strong>②</strong> 對照每顆按鈕背後的<strong>演算法概念</strong>（例如 UMAP、Louvain、Harmony、Venice），讓你不只是操作，而是<em>理解</em>。畢竟，會按「快洗」很好，但知道「羽絨衣為什麼不能高速脫水」，才不會把資料洗壞。</p>
+</div>
+<div data-lang="en">
+<p>Picture a high-end washing machine you just bought. Inside hides complex motor control, water-temperature algorithms, spin-speed curves — but all you face is a panel: "Quick Wash," "Down," "Sanitize." One press and done. You don't need an electrical-engineering degree; your clothes still come out clean. <strong>BioTuring does exactly this for single-cell analysis: it turns a famously fiddly pipeline into something that feels like a smart-appliance panel.</strong> Underneath sits a rigorous stack of statistics and machine learning; what you see are clearly labeled buttons.</p>
+<p><strong>BioTuring, Inc.</strong> (headquartered in San Diego, California) builds a family of <strong>no-code graphical (GUI) analysis platforms</strong>, so wet-lab scientists without R/Python experience can run single-cell and spatial omics analysis on their own. The core idea is simple: turn the standard scRNA-seq / spatial pipeline into buttons — you click in the interface, the software runs the matching algorithm behind the scenes, and it draws the results for you in real time.</p>
+<p>This is not a niche toy: the company says it serves over <strong>10,000 scientists, 90+ companies, 300+ research institutions across 20 countries</strong>, and is certified to ISO/IEC 27001 (information security) and 27701 (privacy) — an important trust bar for clinical labs handling patient specimens.</p>
+<p>So this tutorial has two goals: <strong>(1)</strong> teach you which buttons to click; and <strong>(2)</strong> map each button to the <strong>algorithm concept</strong> behind it (UMAP, Louvain, Harmony, Venice…), so you <em>understand</em> rather than just operate. Knowing how to hit "Quick Wash" is great — but knowing why you shouldn't spin a down jacket at max speed is what keeps you from ruining the load.</p>
+</div>
+<div class="callout tip"><span class="callout-icon">💡</span><div>
+<span data-lang="zh"><strong>學習定位：</strong>如果你已學過 Seurat / Scanpy，本教程幫你把觀念對應到 GUI；如果你是完全新手，BioTuring 是「先看見結果、再回頭理解原理」的友善入口。兩種讀者都建議搭配我們的 <a href="../scrna-interactive-tutorial/index.html">scRNA-seq 互動教學</a> 對照演算法細節。</span>
+<span data-lang="en"><strong>How to use this:</strong> If you already know Seurat/Scanpy, this maps concepts onto the GUI; if you're new, BioTuring is a friendly "see results first, understand later" entry point. Either way, pair it with our <a href="../scrna-interactive-tutorial/index.html">scRNA-seq interactive tutorial</a> for algorithm depth.</span>
+</div></div>
+<div class="callout warn"><span class="callout-icon">🎯</span><div>
+<span data-lang="zh"><strong>為什麼這件事重要：</strong>單細胞資料動輒上萬個細胞、兩三萬個基因，是一個「幾億格數字」的巨型表格。手寫程式跑完一輪 QC→標準化→分群→註釋，新手常要卡上好幾天、還可能因為一個參數打錯而全盤重來。GUI 平台把這段學習曲線壓成一個下午——代價是彈性變少（後面第四節細談）。理解這個交換，你才知道<em>什麼時候</em>該把工具切換回程式碼。</span>
+<span data-lang="en"><strong>Why this matters:</strong> A single-cell dataset routinely has tens of thousands of cells × ~20,000 genes — a giant table of hundreds of millions of numbers. Hand-coding one full pass of QC → normalization → clustering → annotation can trap a newcomer for days, and a single mistyped parameter can force a total redo. A GUI platform compresses that learning curve into an afternoon — at the cost of flexibility (detailed in Section IV). Understanding this trade is what tells you <em>when</em> to switch back to code.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="四大平台" data-en="FOUR PLATFORMS">四大平台</div>
+<h2 data-zh="一、生態系的四位「團隊成員」" data-en="I. Four Platforms, Four Teammates">一、生態系的四位「團隊成員」</h2>
+<div data-lang="zh"><p>與其把 BioTuring 想成「四個軟體」，不如把它想成<strong>一支四人小隊</strong>——每位成員個性鮮明、各司其職，但常常需要接力合作。認識他們的分工，你就不會拿著空間資料去敲 bulk 分析師的門。</p></div>
+<div data-lang="en"><p>Rather than "four apps," think of BioTuring as a <strong>four-person team</strong> — each with a distinct personality and job, but often passing work down the line. Know who does what, and you won't hand spatial data to the bulk analyst by mistake.</p></div>
+<div class="card-grid cols-2">
+<div class="card"><div class="card-icon">🔬</div><h4>BBrowserX / BBrowserX Pro</h4>
+<div data-lang="zh"><p><strong>隊長，主力打者。</strong>旗艦<strong>單細胞 RNA-seq</strong> 分析平台，也是本教程從 Step 1 到多模態的主場。個性：又快又猛——GPU 加速，Pro 版可擴展到 <strong>1,000 萬+ 細胞</strong>。從匯入、QC、標準化、分群、細胞類型自動註釋，到差異表達（內建 <strong>Venice</strong>）、軌跡分析（Monocle 2）、細胞通訊（CellChat），一條龍全包。支援 scRNA/snRNA、TCR/BCR、CITE-seq (ADT) 與樣本 demultiplexing。可讀 <code>.h5ad</code>、Seurat 物件、10x HDF5、MTX。</p></div>
+<div data-lang="en"><p><strong>The captain, the cleanup hitter.</strong> The flagship <strong>single-cell RNA-seq</strong> platform, and the home base for this tutorial from Step 1 through multimodal. Personality: fast and forceful — GPU-accelerated, Pro scales to <strong>10M+ cells</strong>. From import, QC, normalization, clustering and auto cell-type annotation, to differential expression (built-in <strong>Venice</strong>), trajectory (Monocle 2) and cell communication (CellChat) — the whole pipeline in one place. Supports scRNA/snRNA, TCR/BCR, CITE-seq (ADT), and demultiplexing. Reads <code>.h5ad</code>, Seurat objects, 10x HDF5, MTX.</p></div>
+</div>
+<div class="card"><div class="card-icon">🗺️</div><h4>SpatialX <span style="font-size:.8rem;color:var(--c-ink-muted);">(前身 Lens)</span></h4>
+<div data-lang="zh"><p><strong>製圖師，重視「在哪裡」。</strong><strong>空間生物學</strong>分析平台（Windows、無程式碼）。BBrowserX 告訴你「有哪些細胞」，SpatialX 告訴你「這些細胞排在組織的哪個位置、跟誰當鄰居」。支援 Visium、Xenium、MERFISH、CosMx、GeoMx、Slide-seq，能做鄰近細胞分析與細胞間交互作用。史丹佛與東京大學的團隊都是使用者。見 <a href="spatialx.html">SpatialX 章節</a>。</p></div>
+<div data-lang="en"><p><strong>The cartographer — obsessed with "where."</strong> The <strong>spatial biology</strong> platform (Windows, no-code). BBrowserX tells you <em>which</em> cells you have; SpatialX tells you <em>where</em> they sit in the tissue and who their neighbors are. Supports Visium, Xenium, MERFISH, CosMx, GeoMx, Slide-seq, with neighborhood and cell–cell interaction analysis. Teams at Stanford and the University of Tokyo are users. See the <a href="spatialx.html">SpatialX chapter</a>.</p></div>
+</div>
+<div class="card"><div class="card-icon">🔎</div><h4>Talk2Data</h4>
+<div data-lang="zh"><p><strong>圖書館員兼偵探。</strong>公開資料的<strong>分析中樞與資料庫</strong>：<strong>1.2 億+</strong> 精選單細胞、跨研究分析、Gene Search、自訂細胞圖譜。你甚至<em>不用自己做實驗</em>：想知道「某個基因在哪些細胞型別表現最高」，直接在整個資料庫裡查。BBrowserX 的自動註釋也正是靠這座圖書館撐腰。見 <a href="talk2data.html">Talk2Data 章節</a>。</p></div>
+<div data-lang="en"><p><strong>Librarian meets detective.</strong> An <strong>analytics hub & database</strong> of public data: <strong>120M+</strong> curated cells, cross-study analysis, Gene Search, custom atlases. You don't even need your own experiment: want to know which cell types express a gene most highly? Query the whole database. It's also the library that powers BBrowserX's auto-annotation. See the <a href="talk2data.html">Talk2Data chapter</a>.</p></div>
+</div>
+<div class="card"><div class="card-icon">📊</div><h4>SmartBulk</h4>
+<div data-lang="zh"><p><strong>資深老將，做的是「傳統活」。</strong><strong>Bulk RNA-seq</strong> 分析平台，補足生態系的整體轉錄組分析（差異表達、通路富集等）。Bulk 就像把整鍋湯打成一杯——量到的是所有細胞的<em>平均</em>訊號，看不到單一細胞的差異，但便宜、成熟、樣本量大時仍非常實用。本教程僅概覽，不深入。</p></div>
+<div data-lang="en"><p><strong>The seasoned veteran doing the "classic job."</strong> The <strong>bulk RNA-seq</strong> platform, rounding out the ecosystem with whole-transcriptome analysis (DE, pathway enrichment). Bulk is like blending the whole soup into one cup — you measure the <em>average</em> signal across all cells, losing single-cell resolution, but it's cheap, mature, and still powerful at large sample sizes. Covered here only at overview level.</p></div>
+</div>
+</div>
+<div class="callout tip"><span class="callout-icon">🧭</span><div>
+<span data-lang="zh"><strong>一句話記住分工：</strong>「<strong>有哪些細胞</strong>」問 BBrowserX；「<strong>細胞在哪裡</strong>」問 SpatialX；「<strong>別人已經知道什麼</strong>」問 Talk2Data；「<strong>整體平均長怎樣</strong>」問 SmartBulk。四個問題，四位隊友。</span>
+<span data-lang="en"><strong>One line to remember them:</strong> "<strong>Which cells?</strong>" → BBrowserX. "<strong>Where are they?</strong>" → SpatialX. "<strong>What does the field already know?</strong>" → Talk2Data. "<strong>What's the bulk average?</strong>" → SmartBulk. Four questions, four teammates.</span>
+</div></div>
+<div class="callout"><span class="callout-icon">🧩</span><div style="background:var(--c-surface-alt);margin:-20px -24px;padding:20px 24px;border-radius:var(--radius-lg);">
+<span data-lang="zh"><strong>幕後功臣：</strong>你在按鈕上看不到、但一直在運作的還有 <strong>Signac</strong>（BioTuring 自研的單細胞分析套件，<em>Venice</em> 差異表達演算法就內建其中）、<strong>BioVinci</strong>（繪圖與視覺化）與 <strong>BioColab</strong>。它們不是給你直接操作的主角，而是讓四位隊友跑得更順的引擎室。</span>
+<span data-lang="en"><strong>Behind the scenes:</strong> Invisible on the button panel but always running are <strong>Signac</strong> (BioTuring's single-cell toolkit — the <em>Venice</em> DE algorithm lives here), <strong>BioVinci</strong> (figure-making & visualization), and <strong>BioColab</strong>. Not front-line tools you click, but the engine room that keeps the four teammates humming.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="分析旅程" data-en="THE JOURNEY">分析旅程</div>
+<h2 data-zh="二、一趟典型分析的完整旅程" data-en="II. A Typical Analysis, End to End">二、一趟典型分析的完整旅程</h2>
+<div data-lang="zh"><p>光看四張名片還不夠——來看一趟<strong>真實的接力賽</strong>。假設你是免疫學實驗室的研究生，剛從定序公司拿回一批腫瘤浸潤淋巴球的 scRNA-seq 資料（約 4 萬個細胞）。你會這樣一站一站走過去：</p></div>
+<div data-lang="en"><p>Business cards aren't enough — let's watch a <strong>real relay race</strong>. Say you're a grad student in an immunology lab who just got back scRNA-seq data on tumor-infiltrating lymphocytes (~40,000 cells) from the sequencing core. Here's how you'd move station to station:</p></div>
+<div class="workflow">
+<div class="workflow-step" data-step="1"><h4 data-zh="匯入與 QC（BBrowserX）" data-en="Import & QC (BBrowserX)">匯入與 QC（BBrowserX）</h4>
+<div data-lang="zh"><p>把 10x 的輸出（<code>.h5</code> 或 MTX）拖進 BBrowserX。第一件事是「品管」：踢掉空液滴、死細胞（高粒線體比例）與雙胞（doublet）。就像進場前的安檢，寧可嚴一點。<em>4 萬 → 約 3.4 萬個乾淨細胞。</em></p></div>
+<div data-lang="en"><p>Drag the 10x output (<code>.h5</code> or MTX) into BBrowserX. First job: quality control — drop empty droplets, dying cells (high mitochondrial %), and doublets. Like security at the door: better a little strict. <em>40k → ~34k clean cells.</em></p></div></div>
+<div class="workflow-step" data-step="2"><h4 data-zh="標準化與批次校正（BBrowserX）" data-en="Normalize & batch-correct (BBrowserX)">標準化與批次校正（BBrowserX）</h4>
+<div data-lang="zh"><p>不同細胞抓到的分子數不一（定序深度差異），要先「拉齊音量」（log 標準化）。若你有多個病人樣本混在一起，用 <strong>Harmony</strong> 把「病人間的技術差異」壓下去，留住「真正的生物差異」。</p></div>
+<div data-lang="en"><p>Different cells capture different molecule counts (sequencing depth varies), so first "level the volume" (log normalization). If several patient samples are mixed, use <strong>Harmony</strong> to suppress batch (patient-level technical) differences while keeping the real biology.</p></div></div>
+<div class="workflow-step" data-step="3"><h4 data-zh="降維、分群、視覺化（BBrowserX）" data-en="Reduce, cluster, visualize (BBrowserX)">降維、分群、視覺化（BBrowserX）</h4>
+<div data-lang="zh"><p>PCA 抓主要變異，<strong>UMAP</strong> 把兩萬維的細胞攤成一張可看的地圖，<strong>Louvain</strong> 把靠在一起的細胞圈成一群一群。螢幕上第一次出現那張「彩色島嶼圖」——通常是最有成就感的一刻。</p></div>
+<div data-lang="en"><p>PCA captures the main variation, <strong>UMAP</strong> flattens ~20,000-dimensional cells onto a readable map, and <strong>Louvain</strong> lassoes nearby cells into groups. The first time that "colorful archipelago" appears on screen — usually the most satisfying moment.</p></div></div>
+<div class="workflow-step" data-step="4"><h4 data-zh="細胞類型註釋（BBrowserX + Talk2Data 支援）" data-en="Cell-type annotation (BBrowserX + Talk2Data)">細胞類型註釋（BBrowserX + Talk2Data 支援）</h4>
+<div data-lang="zh"><p>每座島是什麼細胞？按下「自動預測」，BBrowserX 對照建於 <strong>1 億+ 單細胞</strong> 的參考庫，能區分 <strong>54 種細胞型別、183 種亞型</strong>。CD8 T、調節型 T、耗竭 T…名字一一貼上。這一步正是 Talk2Data 這座圖書館在幕後撐腰。</p></div>
+<div data-lang="en"><p>What is each island? Hit "auto-predict": BBrowserX matches against a reference built on <strong>100M+ single cells</strong>, distinguishing <strong>54 cell types and 183 subtypes</strong>. CD8 T, regulatory T, exhausted T… labels get stamped on. This step is exactly where the Talk2Data library backs you up.</p></div></div>
+<div class="workflow-step" data-step="5"><h4 data-zh="差異表達與生物意義（Venice）" data-en="DE & biology (Venice)">差異表達與生物意義（Venice）</h4>
+<div data-lang="zh"><p>耗竭 T 細胞比一般 T 多表現了哪些基因？用 <strong>Venice</strong> 找 marker gene（它比傳統只比平均值的方法更懂「混合群體」），再做基因集富集（GSEA）、軌跡分析看 T 細胞如何一步步走向耗竭。故事，就從這裡長出來。</p></div>
+<div data-lang="en"><p>Which genes are up in exhausted vs. normal T cells? Use <strong>Venice</strong> to find markers (it handles "mixed populations" better than mean-only methods), then GSEA and trajectory to see how T cells slide toward exhaustion step by step. This is where the story grows.</p></div></div>
+<div class="workflow-step" data-step="6"><h4 data-zh="出圖、報告、交棒" data-en="Figures, report, hand-off">出圖、報告、交棒</h4>
+<div data-lang="zh"><p>把 UMAP、violin plot、heatmap 匯出成投稿等級的圖；存成專案檔留紀錄。若接下來要做<em>空間定位</em>驗證，資料與註釋可以往 <strong>SpatialX</strong> 交棒——接力賽的下一棒就此展開。</p></div>
+<div data-lang="en"><p>Export UMAP, violin plots, heatmaps as publication-grade figures; save a project file for the record. If spatial validation comes next, hand the data and annotations to <strong>SpatialX</strong> — the relay's next leg begins.</p></div></div>
+</div>
+<div class="callout warn"><span class="callout-icon">🕵️</span><div>
+<span data-lang="zh"><strong>常見誤區：</strong>新手最容易「跳過 QC 直接看 UMAP」——因為 UMAP 圖太漂亮、太誘人。但垃圾進、垃圾出：沒清乾淨的死細胞和雙胞，會在後面偽裝成「一群神秘的新細胞型別」，害你追一個根本不存在的生物學故事。<em>再急，也先做安檢。</em></span>
+<span data-lang="en"><strong>Common trap:</strong> Beginners love to "skip QC and jump to UMAP" — the plot is just too pretty. But garbage in, garbage out: uncleaned dead cells and doublets masquerade as a "mysterious new cell type" downstream, sending you chasing biology that doesn't exist. <em>However rushed — run security first.</em></span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="資料規模" data-en="DATA SCALE">資料規模</div>
+<h2 data-zh="三、Talk2Data 精選資料庫的規模" data-en="III. Scale of the Talk2Data Curated Database">三、Talk2Data 精選資料庫的規模</h2>
+<div data-lang="zh"><p>還記得第 4 站的「自動註釋」為什麼那麼準嗎？因為它站在一座巨人般的圖書館上。BioTuring 的自動註釋與跨研究分析，建立在一個龐大的<strong>精選 (curated) 公開資料庫</strong>之上——關鍵字是「精選」：不是把 GEO 上的東西一股腦倒進來，而是經過統一清洗、註釋與品管的資料。下圖為官方公佈的各資料型態細胞／切片數量。</p>
+<p>注意 Y 軸是<strong>對數尺度</strong>：這代表各型態之間的差距是「數量級」等級的天壤之別。scRNA-seq 的 1.2 億顆細胞，和 bulk 空間切片的 1,800 片，如果畫成一般線性長條，後者會小到你根本看不見——用對數軸才公平。</p></div>
+<div data-lang="en"><p>Remember why Station 4's auto-annotation was so accurate? Because it stands on a giant's library. BioTuring's auto-annotation and cross-study analysis rest on a large <strong>curated public database</strong> — and "curated" is the key word: it's not GEO dumped in wholesale, but data uniformly cleaned, annotated, and QC'd. The chart below shows official cell/slice counts per data type.</p>
+<p>Note the <strong>log-scale</strong> Y-axis: the gaps between types are order-of-magnitude chasms. 120M scRNA-seq cells vs. 1,800 bulk spatial slices — on a linear bar chart the latter would vanish. A log axis is the fair way to show it.</p></div>
+<div class="chart-container" style="height:300px;"><canvas id="dbChart"></canvas></div>
+<p style="font-size:.78rem;color:var(--c-ink-muted);text-align:center;"><span data-zh="對數尺度長條圖：各資料型態的細胞／切片數量。數字為 BioTuring 官網公佈值，可能隨版本更新；另有來源提及跨物種可達 500M+ profiles。" data-en="Log-scale bars: cell/slice counts per data type. Figures as published on BioTuring's site; may change between releases. Other sources cite up to 500M+ cross-species profiles.">對數尺度長條圖：各資料型態的細胞／切片數量。數字為 BioTuring 官網公佈值，可能隨版本更新；另有來源提及跨物種可達 500M+ profiles。</span></p>
+<div class="callout tip"><span class="callout-icon">🧠</span><div>
+<span data-lang="zh"><strong>專家小撇步：</strong>「圖譜大 ≠ 一定適用你的樣本」。這座資料庫以人類與常見組織為主，若你研究的是罕見物種、特殊處理條件或全新的細胞狀態，自動註釋可能給你「最像的鄰居」而非「正確答案」。永遠用你自己的 marker gene 交叉驗證註釋結果——把 AI 當助手，不是法官。</span>
+<span data-lang="en"><strong>Pro tip:</strong> "Big atlas ≠ always fits your sample." This database centers on human and common tissues. For rare species, unusual treatments, or brand-new cell states, auto-annotation may hand you the "nearest neighbor," not the "right answer." Always cross-check labels with your own marker genes — treat the AI as an assistant, not a judge.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="互動" data-en="INTERACTIVE">互動</div>
+<h2 data-zh="四、我該用哪個平台？" data-en="IV. Which Platform Should I Use?">四、我該用哪個平台？</h2>
+<div data-lang="zh"><p>把上面的「四位隊友」變成一個小工具：點選你手上的資料類型，看看該找哪位隊友、對應到本教程哪一章。</p></div>
+<div data-lang="en"><p>Turn the "four teammates" into a tiny tool: click the type of data you have to see which teammate to call and which chapter it maps to.</p></div>
+<div class="interactive-panel">
+<div class="plat-pick" id="platPick">
+  <button class="toggle-btn active" data-k="sc"><span data-zh="單細胞 RNA-seq" data-en="Single-cell RNA-seq">單細胞 RNA-seq</span></button>
+  <button class="toggle-btn" data-k="immune"><span data-zh="TCR/BCR 或 CITE-seq" data-en="TCR/BCR or CITE-seq">TCR/BCR 或 CITE-seq</span></button>
+  <button class="toggle-btn" data-k="spatial"><span data-zh="空間轉錄組" data-en="Spatial transcriptomics">空間轉錄組</span></button>
+  <button class="toggle-btn" data-k="public"><span data-zh="想探索公開資料" data-en="Explore public data">想探索公開資料</span></button>
+  <button class="toggle-btn" data-k="bulk"><span data-zh="Bulk RNA-seq" data-en="Bulk RNA-seq">Bulk RNA-seq</span></button>
+</div>
+<div class="rec-box" id="recBox"></div>
+</div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="取捨" data-en="TRADE-OFFS">取捨</div>
+<h2 data-zh="五、No-code GUI vs. 程式碼工具" data-en="V. No-code GUI vs. Code Tools">五、No-code GUI vs. 程式碼工具</h2>
+<div data-lang="zh"><p>這是每個做單細胞的人遲早要面對的抉擇，值得講清楚。打個比方：<strong>GUI 平台像自動排檔的車</strong>——上手快、通勤順、不用管離合器；<strong>Seurat / Scanpy 像手排跑車</strong>——換檔全靠你，累一點，但在賽道上你能榨出每一分性能、做出自排做不到的操作。兩者沒有誰「比較高級」，只有「這趟路適合開哪台」。</p></div>
+<div data-lang="en"><p>Every single-cell analyst faces this fork sooner or later, so let's be clear. Analogy: <strong>a GUI platform is an automatic-transmission car</strong> — quick to learn, smooth for commuting, no clutch to worry about. <strong>Seurat / Scanpy is a manual sports car</strong> — you shift everything yourself, more work, but on the track you can wring out every drop of performance and do things an automatic can't. Neither is "classier"; it's about which car suits this trip.</p></div>
+<table class="comp-table">
+<thead><tr>
+<th data-zh="面向" data-en="Aspect">面向</th>
+<th data-zh="BioTuring（GUI）" data-en="BioTuring (GUI)">BioTuring（GUI）</th>
+<th data-zh="Seurat / Scanpy（程式碼）" data-en="Seurat / Scanpy (code)">Seurat / Scanpy（程式碼）</th>
+</tr></thead>
+<tbody>
+<tr><td data-zh="入門門檻" data-en="Learning curve"><strong>入門門檻</strong></td><td data-lang="zh">低——點選即可，免寫程式，一個下午上手</td><td data-lang="zh">高——需 R / Python，得先過語法關</td><td data-lang="en">Low — click-based, no coding, learnable in an afternoon</td><td data-lang="en">High — requires R / Python; syntax barrier first</td></tr>
+<tr><td data-zh="速度／規模" data-en="Speed / scale"><strong>速度／規模</strong></td><td data-lang="zh">GPU 加速，數百萬～10M+ 細胞，開箱即快</td><td data-lang="zh">視硬體與程式碼而定，大資料需自行優化</td><td data-lang="en">GPU-accelerated, millions–10M+ cells, fast out of the box</td><td data-lang="en">Depends on hardware & code; big data needs manual tuning</td></tr>
+<tr><td data-zh="方法彈性" data-en="Method flexibility"><strong>方法彈性</strong></td><td data-lang="zh">較固定（標準化偏 log、批次以 Harmony 為主、部分 QC 選項較少）</td><td data-lang="zh">最高——任意組合、客製、接最新方法</td><td data-lang="en">More fixed (log-leaning norm, Harmony-first batch, fewer QC knobs)</td><td data-lang="en">Highest — mix, customize, plug in newest methods</td></tr>
+<tr><td data-zh="公開資料探索" data-en="Public data mining"><strong>公開資料探索</strong></td><td data-lang="zh">強項（內建 120M+ 精選資料庫，一鍵跨研究比對）</td><td data-lang="zh">需自行下載、清洗與整合，工程量大</td><td data-lang="en">A strength (built-in 120M+ curated DB, one-click cross-study)</td><td data-lang="en">Manual download, cleaning & integration — lots of plumbing</td></tr>
+<tr><td data-zh="自動細胞註釋" data-en="Auto annotation"><strong>自動細胞註釋</strong></td><td data-lang="zh">內建參考庫，54 型／183 亞型一鍵預測</td><td data-lang="zh">需自選並設定 SingleR、Azimuth 等外掛工具</td><td data-lang="en">Built-in reference; 54 types / 183 subtypes in one click</td><td data-lang="en">Choose & configure add-ons like SingleR, Azimuth</td></tr>
+<tr><td data-zh="可重現性" data-en="Reproducibility"><strong>可重現性</strong></td><td data-lang="zh">靠專案檔／報告記錄，難逐行追溯</td><td data-lang="zh">最佳——腳本即完整、可版本控管的紀錄</td><td data-lang="en">Via project files / reports; hard to trace line-by-line</td><td data-lang="en">Best — scripts are a complete, version-controllable record</td></tr>
+<tr><td data-zh="花費／取得" data-en="Cost / access"><strong>花費／取得</strong></td><td data-lang="zh">商業授權（機構常已購置）</td><td data-lang="zh">開源免費，但「時間成本」不低</td><td data-lang="en">Commercial license (often institution-provided)</td><td data-lang="en">Free & open-source — but the "time cost" isn't</td></tr>
+</tbody></table>
+<div class="decision-tree">
+<h4 data-zh="🗺️ 什麼時候該用哪個？（情境對照）" data-en="🗺️ Which to use when? (scenario map)">🗺️ 什麼時候該用哪個？（情境對照）</h4>
+<div class="dt-node"><span class="dt-q">A</span><span class="dt-arrow">→</span><span data-lang="zh"><strong>「我想在一週內看到初步結果、向 PI 報告方向」</strong>：用 <b>BioTuring</b>。快速探索、註釋、出圖，先抓到故事線。</span><span data-lang="en"><strong>"I need preliminary results this week to brief my PI on direction"</strong>: use <b>BioTuring</b>. Explore, annotate, make figures fast — grab the storyline first.</span></div>
+<div class="dt-node"><span class="dt-q">B</span><span class="dt-arrow">→</span><span data-lang="zh"><strong>「我要投稿高分期刊，審稿人會要求完整可重現流程」</strong>：主分析建議 <b>Seurat / Scanpy</b>，每一步都能寫進 methods、附上腳本。</span><span data-lang="en"><strong>"I'm submitting to a top journal; reviewers will demand a fully reproducible pipeline"</strong>: run the main analysis in <b>Seurat / Scanpy</b> — every step goes into Methods with scripts attached.</span></div>
+<div class="dt-node"><span class="dt-q">C</span><span class="dt-arrow">→</span><span data-lang="zh"><strong>「我需要一個標準流程做不到的客製方法（例如新的整合演算法）」</strong>：只能 <b>程式碼</b>。GUI 給你的是精選好菜單，不是無限自助餐。</span><span data-lang="en"><strong>"I need a custom method the standard pipeline can't do (e.g., a new integration algorithm)"</strong>: <b>code only</b>. A GUI gives you a curated menu, not an infinite buffet.</span></div>
+<div class="dt-node"><span class="dt-q">D</span><span class="dt-arrow">→</span><span data-lang="zh"><strong>「我不寫程式，但想快速確認某基因在公開資料裡的表現」</strong>：<b>Talk2Data</b> 幾分鐘搞定，程式碼路線要花好幾天下載整合。</span><span data-lang="en"><strong>"I don't code, but want to quickly check a gene across public data"</strong>: <b>Talk2Data</b> in minutes; the code route would take days of downloading & integrating.</span></div>
+</div>
+<div class="callout warn"><span class="callout-icon">⚠️</span><div>
+<span data-lang="zh"><strong>不是二選一。</strong>最成熟的實務往往是「兩台車都開」：用 BioTuring 快速探索、註釋、做圖、抓方向，把最有希望的線索再用 Seurat / Scanpy 做客製化、可重現的正式分析與投稿版本。<em>它們互補，不是取代——會用 GUI 的人，如果也懂一點程式碼，戰力最強。</em></span>
+<span data-lang="en"><strong>Not either/or.</strong> The most mature practice is "drive both cars": explore, annotate, plot, and find direction fast in BioTuring, then take the most promising leads into Seurat / Scanpy for the customized, reproducible, submission-grade analysis. <em>They complement, not replace — the strongest analyst uses the GUI and also reads a little code.</em></span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="教程地圖" data-en="ROADMAP">教程地圖</div>
+<h2 data-zh="六、這門教程怎麼讀？你會學到什麼？" data-en="VI. How to Read This Tutorial & What You'll Learn">六、這門教程怎麼讀？你會學到什麼？</h2>
+<div data-lang="zh"><p>你現在站在起點。這門教程的骨架，正是第二節那趟「分析旅程」——每一站各有一章，先教你在 BBrowserX 上怎麼點，再帶你看懂按鈕背後的演算法。建議照順序讀，但每章也能單獨查閱。</p></div>
+<div data-lang="en"><p>You're at the starting line. This tutorial's spine is exactly the "analysis journey" from Section II — each station gets a chapter, teaching you which buttons to click in BBrowserX and then unpacking the algorithm behind them. Best read in order, but each chapter also stands alone as a reference.</p></div>
+<div class="card-grid cols-3">
+<div class="card"><div class="card-icon">📥</div><h4 data-zh="核心流程 (Step 1–6)" data-en="Core Pipeline (Step 1–6)">核心流程 (Step 1–6)</h4>
+<div data-lang="zh"><p>匯入 → QC → 標準化 → 分群 → 註釋 → 差異表達。scRNA-seq 分析的「主餐」，從 <a href="import.html">資料匯入</a> 開始一路走到 <a href="dge.html">差異表達</a>。</p></div>
+<div data-lang="en"><p>Import → QC → Normalize → Cluster → Annotate → DE. The "main course" of scRNA-seq analysis, from <a href="import.html">Import</a> all the way to <a href="dge.html">DE</a>.</p></div></div>
+<div class="card"><div class="card-icon">🧬</div><h4 data-zh="進階與多模態" data-en="Advanced & Multimodal">進階與多模態</h4>
+<div data-lang="zh"><p><a href="trajectory.html">軌跡分析</a>（細胞如何隨時間演變）與 <a href="multimodal.html">多模態／免疫圖譜</a>（TCR/BCR、CITE-seq）。當「有哪些細胞」不夠，你想問「它們怎麼變、免疫如何回應」。</p></div>
+<div data-lang="en"><p><a href="trajectory.html">Trajectory</a> (how cells evolve over time) and <a href="multimodal.html">Multimodal / immune</a> (TCR/BCR, CITE-seq). For when "which cells" isn't enough and you ask "how they change, how immunity responds."</p></div></div>
+<div class="card"><div class="card-icon">🗺️</div><h4 data-zh="空間與資料庫" data-en="Spatial & Database">空間與資料庫</h4>
+<div data-lang="zh"><p><a href="spatialx.html">SpatialX</a>（細胞在組織的位置）與 <a href="talk2data.html">Talk2Data</a>（挖掘公開資料）。旅程的延伸棒次，把單細胞放回空間與已知知識的脈絡。</p></div>
+<div data-lang="en"><p><a href="spatialx.html">SpatialX</a> (cells in tissue space) and <a href="talk2data.html">Talk2Data</a> (mining public data). The journey's later legs — putting single cells back into spatial and known-knowledge context.</p></div></div>
+</div>
+<div class="callout tip"><span class="callout-icon">✅</span><div>
+<span data-lang="zh"><strong>讀完你會帶走什麼：</strong>①在 BBrowserX 獨立跑完一套 scRNA-seq 分析的能力；②看懂 UMAP、Louvain、Harmony、Venice 等關鍵詞在「做什麼、為什麼」；③判斷何時該切換到 Seurat/Scanpy 的判斷力；④用 Talk2Data 與 SpatialX 延伸問題的視野。每章末尾都有 <strong>自我檢測</strong>，答錯不扣分，只幫你確認觀念有沒有卡住。</span>
+<span data-lang="en"><strong>What you'll walk away with:</strong> (1) the ability to run a full scRNA-seq analysis in BBrowserX on your own; (2) understanding of what UMAP, Louvain, Harmony, Venice actually do and why; (3) the judgment to know when to switch to Seurat/Scanpy; (4) the vision to extend questions with Talk2Data and SpatialX. Every chapter ends with a <strong>self-check</strong> — no penalties, just a way to catch stuck concepts.</span>
+</div></div>
+</section>
+
+<section class="quiz-section">
+<h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
+<div class="quiz-q" data-answer="1">
+<p data-lang="zh">1. 一位沒有寫程式經驗的實驗室科學家，想快速探索自己的 scRNA-seq 資料。最合適的 BioTuring 平台是？</p>
+<p data-lang="en">1. A wet-lab scientist with no coding experience wants to quickly explore their scRNA-seq data. The best BioTuring platform is?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. SmartBulk</span><span data-lang="en">A. SmartBulk</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. BBrowserX</span><span data-lang="en">B. BBrowserX</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. SpatialX</span><span data-lang="en">C. SpatialX</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 只能用 Seurat</span><span data-lang="en">D. Only Seurat works</span></div>
+</div><div class="quiz-feedback" id="fb1"></div></div>
+
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">2. 關於 BioTuring 的定位，下列何者<strong>正確</strong>？</p>
+<p data-lang="en">2. Which statement about BioTuring is <strong>correct</strong>?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 它能完全取代所有程式碼分析</span><span data-lang="en">A. It fully replaces all code-based analysis</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 它只能分析空間資料</span><span data-lang="en">B. It only analyzes spatial data</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 它是無程式碼 GUI 平台，強在易用、速度與公開資料探索</span><span data-lang="en">C. It's a no-code GUI platform strong in usability, speed, and public-data mining</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 它不支援細胞類型註釋</span><span data-lang="en">D. It does not support cell type annotation</span></div>
+</div><div class="quiz-feedback" id="fb2"></div></div>
+
+<div class="quiz-q" data-answer="0">
+<p data-lang="zh">3. 你想在「不自己做實驗」的情況下，挖掘 120M+ 已發表單細胞資料。應該用？</p>
+<p data-lang="en">3. You want to mine 120M+ published single-cell profiles without generating your own data. Use?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. Talk2Data</span><span data-lang="en">A. Talk2Data</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. SmartBulk</span><span data-lang="en">B. SmartBulk</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. SpatialX</span><span data-lang="en">C. SpatialX</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 以上皆無法</span><span data-lang="en">D. None can</span></div>
+</div><div class="quiz-feedback" id="fb3"></div></div>
+
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">4. 你剛拿到腫瘤組織切片的 Xenium 空間轉錄組資料，想在「組織結構脈絡」中分析細胞位置與鄰居關係。最適合的平台是？</p>
+<p data-lang="en">4. You just received Xenium spatial transcriptomics data from a tumor tissue section and want to analyze cell positions and neighborhoods within tissue architecture. The best platform is?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. SmartBulk</span><span data-lang="en">A. SmartBulk</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. BBrowserX（只有它能讀空間資料）</span><span data-lang="en">B. BBrowserX (only it reads spatial data)</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. SpatialX</span><span data-lang="en">C. SpatialX</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 空間資料無法用 BioTuring 分析</span><span data-lang="en">D. Spatial data can't be analyzed in BioTuring</span></div>
+</div><div class="quiz-feedback" id="fb4"></div></div>
+
+<div class="quiz-q" data-answer="1">
+<p data-lang="zh">5. 你的實驗要投稿高分期刊，審稿人明確要求「完整、逐步、可重現」的分析流程與腳本。關於工具選擇，最合理的做法是？</p>
+<p data-lang="en">5. Your study targets a high-impact journal, and reviewers explicitly demand a "complete, step-by-step, reproducible" pipeline with scripts. The most sensible tooling choice is?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 只用 BioTuring，因為它最快</span><span data-lang="en">A. BioTuring only, because it's fastest</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 用 BioTuring 快速探索方向，正式主分析改用 Seurat/Scanpy 以腳本記錄</span><span data-lang="en">B. Explore fast in BioTuring, then run the formal main analysis in Seurat/Scanpy with scripts as the record</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 完全放棄 GUI，可重現性只靠人工筆記</span><span data-lang="en">C. Abandon the GUI entirely; rely on handwritten notes for reproducibility</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. GUI 與程式碼不能混用</span><span data-lang="en">D. GUI and code can never be combined</span></div>
+</div><div class="quiz-feedback" id="fb5"></div></div>
+</section>
+
+<nav class="page-nav"><div class="placeholder"></div>
+<a href="import.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 1: 資料匯入與格式" data-en="Step 1: Data Import & Formats">Step 1: 資料匯入與格式</span></a>
+</nav>
+</main>
+<footer class="site-footer">© Charlene — BioTuring Interactive Tutorial · <span data-zh="教學用途，非 BioTuring 官方文件" data-en="Educational use — not official BioTuring documentation">教學用途，非 BioTuring 官方文件</span></footer>
+<script src="i18n.js"></script>
+<script>
+window.addEventListener('scroll',()=>{const h=document.documentElement;document.getElementById('progressBar').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+'%';});
+
+// Database size chart (log scale)
+const dbData={
+  labels_zh:['scRNA-seq 單細胞','單細胞空間轉錄組','空間蛋白體','bulk 空間切片'],
+  labels_en:['scRNA-seq cells','SC spatial transcriptomics','Spatial proteomics cells','Bulk spatial slices'],
+  vals:[120000000,20000000,100000000,1800]
+};
+function chartLang(){return (window.I18n&&I18n.get)?I18n.get():'zh';}
+const dbChart=new Chart(document.getElementById('dbChart'),{type:'bar',data:{labels:chartLang()==='zh'?dbData.labels_zh:dbData.labels_en,datasets:[{label:'count',data:dbData.vals,backgroundColor:['#5b3fb0','#2563a8','#1a6b5a','#d4a03c']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y.toLocaleString()}}},scales:{y:{type:'logarithmic',title:{display:true,text:'count (log scale)'}},x:{ticks:{font:{size:10}}}}}});
+document.addEventListener('langchange',e=>{const L=(e&&e.detail&&e.detail.lang)?e.detail.lang:chartLang();dbChart.data.labels=L==='zh'?dbData.labels_zh:dbData.labels_en;dbChart.update();});
+
+// Platform recommender
+const REC={
+ sc:{zh:'<b>BBrowserX</b> — 從匯入、QC、分群到差異表達的完整單細胞流程。<br>👉 從 <a href="import.html">Step 1: 資料匯入</a> 開始。',en:'<b>BBrowserX</b> — the full single-cell pipeline from import and QC to clustering and DE.<br>👉 Start at <a href="import.html">Step 1: Import</a>.'},
+ immune:{zh:'<b>BBrowserX</b>（多模態模組）— TCR/BCR repertoire 與 CITE-seq/ADT 蛋白分析。<br>👉 見 <a href="multimodal.html">多模態與免疫圖譜</a>。',en:'<b>BBrowserX</b> (multimodal) — TCR/BCR repertoire and CITE-seq/ADT protein analysis.<br>👉 See <a href="multimodal.html">Multimodal & Immune</a>.'},
+ spatial:{zh:'<b>SpatialX</b> — Visium/Xenium/CosMx/MERFISH/GeoMx/Slide-seq 的空間分析。<br>👉 見 <a href="spatialx.html">SpatialX 章節</a>。',en:'<b>SpatialX</b> — spatial analysis for Visium/Xenium/CosMx/MERFISH/GeoMx/Slide-seq.<br>👉 See the <a href="spatialx.html">SpatialX chapter</a>.'},
+ public:{zh:'<b>Talk2Data</b> — 跨研究挖掘 120M+ 精選公開單細胞資料，含 Gene Search。<br>👉 見 <a href="talk2data.html">Talk2Data 章節</a>。',en:'<b>Talk2Data</b> — mine 120M+ curated public single-cell profiles across studies, with Gene Search.<br>👉 See the <a href="talk2data.html">Talk2Data chapter</a>.'},
+ bulk:{zh:'<b>SmartBulk</b> — 傳統 bulk RNA-seq 差異表達與通路分析（本教程僅概覽）。',en:'<b>SmartBulk</b> — traditional bulk RNA-seq DE and pathway analysis (overview only in this tutorial).'}
+};
+function renderRec(k){const L=(window.I18n&&I18n.get)?I18n.get():'zh';document.getElementById('recBox').innerHTML=REC[k][L];}
+document.querySelectorAll('#platPick .toggle-btn').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#platPick .toggle-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderRec(b.dataset.k);}));
+document.addEventListener('langchange',()=>{const a=document.querySelector('#platPick .toggle-btn.active');if(a)renderRec(a.dataset.k);});
+renderRec('sc');
+
+// Quiz
+const QF={
+ zh:{q1_y:'BBrowserX 是專為 no-code 使用者設計的單細胞平台，最適合快速探索。',q1_n:'正確答案已標示。',q2_y:'BioTuring 是 no-code GUI 平台，強在易用、速度與公開資料探索，但不「取代」程式碼工具。',q2_n:'正確答案已標示。',q3_y:'Talk2Data 專為挖掘大型精選公開資料庫而設計。',q3_n:'正確答案已標示。',q4_y:'SpatialX 專為在組織結構脈絡中分析空間資料（Visium/Xenium 等）而設計，含鄰近細胞與交互作用分析。',q4_n:'正確答案已標示。',q5_y:'最成熟的做法是「兩者並用」：GUI 快速探索、程式碼做可重現的正式分析與投稿版本。',q5_n:'正確答案已標示。'},
+ en:{q1_y:'BBrowserX is the no-code single-cell platform, ideal for fast exploration.',q1_n:'Correct answer highlighted.',q2_y:'BioTuring is a no-code GUI platform — strong in usability, speed, and public-data mining, but it complements rather than replaces code.',q2_n:'Correct answer highlighted.',q3_y:'Talk2Data is built for mining large curated public databases.',q3_n:'Correct answer highlighted.',q4_y:'SpatialX is purpose-built for spatial data (Visium/Xenium, etc.) within tissue architecture, including neighborhood and interaction analysis.',q4_n:'Correct answer highlighted.',q5_y:'The mature practice is to combine both: explore fast in the GUI, then run the reproducible, submission-grade main analysis in code.',q5_n:'Correct answer highlighted.'}
+};
+document.querySelectorAll('.quiz-q').forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll('.quiz-opt').forEach(o=>{o.addEventListener('click',()=>{if(q.classList.contains('answered'))return;q.classList.add('answered');const fb=document.getElementById('fb'+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?'correct':'wrong');if(!ok)q.querySelectorAll('.quiz-opt')[ans].classList.add('correct');const L=(window.I18n&&I18n.get)?I18n.get():'zh';fb.className='quiz-feedback show '+(ok?'correct-fb':'wrong-fb');fb.textContent=(ok?'✅ ':'❌ ')+(QF[L]['q'+(qi+1)+'_'+(ok?'y':'n')]||'');});});});
+</script>
+</body></html>
