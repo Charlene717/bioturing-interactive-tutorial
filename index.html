@@ -1,0 +1,51 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>BioTuring Interactive Tutorial</title>
+<meta name="description" content="Bilingual interactive tutorial for the BioTuring single-cell & spatial analysis ecosystem (BBrowserX, SpatialX, Talk2Data).">
+<link rel="stylesheet" href="styles.css">
+<style>.hub-hero{background:linear-gradient(160deg,#2b1a5e 0%,#3b2a86 30%,#5b3fb0 60%,#2563a8 100%)}</style></head><body>
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="BioTuring 教學" data-en="BioTuring Tutorial">BioTuring 教學</span></a>
+  <ul class="top-nav-links"><li><a href="overview.html" data-zh="總覽" data-en="Overview">總覽</a></li><li><a href="import.html">Import</a></li><li><a href="qc.html">QC</a></li><li><a href="normalization.html">Norm.</a></li><li><a href="clustering.html">Cluster</a></li><li><a href="annotation.html">Annot.</a></li><li><a href="dge.html">DE</a></li><li><a href="trajectory.html">Traj.</a></li><li><a href="multimodal.html">Multi</a></li><li><a href="spatialx.html">SpatialX</a></li><li><a href="talk2data.html">Talk2Data</a></li><li><a href="references/index.html" data-zh="📚 參考資料" data-en="📚 References">📚 參考資料</a></li></ul>
+</div></nav>
+<header class="hub-hero"><div style="position:relative;z-index:1;">
+<h1 data-zh="BioTuring 互動式教學" data-en="BioTuring Interactive Tutorial">BioTuring 互動式教學</h1>
+<p data-lang="zh">用「無程式碼」的 GUI 平台完成單細胞與空間體學分析——從資料匯入到 Venice 差異表達，11 個主題帶你掌握 BBrowserX、SpatialX 與 Talk2Data，並對照背後的演算法概念。</p>
+<p data-lang="en">No-code single-cell & spatial omics analysis — from data import to Venice differential expression. 11 topics covering BBrowserX, SpatialX, and Talk2Data, mapped to the algorithms behind each button.</p>
+</div></header>
+
+<h2 class="hub-section-title"><span>01</span> <span data-zh="平台入門" data-en="Getting Started">平台入門</span></h2>
+<div class="hub-steps-grid">
+  <a href="overview.html" class="hub-card"><div class="hub-emoji">🧭</div><span class="step-num">Start</span><h3 data-zh="生態系總覽" data-en="Ecosystem Overview">生態系總覽</h3><p data-lang="zh">BBrowserX、SpatialX、Talk2Data、SmartBulk 四大平台定位，以及 no-code 與程式碼工具的取捨。</p><p data-lang="en">The four platforms — BBrowserX, SpatialX, Talk2Data, SmartBulk — and the no-code vs. code trade-off.</p></a>
+  <a href="import.html" class="hub-card"><div class="hub-emoji">📥</div><span class="step-num">Step 1</span><h3 data-zh="資料匯入與格式" data-en="Data Import & Formats">資料匯入與格式</h3><p data-lang="zh">h5ad、Seurat、10x HDF5、MTX；scRNA/snRNA、TCR/BCR、ADT 與 demultiplexing。</p><p data-lang="en">h5ad, Seurat, 10x HDF5, MTX; scRNA/snRNA, TCR/BCR, ADT, and demultiplexing.</p></a>
+</div>
+
+<h2 class="hub-section-title"><span>02</span> <span data-zh="BBrowserX 核心分析流程" data-en="BBrowserX Core Pipeline">BBrowserX 核心分析流程</span></h2>
+<div class="hub-steps-grid">
+  <a href="qc.html" class="hub-card"><div class="hub-emoji">🧪</div><span class="step-num">Step 2</span><h3 data-zh="品質管控 (QC)" data-en="Quality Control">品質管控 (QC)</h3><p data-lang="zh">在 GUI 中依 nFeature、nCount、MT% 過濾細胞，視覺化檢查再設閾值。</p><p data-lang="en">Filter cells by nFeature, nCount, MT% in the GUI — visualize before thresholding.</p></a>
+  <a href="normalization.html" class="hub-card"><div class="hub-emoji">⚖️</div><span class="step-num">Step 3</span><h3 data-zh="標準化與降維" data-en="Normalization & Dim-Reduction">標準化與降維</h3><p data-lang="zh">Log normalization、HVG、PCA，再投影成 UMAP / t-SNE。</p><p data-lang="en">Log normalization, HVGs, PCA, then project to UMAP / t-SNE.</p></a>
+  <a href="clustering.html" class="hub-card"><div class="hub-emoji">🧩</div><span class="step-num">Step 4</span><h3 data-zh="分群與批次校正" data-en="Clustering & Batch Correction">分群與批次校正</h3><p data-lang="zh">Louvain 分群、resolution 調整，並用 Harmony 移除批次效應。</p><p data-lang="en">Louvain clustering, resolution tuning, and batch correction via Harmony.</p></a>
+  <a href="annotation.html" class="hub-card"><div class="hub-emoji">🏷️</div><span class="step-num">Step 5</span><h3 data-zh="細胞註釋 (MetaReference)" data-en="Cell Annotation">細胞註釋</h3><p data-lang="zh">用建於 1 億+ 細胞的資料庫自動預測 54 類 / 183 亞型，再以 marker 驗證。</p><p data-lang="en">Auto-predict 54 types / 183 subtypes from a 100M+ cell database, then validate with markers.</p></a>
+  <a href="dge.html" class="hub-card"><div class="hub-emoji">🧾</div><span class="step-num">Step 6</span><h3 data-zh="差異表達與 Venice" data-en="Differential Expression & Venice">差異表達與 Venice</h3><p data-lang="zh">BioTuring 自研 Venice：辨識 DE/DP/DM/DB 四種差異型態，勝過只看平均值。</p><p data-lang="en">BioTuring's Venice detects DE/DP/DM/DB patterns — beyond comparing means.</p></a>
+</div>
+
+<h2 class="hub-section-title"><span>03</span> <span data-zh="進階與多模態" data-en="Advanced & Multimodal">進階與多模態</span></h2>
+<div class="hub-steps-grid">
+  <a href="trajectory.html" class="hub-card"><div class="hub-emoji">🛤️</div><span class="step-num">Advanced</span><h3 data-zh="軌跡與細胞通訊" data-en="Trajectory & Cell Communication">軌跡與細胞通訊</h3><p data-lang="zh">Monocle 2 pseudotime 推估分化路徑；CellChat ligand–receptor 分析細胞對話。</p><p data-lang="en">Monocle 2 pseudotime for differentiation paths; CellChat ligand–receptor for cell talk.</p></a>
+  <a href="multimodal.html" class="hub-card"><div class="hub-emoji">🧬</div><span class="step-num">Advanced</span><h3 data-zh="多模態與免疫圖譜" data-en="Multimodal & Immune Profiling">多模態與免疫圖譜</h3><p data-lang="zh">CITE-seq/ADT 蛋白、TCR/BCR repertoire、樣本 demultiplexing。</p><p data-lang="en">CITE-seq/ADT proteins, TCR/BCR repertoire, and sample demultiplexing.</p></a>
+</div>
+
+<h2 class="hub-section-title"><span>04</span> <span data-zh="生態系其他平台" data-en="Other Platforms">生態系其他平台</span></h2>
+<div class="hub-steps-grid">
+  <a href="spatialx.html" class="hub-card"><div class="hub-emoji">🗺️</div><span class="step-num">Spatial</span><h3 data-zh="SpatialX 空間分析" data-en="SpatialX Spatial Analysis">SpatialX 空間分析</h3><p data-lang="zh">Visium、Xenium、MERFISH、CosMx、GeoMx、Slide-seq——在組織脈絡中詮釋細胞。</p><p data-lang="en">Visium, Xenium, MERFISH, CosMx, GeoMx, Slide-seq — cells in tissue context.</p></a>
+  <a href="talk2data.html" class="hub-card"><div class="hub-emoji">🔎</div><span class="step-num">Database</span><h3 data-zh="Talk2Data 資料庫" data-en="Talk2Data Database">Talk2Data 資料庫</h3><p data-lang="zh">120M+ 精選單細胞資料的跨研究分析、Gene Search 與自訂細胞圖譜。</p><p data-lang="en">Cross-study analytics, Gene Search, and custom atlases over 120M+ curated cells.</p></a>
+</div>
+
+<h2 class="hub-section-title"><span>05</span> <span data-zh="延伸學習" data-en="Further Learning">延伸學習</span></h2>
+<div class="hub-steps-grid">
+  <a href="references/index.html" class="hub-card"><div class="hub-emoji">📚</div><span class="step-num">References</span><h3 data-zh="參考資料佐證" data-en="References &amp; Citations">參考資料佐證</h3><p data-lang="zh">官方文件、Venice 論文、平台頁與同儕評論整理，附連結與疑義注記。</p><p data-lang="en">Official docs, the Venice paper, platform pages, and peer reviews — with links and caveats.</p></a>
+  <a href="bioturing-quiz/index.html" class="hub-card" target="_blank" rel="noopener"><div class="hub-emoji">📝</div><span class="step-num">Quiz</span><h3 data-zh="互動式考題" data-en="Interactive Quiz">互動式考題</h3><p data-lang="zh">涵蓋 11 主題的單選、多選、是非題，內建錯題複習與進度追蹤。</p><p data-lang="en">Single-choice, multi-select, and true/false questions across 11 topics, with wrong-answer review and progress tracking.</p></a>
+</div>
+<div style="height:60px"></div>
+<footer class="site-footer">© Charlene — BioTuring Interactive Tutorial · <span data-zh="教學用途，非 BioTuring 官方文件" data-en="Educational use — not official BioTuring documentation">教學用途，非 BioTuring 官方文件</span></footer>
+<script src="i18n.js"></script>
+</body></html>
