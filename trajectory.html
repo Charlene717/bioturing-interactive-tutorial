@@ -1,0 +1,393 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Trajectory & Cell-Cell Communication — BioTuring Tutorial</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>.page-hero{background:linear-gradient(160deg,#2b1a5e 0%,#3b2a86 35%,#5b3fb0 70%,#2563a8 100%)}
+.lr-pick{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.lr-box{margin-top:16px;padding:18px 20px;border-radius:var(--radius-lg);background:var(--c-highlight-light);border-left:4px solid var(--c-highlight);font-size:.95rem}
+.lr-box b{color:var(--c-highlight)}
+.lr-flow{font-family:var(--font-mono);font-size:.95rem;margin:8px 0;color:var(--c-ink)}
+.pt-legend{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0;font-size:.82rem;color:var(--c-ink-light)}
+.pt-legend span{display:inline-flex;align-items:center;gap:6px}
+.pt-dot{width:12px;height:12px;border-radius:50%;display:inline-block}</style></head><body>
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="BioTuring 教學" data-en="BioTuring Tutorial">BioTuring 教學</span></a>
+  <ul class="top-nav-links"><li><a href="overview.html" data-zh="總覽" data-en="Overview">總覽</a></li><li><a href="import.html">Import</a></li><li><a href="qc.html">QC</a></li><li><a href="normalization.html">Norm.</a></li><li><a href="clustering.html">Cluster</a></li><li><a href="annotation.html">Annot.</a></li><li><a href="dge.html">DE</a></li><li><a href="trajectory.html" class="active">Traj.</a></li><li><a href="multimodal.html">Multi</a></li><li><a href="spatialx.html">SpatialX</a></li><li><a href="talk2data.html">Talk2Data</a></li><li><a href="references/index.html" data-zh="📚 參考資料" data-en="📚 References">📚 參考資料</a></li></ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">ADVANCED · <span data-zh="軌跡與細胞通訊" data-en="Trajectory & Cell-Cell Communication">軌跡與細胞通訊</span></div>
+<h1 data-zh="軌跡（擬時序）與細胞通訊" data-en="Trajectory (Pseudotime) & Cell-Cell Communication">軌跡（擬時序）與細胞通訊</h1>
+<p class="subtitle" data-lang="zh">超越靜態分群——用 Monocle 2 沿發育路徑排序細胞，並以 CellChat 推斷細胞間的訊息傳遞。</p>
+<p class="subtitle" data-lang="en">Beyond static clusters — order cells along a developmental path with Monocle 2, and infer signaling between cell types with CellChat.</p>
+</header>
+<main class="content-wrap">
+
+<section class="section">
+<div class="section-label" data-zh="概念" data-en="CONCEPT">概念</div>
+<h2 data-zh="一、為什麼需要「軌跡分析」？" data-en="I. Why Trajectory Analysis?">一、為什麼需要「軌跡分析」？</h2>
+<div data-lang="zh">
+<p>先講一個畫面：想像你把一隻<strong>毛毛蟲變成蝴蝶</strong>的整個過程，每隔幾分鐘就拍一張照片，拍成一本厚厚的連續相簿。可是一陣風把相簿吹散了，所有照片掉在地上、順序全亂了。你要怎麼把它們排回去？你不需要每張照片背後的時間戳——你只要看「外觀怎麼一點一點地變」：翅膀從無到有、身體從胖到細⋯⋯依外觀的<strong>漸變</strong>就能把整疊照片重新排成一條連續的故事線。這，就是<strong>軌跡分析 (trajectory analysis)</strong> 在對細胞做的事。</p>
+<p>回到資料。分群 (clustering) 把細胞切成一個個<strong>離散的群</strong>——很適合回答「這份樣本裡<em>有哪些</em>細胞類型」。但許多生物過程其實是<strong>連續的</strong>：幹細胞逐步分化為成熟細胞、免疫細胞被逐漸活化、腫瘤細胞一步步惡化。在這些過程裡，相鄰狀態的細胞在轉錄體（transcriptome，一個細胞當下所有 mRNA 的總表達模式）上只差「一點點」，硬切成群就像把毛毛蟲變蝴蝶硬分成「幼蟲組」「成蟲組」——中間那段最有意思的漸變全被丟掉了。</p>
+<p><strong>軌跡分析</strong>的想法很直白：既然細胞沿著某個過程「逐漸改變」基因表達，就能把它們沿這條變化路徑<strong>排序</strong>。這個排序的座標稱為 <span class="term">擬時序 (pseudotime)<span class="term-tip">一個沿發育／變化路徑的相對座標，數值大小代表「進展程度」，不是真正的時鐘時間。</span></span>——它衡量的是「一個細胞在此過程中走了多遠」，而不是真實的鐘錶時間。每一顆細胞都會拿到一個擬時序值（例如 0 到 1），0 是最原始的起點，1 是最成熟的終點。</p>
+<p>當這條路徑出現<strong>分岔 (branch point)</strong>，就代表一個<strong>細胞命運決策點</strong>：同一群前驅細胞走到這個岔路口，一部分往左、一部分往右，分別奔向不同的成熟命運。就像高中畢業後，同一屆同學有人選理組、有人選文組——岔路口正是「做選擇」的那一刻。</p>
+</div>
+<div data-lang="en">
+<p>Picture this first: imagine you photograph a <strong>caterpillar turning into a butterfly</strong>, snapping a shot every few minutes, filling a thick continuous photo album. Then a gust of wind scatters the album — every photo lands on the floor, the order completely lost. How do you put them back? You don't need the timestamp on each photo; you just watch how the <strong>appearance changes bit by bit</strong>: wings emerging, the body slimming down… Ordering by that <strong>gradual change</strong> lets you reassemble the whole stack into one continuous storyline. That is exactly what <strong>trajectory analysis</strong> does to cells.</p>
+<p>Back to the data. Clustering carves cells into <strong>discrete groups</strong> — great for answering "which cell types are <em>present</em> in this sample." But many biological processes are actually <strong>continuous</strong>: stem cells gradually differentiate, immune cells get progressively activated, tumor cells transform step by step. Along these processes, neighboring states differ only slightly in their transcriptome (a cell's full mRNA expression pattern at that moment), and forcing them into hard clusters is like splitting the caterpillar-to-butterfly story into just a "larva group" and an "adult group" — throwing away the most interesting gradual middle.</p>
+<p>The idea of <strong>trajectory analysis</strong> is straightforward: since cells change their gene expression <strong>gradually</strong> along a process, we can <strong>order</strong> them along that path. The coordinate of that ordering is called <span class="term">pseudotime<span class="term-tip">A relative coordinate along a developmental/change path. Its value reflects "how far along" a cell is — not real clock time.</span></span> — it measures "how far a cell has progressed," not literal clock time. Every cell gets a pseudotime value (say, 0 to 1): 0 is the most primitive start, 1 the most mature end.</p>
+<p>Where the path <strong>branches</strong>, we have a <strong>cell-fate decision point</strong>: one pool of progenitors reaches the fork, some go left, some go right, each heading toward a distinct mature fate. Like graduating high school — the same class splits, some choosing science, some the humanities. The branch point <em>is</em> that moment of choice.</p>
+</div>
+<div class="callout tip"><span class="callout-icon">💡</span><div>
+<span data-lang="zh"><strong>一句話比喻：</strong>分群像是把照片裡的人按「衣服顏色」分堆；軌跡則是把他們按「年齡由小到大」排成一條隊伍——即使沒有出生日期，也能從外表逐漸的變化推斷順序。</span>
+<span data-lang="en"><strong>One-line analogy:</strong> Clustering sorts people in a photo by "shirt color"; a trajectory lines them up "youngest to oldest" — inferring the order from gradual changes in appearance, even without birth dates.</span>
+</div></div>
+<div class="card-grid cols-3">
+<div class="card"><div class="card-icon">🧩</div>
+<h4 data-zh="為什麼重要" data-en="Why it matters">為什麼重要</h4>
+<p data-lang="zh">分群告訴你「有誰在場」，軌跡告訴你「他們如何變成現在這樣」。要研究分化、活化、疾病進程這類<strong>會隨時間演變</strong>的問題，只有連續的擬時序能捕捉中間狀態與轉折。</p>
+<p data-lang="en">Clustering tells you "who's in the room"; a trajectory tells you "how they became who they are." For questions that <strong>unfold over time</strong> — differentiation, activation, disease progression — only a continuous pseudotime captures the in-between states and turning points.</p></div>
+<div class="card"><div class="card-icon">⚠️</div>
+<h4 data-zh="常見誤區" data-en="Common pitfall">常見誤區</h4>
+<p data-lang="zh">把擬時序當成真實時間。它是<strong>推斷</strong>出來的相對順序，不是碼表讀數。兩顆擬時序相差 0.3 的細胞，不代表相隔幾天或幾小時。</p>
+<p data-lang="en">Treating pseudotime as real time. It's an <strong>inferred</strong> relative order, not a stopwatch reading. Two cells 0.3 apart in pseudotime are not "a few days/hours apart."</p></div>
+<div class="card"><div class="card-icon">🎯</div>
+<h4 data-zh="專家小撇步" data-en="Pro tip">專家小撇步</h4>
+<p data-lang="zh">動手前先問：這群細胞真的是<strong>一個連續過程</strong>嗎？若你只是把兩種毫不相干的細胞硬湊在一起，演算法還是會畫出一條「軌跡」，但那只是幻覺。</p>
+<p data-lang="en">Before you start, ask: are these cells truly <strong>one continuous process</strong>? If you just lump two unrelated cell types together, the algorithm will still draw a "trajectory" — but it's a mirage.</p></div>
+</div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="離散 vs 連續" data-en="DISCRETE vs CONTINUOUS">離散 vs 連續</div>
+<h2 data-zh="二、分群 vs 軌跡：什麼時候用哪個？" data-en="II. Clustering vs Trajectory: When to Use Which?">二、分群 vs 軌跡：什麼時候用哪個？</h2>
+<div data-lang="zh"><p>換個生活化的比喻：<strong>分群</strong>像是把一群人「分進幾個房間」——這間是護理師、那間是工程師，界線清楚、互不重疊（離散）。<strong>軌跡</strong>則像是請大家「按年齡從小到大排成一條隊伍」——沒有清楚的分隔線，每個人只比前一個人老一點點（連續）。兩者不是敵人，而是互補：實務上你幾乎總是<strong>先分群、再對感興趣的連續系列做軌跡</strong>。</p></div>
+<div data-lang="en"><p>Another everyday analogy: <strong>clustering</strong> is like sorting people into separate rooms — nurses here, engineers there, sharp boundaries, no overlap (discrete). A <strong>trajectory</strong> is like asking everyone to line up youngest-to-oldest — no clean dividers, each person just slightly older than the last (continuous). They aren't rivals but partners: in practice you almost always <strong>cluster first, then run a trajectory</strong> on the continuous lineage you care about.</p></div>
+<table class="comp-table">
+<thead><tr>
+<th data-zh="面向" data-en="Aspect">面向</th>
+<th data-zh="分群 (Clustering)" data-en="Clustering">分群 (Clustering)</th>
+<th data-zh="軌跡 (Trajectory)" data-en="Trajectory">軌跡 (Trajectory)</th>
+</tr></thead>
+<tbody>
+<tr><td data-zh="資料觀點" data-en="View of data"><strong>資料觀點</strong></td><td data-lang="zh">離散——把細胞分成一個個群</td><td data-lang="zh">連續——把細胞排成一條路徑</td><td data-lang="en">Discrete — groups of cells</td><td data-lang="en">Continuous — a path of cells</td></tr>
+<tr><td data-zh="回答的問題" data-en="Question answered"><strong>回答的問題</strong></td><td data-lang="zh">「有哪些細胞類型？」</td><td data-lang="zh">「細胞如何從 A 變到 B？」</td><td data-lang="en">"Which cell types exist?"</td><td data-lang="en">"How do cells go from A to B?"</td></tr>
+<tr><td data-zh="生活比喻" data-en="Everyday analogy"><strong>生活比喻</strong></td><td data-lang="zh">分進幾個房間</td><td data-lang="zh">按年齡排一條隊伍</td><td data-lang="en">Sort into rooms</td><td data-lang="en">Line up by age</td></tr>
+<tr><td data-zh="輸出" data-en="Output"><strong>輸出</strong></td><td data-lang="zh">群標籤 (cluster labels)</td><td data-lang="zh">擬時序值 + 分岔結構</td><td data-lang="en">Cluster labels</td><td data-lang="en">Pseudotime + branch structure</td></tr>
+<tr><td data-zh="適用場景" data-en="Best for"><strong>適用場景</strong></td><td data-lang="zh">細胞圖譜、細胞類型組成</td><td data-lang="zh">分化、活化、疾病進程</td><td data-lang="en">Atlases, cell-type composition</td><td data-lang="en">Differentiation, activation, disease progression</td></tr>
+<tr><td data-zh="常見錯誤" data-en="Typical mistake"><strong>常見錯誤</strong></td><td data-lang="zh">群數硬要「剛好」</td><td data-lang="zh">硬把離散細胞排成假路徑</td><td data-lang="en">Over-fixating on "the right" number</td><td data-lang="en">Forcing discrete cells into a fake path</td></tr>
+<tr><td data-zh="BBrowserX 演算法" data-en="BBrowserX algorithm"><strong>BBrowserX 演算法</strong></td><td data-lang="zh">Louvain（見分群章節）</td><td data-lang="zh"><strong>Monocle 2</strong> pseudotime</td><td data-lang="en">Louvain (see clustering)</td><td data-lang="en"><strong>Monocle 2</strong> pseudotime</td></tr>
+</tbody></table>
+<div class="decision-tree">
+<h4 data-zh="🌳 我該做軌跡分析嗎？" data-en="🌳 Should I run a trajectory?">🌳 我該做軌跡分析嗎？</h4>
+<div class="dt-node"><span class="dt-q" data-zh="Q1" data-en="Q1">Q1</span><span class="dt-arrow">→</span><span data-lang="zh">你的細胞是否來自一個<strong>生物上連續</strong>的過程（如分化、活化、進程）？沒有的話，軌跡沒有意義。</span><span data-lang="en">Do your cells come from a <strong>biologically continuous</strong> process (differentiation, activation, progression)? If not, a trajectory is meaningless.</span></div>
+<div class="dt-node"><span class="dt-q" data-zh="Q2" data-en="Q2">Q2</span><span class="dt-arrow">→</span><span data-lang="zh">你能指定一個合理的<strong>起點 (root)</strong> 嗎？（如最未分化的前驅細胞群）沒有起點，方向就是任意的。</span><span data-lang="en">Can you name a sensible <strong>root/start</strong> (e.g., the least-differentiated progenitor)? Without a root, direction is arbitrary.</span></div>
+<div class="dt-node"><span class="dt-q" data-zh="Q3" data-en="Q3">Q3</span><span class="dt-arrow">→</span><span data-lang="zh">你先做過分群、把<strong>無關細胞剔除</strong>了嗎？只留下真正參與該過程的細胞，軌跡才乾淨。</span><span data-lang="en">Have you clustered first and <strong>removed unrelated cells</strong>? Keeping only cells truly involved keeps the trajectory clean.</span></div>
+<div class="dt-node"><span class="dt-q" data-zh="Q4" data-en="Q4">Q4</span><span class="dt-arrow">→</span><span data-lang="zh">三者皆是 → 適合做 <strong>Monocle 2 軌跡</strong>；否則先停在分群 + 差異表達。</span><span data-lang="en">All yes → run a <strong>Monocle 2 trajectory</strong>; otherwise stay with clustering + DE.</span></div>
+</div>
+</section>
+<section class="section">
+<div class="section-label" data-zh="演算法幕後" data-en="UNDER THE HOOD">演算法幕後</div>
+<h2 data-zh="三、Monocle 2 到底怎麼「排隊」？" data-en="III. How Does Monocle 2 Actually Order Cells?">三、Monocle 2 到底怎麼「排隊」？</h2>
+<div data-lang="zh">
+<p>BBrowserX 的軌跡分析後端是 <strong>Monocle 2</strong>。它的核心技術有個很學術的名字叫 <span class="term">反向圖嵌入 (reversed graph embedding, RGE)<span class="term-tip">Monocle 2 的核心方法：在高維表達空間裡同時學一棵「主圖（樹）」與細胞到樹上的映射，讓細胞沿樹排序。</span></span>，但概念不難懂。想像那本被打亂的蝴蝶相簿散落在一張<strong>超高維的桌面</strong>上（維度 = 幾千個基因），Monocle 2 要做兩件事：<strong>(1)</strong> 在這堆點中間，找出一條（或一棵有分岔的）最能「穿過」所有點的<strong>主幹曲線／樹</strong>；<strong>(2)</strong> 把每顆細胞投影（貼）到這棵樹上最近的位置。細胞到樹起點的距離，就是它的擬時序。</p>
+<p>用白話說：Monocle 2 假設「轉錄體變化是漸進的」，於是它去<strong>重建那條漸變的骨幹</strong>，再把細胞一顆顆掛上去、依序編號。分岔的樹枝就對應到前面說的命運決策點。整個過程<strong>完全不需要真實時間標籤</strong>——它純粹靠「哪些細胞在基因表達上彼此相鄰」來推斷順序，正如你靠外觀漸變重排照片一樣。</p>
+</div>
+<div data-lang="en">
+<p>BBrowserX runs <strong>Monocle 2</strong> under the hood for trajectories. Its core technique has a very academic name — <span class="term">reversed graph embedding (RGE)<span class="term-tip">Monocle 2's core method: simultaneously learn a "principal graph (tree)" and a mapping of cells onto it, so cells get ordered along the tree.</span></span> — but the idea is friendly. Picture that shuffled butterfly album scattered across a <strong>very high-dimensional tabletop</strong> (dimensions = thousands of genes). Monocle 2 does two things: <strong>(1)</strong> among all those points, it finds a <strong>backbone curve/tree</strong> that best threads through them (branching allowed); <strong>(2)</strong> it projects each cell onto its nearest spot on that tree. A cell's distance from the tree's root becomes its pseudotime.</p>
+<p>In plain words: Monocle 2 assumes "transcriptomic change is gradual," so it <strong>reconstructs the gradual backbone</strong>, then hangs each cell onto it and numbers them in order. Branching limbs of the tree correspond to the fate-decision points above. The whole thing needs <strong>no real time labels at all</strong> — it infers order purely from "which cells are neighbors in gene expression," just as you re-sorted photos by gradual appearance.</p>
+</div>
+<div class="callout warn"><span class="callout-icon">🧭</span><div>
+<span data-lang="zh"><strong>方向由你決定，選錯就整個反過來。</strong>Monocle 2 能畫出骨幹，但它<strong>不知道哪頭是起點</strong>——就像相簿排好了卻不知道該從蝴蝶還是毛毛蟲那端翻起。你必須指定一個生物上合理的<strong>起點細胞 (root)</strong>（通常是最未分化的前驅群）。若把成熟細胞誤設為起點，擬時序方向會<strong>完全顛倒</strong>，讓你得出「成熟細胞變回幹細胞」的荒謬結論。</span>
+<span data-lang="en"><strong>You set the direction — get it wrong and everything flips.</strong> Monocle 2 draws the backbone but <strong>doesn't know which end is the start</strong> — like an ordered album where you don't know whether to open from the butterfly or the caterpillar. You must name a biologically sensible <strong>root cell</strong> (usually the least-differentiated progenitor). Set a mature cell as the root by mistake, and pseudotime runs <strong>completely backward</strong>, giving you the absurd conclusion that "mature cells revert to stem cells."</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="互動" data-en="INTERACTIVE">互動</div>
+<h2 data-zh="四、互動：擬時序與基因動態" data-en="IV. Interactive: Pseudotime & Gene Dynamics">四、互動：擬時序與基因動態</h2>
+<div data-lang="zh"><p>下面是一組沿著一條彎曲軌跡排列的<strong>合成細胞</strong>（每一個點代表一顆細胞）。拖動滑桿設定「目前的擬時序位置」——被走過的細胞會亮起（依擬時序由淺灰漸變成紫色），右側折線則顯示兩個標記基因沿擬時序的<strong>上升／下降</strong>動態，紅色虛線就是你現在停留的位置。這正是 Monocle 2 的核心產物：<strong>先把細胞排序，再看基因如何隨排序改變</strong>。你會看到「幹性基因」一路下滑、「成熟基因」後段陡升——這種一降一升的交叉，正是分化在轉錄體上的招牌畫面。</p></div>
+<div data-lang="en"><p>Below is a set of <strong>synthetic cells</strong> laid out along a curved trajectory (each dot is one cell). Drag the slider to set the "current pseudotime position" — cells you have passed light up (fading from light grey to purple by pseudotime), and the line chart on the right shows two marker genes <strong>rising / falling</strong> along pseudotime, with the red dashed line marking where you are now. This is exactly Monocle 2's core output: <strong>order cells first, then watch genes change along the order</strong>. You'll see a "stemness gene" slide down while a "maturation gene" surges late — that down-then-up crossover is the signature look of differentiation in the transcriptome.</p></div>
+<div class="interactive-panel">
+<div class="slider-group"><label><span data-zh="擬時序位置" data-en="Pseudotime position">擬時序位置</span><span id="ptVal">50%</span></label>
+<input type="range" id="ptSlider" min="0" max="100" value="50"></div>
+<div class="pt-legend">
+<span><span class="pt-dot" style="background:#c5c0d4"></span><span data-zh="尚未到達的細胞" data-en="Cells not yet reached">尚未到達的細胞</span></span>
+<span><span class="pt-dot" style="background:#5b3fb0"></span><span data-zh="已走過（依擬時序上色）" data-en="Passed (colored by pseudotime)">已走過（依擬時序上色）</span></span>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+<div class="chart-container" style="height:280px;"><canvas id="ptScatter"></canvas></div>
+<div class="chart-container" style="height:280px;"><canvas id="ptGenes"></canvas></div>
+</div>
+<div class="sim-stats">
+<div class="sim-stat pass"><span data-zh="已排序細胞：" data-en="Cells ordered: ">已排序細胞：</span><span id="ptCount">100</span></div>
+<div class="sim-stat pass" id="ptStage"></div>
+</div>
+</div>
+<div class="callout tip"><span class="callout-icon">👀</span><div>
+<span data-lang="zh"><strong>試試看：</strong>把滑桿拉到最左（0%），只有起點的幾顆細胞亮起、「幹性基因」最高；一路拉到最右（100%），全部細胞排序完成、「成熟基因」衝到頂。兩條曲線的交叉點，就是細胞「翻身」由幹性走向成熟的關鍵轉折——這也是你在真實資料中最該去找的差異表達基因。</span>
+<span data-lang="en"><strong>Try it:</strong> pull the slider fully left (0%) — only the first few cells light up and the "stemness gene" peaks; drag fully right (100%) — all cells are ordered and the "maturation gene" tops out. The crossover of the two curves is the pivotal moment where cells flip from stem-like to mature — precisely the kind of differentially expressed gene you'd hunt for in real data.</span>
+</div></div>
+<div class="callout warn"><span class="callout-icon">⚠️</span><div>
+<span data-lang="zh"><strong>擬時序不是真時間。</strong>它是一種<strong>計算推斷</strong>——由演算法從轉錄體相似度重建出的相對順序。若你的資料其實不是連續過程，或起點選錯，軌跡照樣會被「畫」出來，但沒有生物意義。務必用已知的分化標記或實驗時間點驗證方向。</span>
+<span data-lang="en"><strong>Pseudotime is not real time.</strong> It is a <strong>computational inference</strong> — a relative order the algorithm reconstructs from transcriptomic similarity. If your data isn't truly a continuous process, or the root is wrong, a trajectory will still be "drawn" but carry no biological meaning. Always validate direction with known differentiation markers or experimental time points.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="操作流程" data-en="WORKFLOW">操作流程</div>
+<h2 data-zh="五、在 BBrowserX 裡怎麼做軌跡分析" data-en="V. Running a Trajectory in BBrowserX">五、在 BBrowserX 裡怎麼做軌跡分析</h2>
+<div class="workflow">
+<div class="workflow-step" data-step="1"><h4 data-zh="選定相關細胞子集" data-en="Subset the relevant cells">選定相關細胞子集</h4>
+<div data-lang="zh"><p>只保留參與該連續過程的細胞（如某一系列的前驅→成熟細胞）。混入無關細胞類型會像在蝴蝶相簿裡混進幾張貓咪照，把軌跡整個扭曲掉。實務上：先在 UMAP 上圈選、依群標籤篩掉旁支。</p></div>
+<div data-lang="en"><p>Keep only cells involved in the continuous process (e.g., a lineage from progenitor to mature). Unrelated cell types are like slipping cat photos into the butterfly album — they distort the whole trajectory. In practice: lasso-select on the UMAP and filter out side lineages by cluster label.</p></div></div>
+<div class="workflow-step" data-step="2"><h4 data-zh="開啟軌跡 / Pseudotime 功能" data-en="Open the Trajectory / Pseudotime tool">開啟軌跡 / Pseudotime 功能</h4>
+<div data-lang="zh"><p>在分析選單中選 <strong>Trajectory / Pseudotime</strong>（BBrowserX 以 <strong>Monocle 2</strong> 為後端）。<em>選單名稱可能隨版本略有不同。</em></p></div>
+<div data-lang="en"><p>From the analysis menu, choose <strong>Trajectory / Pseudotime</strong> (BBrowserX uses <strong>Monocle 2</strong> under the hood). <em>Menu wording can vary by version.</em></p></div></div>
+<div class="workflow-step" data-step="3"><h4 data-zh="指定起點 (root)" data-en="Set the root">指定起點 (root)</h4>
+<div data-lang="zh"><p>把最未分化 / 最早期的群設為起點，讓擬時序有正確方向。挑起點的訣竅：用已知的幹性標記（如造血系的 <em>CD34</em>）先確認哪一群最「原始」，再指定它。這一步選錯，後面全錯。</p></div>
+<div data-lang="en"><p>Assign the least-differentiated / earliest cluster as the root so pseudotime flows in the right direction. Tip for picking it: use known stemness markers (e.g., <em>CD34</em> in hematopoiesis) to confirm which cluster is most "primitive," then set that as root. Get this wrong and everything downstream is wrong.</p></div></div>
+<div class="workflow-step" data-step="4"><h4 data-zh="檢視軌跡與分岔" data-en="Inspect trajectory & branches">檢視軌跡與分岔</h4>
+<div data-lang="zh"><p>看樹狀軌跡與分岔點，並用「基因 vs 擬時序」圖找隨路徑上升／下降的標記基因。每個分岔都問一句：這裡是哪兩種命運在分家？</p></div>
+<div data-lang="en"><p>Examine the tree and branch points, and use "gene vs pseudotime" plots to find markers that rise/fall along the path. At each branch, ask: which two fates are parting ways here?</p></div></div>
+<div class="workflow-step" data-step="5"><h4 data-zh="回頭驗證方向與生物意義" data-en="Validate direction & biology">回頭驗證方向與生物意義</h4>
+<div data-lang="zh"><p>拿已知的分化標記或實驗時間點對照：擬時序方向對嗎？分岔對應到真實的細胞命運嗎？驗證通過，這條軌跡才能寫進結論。</p></div>
+<div data-lang="en"><p>Cross-check against known differentiation markers or experimental time points: is the pseudotime direction right? Do branches map to real cell fates? Only after this check does the trajectory belong in your conclusions.</p></div></div>
+</div>
+</section>
+<section class="section">
+<div class="section-label" data-zh="細胞通訊" data-en="CELL-CELL COMMUNICATION">細胞通訊</div>
+<h2 data-zh="六、細胞通訊：CellChat 配體–受體推斷" data-en="VI. Cell-Cell Communication: CellChat L–R Inference">六、細胞通訊：CellChat 配體–受體推斷</h2>
+<div data-lang="zh">
+<p>換個主題，也換個比喻。細胞不是孤島——它們彼此<strong>互傳簡訊</strong>。想像一間開放式辦公室：一位同事（傳送方細胞）發出一則訊息，這則訊息就是 <span class="term">配體 (ligand)<span class="term-tip">由訊號送出方細胞表達、分泌的分子（如細胞激素、生長因子）。</span></span>——像一封傳出去的簡訊；另一位同事（接收方細胞）手機上要裝有能收這則簡訊的 App，這個「收訊 App」就是 <span class="term">受體 (receptor)<span class="term-tip">位於接收方細胞表面、能結合特定配體並引發下游訊號的蛋白。</span></span>。訊息（配體）被 App（受體）接住的那一刻，通訊就成立，接收方細胞收到指令、改變行為。</p>
+<p>一個具體例子：<strong>TGFB1 → TGFBR1／TGFBR2</strong>。傳送方細胞分泌配體 TGFB1（TGF-β 家族的一員），接收方細胞表面若有 TGFBR1 或 TGFBR2 這對受體，就能收下這則「請冷靜／別過度反應」的訊息——在免疫情境常與抑制、調節 T 細胞有關。</p>
+<p>BBrowserX 借助 <strong>CellChat</strong> 的<strong>配體–受體資料庫</strong>來推斷這些對話：對每一對細胞類型，它逐一檢查「傳送方是否表達配體 mRNA、接收方是否表達受體 mRNA」，估計<strong>互動強度</strong>，並把成千上百對配體–受體歸納到少數幾條<strong>訊號通路 (pathway)</strong>（如 TGF-β、VEGF、CXCL、CD40）。最後輸出三樣東西：<strong>(1)</strong> 哪些細胞類型兩兩在對話、<strong>(2)</strong> 每條線的訊號強弱、<strong>(3)</strong> 對話主要走哪條通路。看起來就像一張「誰打電話給誰、講得多熱絡」的通聯網路圖。</p>
+</div>
+<div data-lang="en">
+<p>New topic, new analogy. Cells aren't islands — they <strong>text each other</strong>. Picture an open-plan office: a coworker (the sender cell) sends a message, and that message is a <span class="term">ligand<span class="term-tip">A molecule (cytokine, growth factor…) made and released by the signal-sending cell.</span></span> — like a text going out. Another coworker (the receiver cell) needs an app on their phone that can receive that text, and that "receiving app" is a <span class="term">receptor<span class="term-tip">A surface protein on the receiving cell that binds a specific ligand and triggers downstream signaling.</span></span>. The instant the message (ligand) is caught by the app (receptor), the call connects — the receiver cell gets the instruction and changes its behavior.</p>
+<p>A concrete example: <strong>TGFB1 → TGFBR1/TGFBR2</strong>. The sender secretes ligand TGFB1 (a member of the TGF-β family); if the receiver's surface carries the TGFBR1/TGFBR2 receptor pair, it catches the "please calm down / don't over-react" message — in immune settings, often tied to suppressing and regulating T cells.</p>
+<p>BBrowserX leans on <strong>CellChat</strong>'s <strong>ligand–receptor database</strong> to infer these conversations: for every pair of cell types, it checks "does the sender express the ligand mRNA and the receiver the receptor mRNA," estimates <strong>interaction strength</strong>, and rolls hundreds of L–R pairs up into a handful of <strong>signaling pathways</strong> (e.g., TGF-β, VEGF, CXCL, CD40). It outputs three things: <strong>(1)</strong> which cell-type pairs are talking, <strong>(2)</strong> how strong each line is, and <strong>(3)</strong> which pathway each conversation runs on. The result looks like a "who-called-whom, and how chatty" phone-record network.</p>
+</div>
+<div class="card-grid cols-3">
+<div class="card"><div class="card-icon">📡</div>
+<h4 data-zh="為什麼重要" data-en="Why it matters">為什麼重要</h4>
+<p data-lang="zh">很多生物學不是「單一細胞在幹嘛」，而是「細胞之間<strong>怎麼協調</strong>」。免疫反應、傷口修復、腫瘤逃逸，全靠這些配體–受體簡訊在拉線。看懂通訊網路，才看得懂組織這個「團隊」如何運作。</p>
+<p data-lang="en">A lot of biology isn't "what one cell does" but "how cells <strong>coordinate</strong>." Immune responses, wound healing, tumor escape — all wired by these L–R texts. Reading the communication network is how you understand the tissue as a "team."</p></div>
+<div class="card"><div class="card-icon">🚫</div>
+<h4 data-zh="常見誤區" data-en="Common pitfall">常見誤區</h4>
+<p data-lang="zh">看到一條線就宣稱「這兩種細胞在通訊」。CellChat 看的是 mRNA 共表現，那只是<strong>間接代理</strong>——有簡訊草稿，不等於真的按下發送、對方也真的收到。</p>
+<p data-lang="en">Seeing a line and declaring "these two cells signal." CellChat reads mRNA co-expression, an <strong>indirect proxy</strong> — a drafted text isn't a sent-and-received message.</p></div>
+<div class="card"><div class="card-icon">🔬</div>
+<h4 data-zh="專家小撇步" data-en="Pro tip">專家小撇步</h4>
+<p data-lang="zh">把 CellChat 當<strong>假說產生器</strong>：先用它從幾百對配體–受體裡篩出最強、最有生物意義的幾條，再拿去做蛋白染色、空間資料或功能實驗驗證，效率遠勝盲找。</p>
+<p data-lang="en">Use CellChat as a <strong>hypothesis generator</strong>: let it shortlist the strongest, most meaningful L–R pairs from hundreds, then validate those few with protein staining, spatial data, or functional assays — far faster than searching blind.</p></div>
+</div>
+<div data-lang="zh"><p>點選一對「傳送方 → 接收方」細胞，看一個範例配體–受體對與其通路：</p></div>
+<div data-lang="en"><p>Click a "sender → receiver" cell-type pair to see an example ligand–receptor pair and its pathway:</p></div>
+<div class="interactive-panel">
+<div class="lr-pick" id="lrPick">
+  <button class="toggle-btn active" data-k="mac2t"><span data-zh="巨噬細胞 → T 細胞" data-en="Macrophage → T cell">巨噬細胞 → T 細胞</span></button>
+  <button class="toggle-btn" data-k="fib2epi"><span data-zh="纖維母細胞 → 上皮細胞" data-en="Fibroblast → Epithelial">纖維母細胞 → 上皮細胞</span></button>
+  <button class="toggle-btn" data-k="endo2t"><span data-zh="內皮細胞 → T 細胞" data-en="Endothelial → T cell">內皮細胞 → T 細胞</span></button>
+  <button class="toggle-btn" data-k="t2b"><span data-zh="T 細胞 → B 細胞" data-en="T cell → B cell">T 細胞 → B 細胞</span></button>
+</div>
+<div class="lr-box" id="lrBox"></div>
+</div>
+<div class="callout danger"><span class="callout-icon">⚠️</span><div>
+<span data-lang="zh"><strong>共表達 ≠ 真的在通訊。</strong>CellChat 推斷的依據是 mRNA 的<strong>共表達</strong>——「傳送方有配體 mRNA、接收方有受體 mRNA」。但 mRNA 不等於有功能的蛋白（可能沒被轉譯、沒被送上細胞膜），兩種細胞也未必在空間上相鄰、真的接觸得到。這些預測是<strong>假說產生器</strong>，需以蛋白層次、空間資料或功能實驗驗證。</span>
+<span data-lang="en"><strong>Co-expression ≠ actual signaling.</strong> CellChat infers from mRNA <strong>co-expression</strong> — "sender has ligand mRNA, receiver has receptor mRNA." But mRNA isn't functional protein (it may never be translated or reach the membrane), and the two cell types may not even be spatially adjacent to physically interact. These predictions are <strong>hypothesis generators</strong> — validate with protein-level, spatial, or functional experiments.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="實戰情境" data-en="IN THE WILD">實戰情境</div>
+<h2 data-zh="七、實戰情境：這些工具在真實研究裡怎麼用" data-en="VII. In the Wild: How These Tools Are Used">七、實戰情境：這些工具在真實研究裡怎麼用</h2>
+<div data-lang="zh"><p>光講概念太抽象，來看三個把「軌跡」與「細胞通訊」串起來的真實研究場景——很多論文其實是<strong>兩者一起用</strong>：先用軌跡排出細胞怎麼變，再用通訊看是誰在旁邊「下指令」推它變。</p></div>
+<div data-lang="en"><p>Concepts get abstract fast — so here are three real research scenarios that weave "trajectory" and "cell communication" together. Many papers use <strong>both at once</strong>: a trajectory to order how cells change, then communication to see who nearby is "giving the orders" that push the change.</p></div>
+<div class="card-grid cols-3">
+<div class="card"><div class="card-icon">🌱</div>
+<h4 data-zh="情境一：發育／分化" data-en="Scenario 1: Development / Differentiation">情境一：發育／分化</h4>
+<p data-lang="zh"><strong>問題：</strong>造血幹細胞如何一步步變成紅血球、白血球？<strong>做法：</strong>用 Monocle 2 沿分化路徑排序、在分岔點找命運決策的關鍵轉錄因子，再用 CellChat 看骨髓微環境（如基質細胞）發出哪些配體在「催熟」它們。<strong>產出：</strong>一張「誰在何時、被什麼訊號推著往哪走」的分化地圖。</p>
+<p data-lang="en"><strong>Question:</strong> how do hematopoietic stem cells step-by-step become red and white blood cells? <strong>Approach:</strong> Monocle 2 orders cells along the path, branch points reveal fate-deciding transcription factors, then CellChat shows which ligands from the marrow niche (e.g., stromal cells) are "pushing them to mature." <strong>Output:</strong> a map of "who goes where, when, and driven by which signal."</p></div>
+<div class="card"><div class="card-icon">🩺</div>
+<h4 data-zh="情境二：疾病進程" data-en="Scenario 2: Disease Progression">情境二：疾病進程</h4>
+<p data-lang="zh"><strong>問題：</strong>肝纖維化中，靜止的星狀細胞如何被活化成分泌膠原的肌纖維母細胞？<strong>做法：</strong>把擬時序當成「病程軸」，沿線找出逐步上升的活化標記；再用通訊網路看是哪些發炎細胞的配體（如 TGF-β）在點火。<strong>產出：</strong>可介入的<strong>治療靶點</strong>——擋掉那則「催化」簡訊。</p>
+<p data-lang="en"><strong>Question:</strong> in liver fibrosis, how do quiescent stellate cells activate into collagen-secreting myofibroblasts? <strong>Approach:</strong> treat pseudotime as a "disease axis," find activation markers that ramp up along it, then use the communication network to see which inflammatory-cell ligands (e.g., TGF-β) light the fuse. <strong>Output:</strong> an actionable <strong>therapeutic target</strong> — block that "catalyzing" text.</p></div>
+<div class="card"><div class="card-icon">🎯</div>
+<h4 data-zh="情境三：腫瘤微環境對話" data-en="Scenario 3: Tumor Microenvironment">情境三：腫瘤微環境對話</h4>
+<p data-lang="zh"><strong>問題：</strong>腫瘤如何「說服」免疫細胞別攻擊它？<strong>做法：</strong>用 CellChat 掃描腫瘤微環境 (TME) 裡的細胞對話，常會抓到腫瘤或巨噬細胞對 T 細胞發出 TGF-β 等抑制訊號；再用軌跡看 T 細胞是否沿一條「耗竭 (exhaustion)」路徑漸漸失去戰力。<strong>產出：</strong>免疫治療標的（如阻斷抑制性通訊）。</p>
+<p data-lang="en"><strong>Question:</strong> how does a tumor "talk" immune cells out of attacking it? <strong>Approach:</strong> CellChat scans conversations in the tumor microenvironment (TME), often catching suppressive signals like TGF-β from tumor or macrophages to T cells; a trajectory then checks whether T cells drift along an "exhaustion" path, gradually losing punch. <strong>Output:</strong> immunotherapy targets (e.g., blocking the suppressive line).</p></div>
+</div>
+<div class="callout tip"><span class="callout-icon">🧠</span><div>
+<span data-lang="zh"><strong>把兩把工具合起來想：</strong>軌跡回答「細胞<em>正在</em>往哪變」，通訊回答「是誰在旁邊<em>推</em>它變」。當你能同時說出「這條分化／病程路徑」＋「這條配體–受體訊號在驅動它」，你的故事就從描述性升級成了<strong>機制性</strong>——這正是高影響力單細胞論文的共同套路。</span>
+<span data-lang="en"><strong>Think of the two tools together:</strong> a trajectory answers "where cells are <em>heading</em>," communication answers "who nearby is <em>pushing</em> them there." When you can state both "this differentiation/disease path" AND "this ligand–receptor signal drives it," your story leaps from descriptive to <strong>mechanistic</strong> — the shared playbook of high-impact single-cell papers.</span>
+</div></div>
+<div class="callout warn"><span class="callout-icon">🏷️</span><div>
+<span data-lang="zh"><strong>版本小提醒：</strong>BBrowserX 的選單名稱、預設參數與內建方法版本（Monocle 2、CellChat）可能隨軟體更新而略有調整；本教學說明概念與流程，實際按鈕位置請以你手上那一版的介面為準。</span>
+<span data-lang="en"><strong>Version note:</strong> BBrowserX menu names, default parameters, and bundled method versions (Monocle 2, CellChat) may shift as the software updates; this tutorial teaches the concepts and workflow — for exact button locations, defer to the interface of the version you're running.</span>
+</div></div>
+</section>
+
+<section class="quiz-section">
+<h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
+<div class="quiz-q" data-answer="1">
+<p data-lang="zh">1. 關於「擬時序 (pseudotime)」，下列何者<strong>正確</strong>？</p>
+<p data-lang="en">1. Which statement about pseudotime is <strong>correct</strong>?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 它是實驗測到的真實鐘錶時間</span><span data-lang="en">A. It is the real clock time measured experimentally</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 它是從轉錄體相似度計算推斷出的相對進展座標</span><span data-lang="en">B. It's a computationally inferred relative coordinate of progression</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 它只能用在空間轉錄組資料</span><span data-lang="en">C. It only works on spatial transcriptomics data</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 它會取代分群，兩者不能並存</span><span data-lang="en">D. It replaces clustering; the two can't coexist</span></div>
+</div><div class="quiz-feedback" id="fb1"></div></div>
+
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">2. BBrowserX 的軌跡分析與細胞通訊分別以哪些方法／資料庫為後端？</p>
+<p data-lang="en">2. What backs BBrowserX's trajectory and cell-cell communication analyses?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. UMAP 與 Harmony</span><span data-lang="en">A. UMAP and Harmony</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. Louvain 與 Venice</span><span data-lang="en">B. Louvain and Venice</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. Monocle 2（軌跡）與 CellChat（配體–受體通訊）</span><span data-lang="en">C. Monocle 2 (trajectory) and CellChat (ligand–receptor communication)</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. t-SNE 與 GSEA</span><span data-lang="en">D. t-SNE and GSEA</span></div>
+</div><div class="quiz-feedback" id="fb2"></div></div>
+
+<div class="quiz-q" data-answer="0">
+<p data-lang="zh">3. CellChat 依 mRNA 共表達推斷「巨噬細胞 → T 細胞」有 TGF-β 訊號。最合適的解讀是？</p>
+<p data-lang="en">3. CellChat infers TGF-β signaling from "Macrophage → T cell" via mRNA co-expression. The best interpretation is?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 這是一個待驗證的假說，需以蛋白／空間／功能實驗確認</span><span data-lang="en">A. A hypothesis to validate with protein/spatial/functional experiments</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 已證明兩種細胞在體內確實接觸並傳訊</span><span data-lang="en">B. Proof the two cells physically contact and signal in vivo</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. mRNA 表達等同於有功能的蛋白</span><span data-lang="en">C. mRNA expression equals functional protein</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 不需任何驗證即可寫入結論</span><span data-lang="en">D. No validation needed before concluding</span></div>
+</div><div class="quiz-feedback" id="fb3"></div></div>
+
+<div class="quiz-q" data-answer="1">
+<p data-lang="zh">4. 你在做造血分化軌跡，卻不小心把「成熟紅血球」那一群設成了起點 (root)。最可能的後果是？</p>
+<p data-lang="en">4. Running a hematopoietic trajectory, you accidentally set the "mature red blood cell" cluster as the root. The most likely consequence is?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 沒差，Monocle 2 會自動選對起點</span><span data-lang="en">A. No effect — Monocle 2 auto-picks the right root</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 擬時序方向會顛倒，看起來像「成熟細胞變回幹細胞」</span><span data-lang="en">B. Pseudotime direction flips, looking like "mature cells revert to stem cells"</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 軌跡會完全畫不出來、直接報錯</span><span data-lang="en">C. The trajectory simply fails and throws an error</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 只有基因名稱會亂掉，順序不受影響</span><span data-lang="en">D. Only gene names get scrambled; ordering is unaffected</span></div>
+</div><div class="quiz-feedback" id="fb4"></div></div>
+
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">5. 下列哪一種情況<strong>最不適合</strong>用軌跡（擬時序）分析？</p>
+<p data-lang="en">5. Which situation is <strong>least suitable</strong> for a trajectory (pseudotime) analysis?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 幹細胞逐步分化為成熟細胞的連續過程</span><span data-lang="en">A. Stem cells gradually differentiating into mature cells</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. T 細胞被逐漸活化的過程</span><span data-lang="en">B. T cells undergoing gradual activation</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 一份混了神經元與肝細胞、彼此毫無連續關係的樣本</span><span data-lang="en">C. A sample mixing neurons and hepatocytes with no continuous relationship</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 腫瘤細胞一步步惡化的進程</span><span data-lang="en">D. Tumor cells progressively transforming</span></div>
+</div><div class="quiz-feedback" id="fb5"></div></div>
+</section>
+
+<nav class="page-nav">
+<a href="dge.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 6: 差異表達與 Venice" data-en="Step 6: Differential Expression & Venice">Step 6: 差異表達與 Venice</span></a>
+<a href="multimodal.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="多模態與免疫圖譜" data-en="Multimodal & Immune Profiling">多模態與免疫圖譜</span></a>
+</nav>
+</main>
+<footer class="site-footer">© Charlene — BioTuring Interactive Tutorial · <span data-zh="教學用途，非 BioTuring 官方文件" data-en="Educational use — not official BioTuring documentation">教學用途，非 BioTuring 官方文件</span></footer>
+<script src="i18n.js"></script>
+<script>
+window.addEventListener('scroll',()=>{const h=document.documentElement;document.getElementById('progressBar').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+'%';});
+
+// ---- Synthetic cells along a curved trajectory ----
+const N=100;
+const cells=[];
+for(let i=0;i<N;i++){
+  const t=i/(N-1);                       // true pseudotime 0..1
+  const x=t;                             // progress along path
+  const y=0.5+0.42*Math.sin(t*Math.PI*1.15)-0.15*t; // curved path
+  const jx=(Math.random()-0.5)*0.045, jy=(Math.random()-0.5)*0.06;
+  cells.push({t,x:x+jx,y:y+jy});
+}
+function ptColor(t){ // light grey -> purple gradient by pseudotime
+  const r=Math.round(197+(91-197)*t), g=Math.round(192+(63-192)*t), b=Math.round(212+(176-212)*t);
+  return `rgb(${r},${g},${b})`;
+}
+// Scatter chart
+const ptScatter=new Chart(document.getElementById('ptScatter'),{
+  type:'scatter',
+  data:{datasets:[{data:cells.map(c=>({x:c.x,y:c.y})),pointRadius:5,pointBackgroundColor:cells.map(()=>'#c5c0d4'),pointBorderWidth:0}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{enabled:false},title:{display:true,text:'Cells along trajectory (UMAP-like)'}},scales:{x:{min:-0.05,max:1.05,ticks:{display:false},title:{display:true,text:'pseudotime →'}},y:{min:0,max:1.05,ticks:{display:false}}}}
+});
+// Gene dynamics line chart: one rising, one falling
+const steps=Array.from({length:41},(_,i)=>i/40);
+const geneUp=steps.map(t=>Math.round(100*(0.1+0.9/(1+Math.exp(-(t-0.55)*12)))));   // sigmoid up
+const geneDown=steps.map(t=>Math.round(100*(0.95/(1+Math.exp((t-0.4)*11))+0.05))); // sigmoid down
+const ptGenes=new Chart(document.getElementById('ptGenes'),{
+  type:'line',
+  data:{labels:steps.map(t=>t.toFixed(2)),datasets:[
+    {label:'Gene A (maturation ↑)',data:geneUp,borderColor:'#5b3fb0',backgroundColor:'transparent',tension:.35,pointRadius:0,borderWidth:2.5},
+    {label:'Gene B (stemness ↓)',data:geneDown,borderColor:'#2563a8',backgroundColor:'transparent',tension:.35,pointRadius:0,borderWidth:2.5},
+    {label:'now',data:[],borderColor:'#c0392b',borderWidth:0,pointRadius:0}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:9},boxWidth:12}},title:{display:true,text:'Expression vs pseudotime'}},scales:{x:{title:{display:true,text:'pseudotime'},ticks:{maxTicksLimit:6}},y:{min:0,max:110,title:{display:true,text:'expr.'}}}}
+});
+// vertical "now" marker via a plugin-like dataset overlay
+const nowLine={id:'nowLine',afterDraw(chart){const p=+document.getElementById('ptSlider').value/100;const xa=chart.scales.x,ya=chart.scales.y;const px=xa.getPixelForValue((p*40).toFixed(0));const ctx=chart.ctx;ctx.save();ctx.strokeStyle='#c0392b';ctx.setLineDash([4,4]);ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(px,ya.top);ctx.lineTo(px,ya.bottom);ctx.stroke();ctx.restore();}};
+Chart.register(nowLine);
+
+const STAGE={zh:['早期 / 前驅','中期 / 過渡','晚期 / 成熟'],en:['Early / progenitor','Mid / transition','Late / mature']};
+function updatePT(){
+  const p=+document.getElementById('ptSlider').value/100;
+  document.getElementById('ptVal').textContent=Math.round(p*100)+'%';
+  const cols=cells.map(c=>c.t<=p?ptColor(c.t):'#c5c0d4');
+  ptScatter.data.datasets[0].pointBackgroundColor=cols;
+  ptScatter.update('none');
+  ptGenes.update('none');
+  const passed=cells.filter(c=>c.t<=p).length;
+  document.getElementById('ptCount').textContent=passed;
+  const L=(window.I18n&&I18n.get)?I18n.get():'zh';
+  const s=p<0.34?0:p<0.67?1:2;
+  document.getElementById('ptStage').textContent=STAGE[L][s];
+}
+document.getElementById('ptSlider').addEventListener('input',updatePT);
+
+// ---- Ligand–Receptor pairs ----
+const LR={
+ mac2t:{
+   zh:'<div class="lr-flow"><b>巨噬細胞</b> → T 細胞</div>範例配體–受體對：<b>TGFB1 → TGFBR1</b>（訊號通路：<b>TGF-β</b>）。傳送方巨噬細胞發出配體 TGFB1（像一則簡訊），接收方 T 細胞用受體 TGFBR1（像收訊 App）接住——常與 T 細胞的免疫抑制／調節有關。⚠️ 這是 mRNA 共表現推斷的假說，需驗證。',
+   en:'<div class="lr-flow"><b>Macrophage</b> → T cell</div>Example L–R pair: <b>TGFB1 → TGFBR1</b> (pathway: <b>TGF-β</b>). The sender macrophage sends ligand TGFB1 (like a text); the receiver T cell catches it with receptor TGFBR1 (like a receiving app) — often linked to T-cell immunosuppression/regulation. ⚠️ An mRNA co-expression hypothesis — validate it.'},
+ fib2epi:{
+   zh:'<div class="lr-flow"><b>纖維母細胞</b> → 上皮細胞</div>範例配體–受體對：<b>FGF7 → FGFR2</b>（訊號通路：<b>FGF</b>）。基質纖維母細胞分泌 FGF7 生長因子這則「快增生／修復」的訊息，作用於上皮的 FGFR2 受體，促進上皮增生與傷口修復。⚠️ 共表現只是間接代理，需驗證。',
+   en:'<div class="lr-flow"><b>Fibroblast</b> → Epithelial</div>Example L–R pair: <b>FGF7 → FGFR2</b> (pathway: <b>FGF</b>). Stromal fibroblasts secrete FGF7 — a "grow/repair" message — acting on epithelial FGFR2 to drive proliferation and wound healing. ⚠️ Co-expression is only an indirect proxy — validate it.'},
+ endo2t:{
+   zh:'<div class="lr-flow"><b>內皮細胞</b> → T 細胞</div>範例配體–受體對：<b>CXCL12 → CXCR4</b>（訊號通路：<b>CXCL</b>）。內皮細胞發出趨化因子 CXCL12 這則「往這邊來」的訊息，吸引表達 CXCR4 受體的 T 細胞遷移過來（招募／歸巢）。⚠️ 尚須空間或功能實驗確認。',
+   en:'<div class="lr-flow"><b>Endothelial</b> → T cell</div>Example L–R pair: <b>CXCL12 → CXCR4</b> (pathway: <b>CXCL</b>). Endothelial cells send chemokine CXCL12 — a "come this way" message — attracting CXCR4+ T cells to migrate over (recruitment/homing). ⚠️ Still needs spatial or functional confirmation.'},
+ t2b:{
+   zh:'<div class="lr-flow"><b>T 細胞</b> → B 細胞</div>範例配體–受體對：<b>CD40LG → CD40</b>（訊號通路：<b>CD40</b>）。活化的 T 細胞發出 CD40LG，結合 B 細胞的 CD40 收訊 App，提供 B 細胞活化與抗體類別轉換的關鍵協同刺激訊號。⚠️ 推斷結果仍屬假說。',
+   en:'<div class="lr-flow"><b>T cell</b> → B cell</div>Example L–R pair: <b>CD40LG → CD40</b> (pathway: <b>CD40</b>). Activated T cells send CD40LG, binding the B-cell CD40 receiving app — a key co-stimulatory signal for B-cell activation and antibody class-switching. ⚠️ The inference is still a hypothesis.'}
+};
+function renderLR(k){const L=(window.I18n&&I18n.get)?I18n.get():'zh';document.getElementById('lrBox').innerHTML=LR[k][L];}
+document.querySelectorAll('#lrPick .toggle-btn').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#lrPick .toggle-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderLR(b.dataset.k);}));
+
+// ---- langchange: retint charts, restage, re-render LR ----
+document.addEventListener('langchange',()=>{
+  ptGenes.data.datasets[0].label=(I18n.get()==='zh')?'基因 A（成熟 ↑）':'Gene A (maturation ↑)';
+  ptGenes.data.datasets[1].label=(I18n.get()==='zh')?'基因 B（幹性 ↓）':'Gene B (stemness ↓)';
+  ptScatter.options.plugins.title.text=(I18n.get()==='zh')?'沿軌跡排列的細胞（類 UMAP）':'Cells along trajectory (UMAP-like)';
+  ptGenes.options.plugins.title.text=(I18n.get()==='zh')?'表達量 vs 擬時序':'Expression vs pseudotime';
+  ptScatter.options.scales.x.title.text=(I18n.get()==='zh')?'擬時序 →':'pseudotime →';
+  ptGenes.options.scales.x.title.text=(I18n.get()==='zh')?'擬時序':'pseudotime';
+  ptScatter.update();ptGenes.update();
+  updatePT();
+  const a=document.querySelector('#lrPick .toggle-btn.active');if(a)renderLR(a.dataset.k);
+});
+// init labels in zh
+ptGenes.data.datasets[0].label='基因 A（成熟 ↑）';
+ptGenes.data.datasets[1].label='基因 B（幹性 ↓）';
+ptScatter.options.plugins.title.text='沿軌跡排列的細胞（類 UMAP）';
+ptGenes.options.plugins.title.text='表達量 vs 擬時序';
+ptScatter.options.scales.x.title.text='擬時序 →';
+ptGenes.options.scales.x.title.text='擬時序';
+updatePT();
+renderLR('mac2t');
+
+// ---- Quiz ----
+const QF={
+ zh:{q1_y:'擬時序是演算法從轉錄體相似度重建的相對進展座標，不是真實時間。',q1_n:'正確答案已標示。',q2_y:'BBrowserX 以 Monocle 2 做軌跡、以 CellChat 配體–受體資料庫做細胞通訊。',q2_n:'正確答案已標示。',q3_y:'共表達推斷只是假說，需以蛋白／空間／功能實驗驗證。',q3_n:'正確答案已標示。',q4_y:'起點決定方向。誤把成熟細胞設為 root，擬時序會整個顛倒，得出「成熟變回幹細胞」的假象。',q4_n:'正確答案已標示。',q5_y:'軌跡只在生物上連續的過程才有意義；把毫無連續關係的細胞硬湊會得到假路徑。',q5_n:'正確答案已標示。'},
+ en:{q1_y:'Pseudotime is a relative progression coordinate reconstructed from transcriptomic similarity — not real time.',q1_n:'Correct answer highlighted.',q2_y:'BBrowserX uses Monocle 2 for trajectory and the CellChat ligand–receptor database for communication.',q2_n:'Correct answer highlighted.',q3_y:'Co-expression inference is a hypothesis — validate with protein/spatial/functional experiments.',q3_n:'Correct answer highlighted.',q4_y:'The root sets direction. Making a mature cell the root flips pseudotime, giving the illusion "mature cells revert to stem cells."',q4_n:'Correct answer highlighted.',q5_y:'A trajectory is only meaningful for a biologically continuous process; forcing unrelated cells together yields a fake path.',q5_n:'Correct answer highlighted.'}
+};
+document.querySelectorAll('.quiz-q').forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll('.quiz-opt').forEach(o=>{o.addEventListener('click',()=>{if(q.classList.contains('answered'))return;q.classList.add('answered');const fb=document.getElementById('fb'+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?'correct':'wrong');if(!ok)q.querySelectorAll('.quiz-opt')[ans].classList.add('correct');const L=I18n.get();fb.className='quiz-feedback show '+(ok?'correct-fb':'wrong-fb');fb.textContent=(ok?'✅ ':'❌ ')+(QF[L]['q'+(qi+1)+'_'+(ok?'y':'n')]||'');});});});
+</script>
+</body></html>
