@@ -1,0 +1,294 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Talk2Data — BioTuring Tutorial</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>.page-hero{background:linear-gradient(160deg,#2b1a5e 0%,#3b2a86 35%,#5b3fb0 70%,#2563a8 100%)}
+.gene-pick{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.gene-note{margin-top:14px;padding:14px 18px;border-radius:var(--radius-lg);background:var(--c-highlight-light);border-left:4px solid var(--c-highlight);font-size:.9rem}
+.gene-note b{color:var(--c-highlight)}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:20px 0}
+.stat-box{background:var(--c-surface);border:1px solid var(--c-border-light);border-radius:var(--radius-lg);padding:20px;text-align:center;box-shadow:var(--shadow-sm)}
+.stat-box .stat-num{font-family:var(--font-display);font-size:1.7rem;font-weight:700;color:var(--c-accent-dark)}
+.stat-box .stat-lab{font-size:.8rem;color:var(--c-ink-muted);margin-top:4px;line-height:1.4}</style></head><body>
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="BioTuring 教學" data-en="BioTuring Tutorial">BioTuring 教學</span></a>
+  <ul class="top-nav-links"><li><a href="overview.html" data-zh="總覽" data-en="Overview">總覽</a></li><li><a href="import.html">Import</a></li><li><a href="qc.html">QC</a></li><li><a href="normalization.html">Norm.</a></li><li><a href="clustering.html">Cluster</a></li><li><a href="annotation.html">Annot.</a></li><li><a href="dge.html">DE</a></li><li><a href="trajectory.html">Traj.</a></li><li><a href="multimodal.html">Multi</a></li><li><a href="spatialx.html">SpatialX</a></li><li><a href="talk2data.html" class="active">Talk2Data</a></li><li><a href="references/index.html" data-zh="📚 參考資料" data-en="📚 References">📚 參考資料</a></li></ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">DATABASE · <span data-zh="公開資料探勘" data-en="Public Data Mining">公開資料探勘</span></div>
+<h1 data-zh="Talk2Data 分析中樞與精選資料庫" data-en="Talk2Data: Analytics Hub & Curated Database">Talk2Data 分析中樞與精選資料庫</h1>
+<p class="subtitle" data-lang="zh">不必自己做實驗，也能在上億顆已發表的單細胞裡搜尋、比對、驗證你的想法——這是「細胞世界的 Google」：跨研究比較、Gene Search 與自訂細胞圖譜。</p>
+<p class="subtitle" data-lang="en">Search, compare, and validate your ideas across hundreds of millions of already-published cells — no wet lab required. This is "Google for the cellular world": cross-study comparison, Gene Search, and custom atlases.</p>
+</header>
+<main class="content-wrap">
+
+<section class="section">
+<div class="section-label" data-zh="這是什麼" data-en="WHAT IT IS">這是什麼</div>
+<h2 data-zh="一、Talk2Data 是什麼？" data-en="I. What is Talk2Data?">一、Talk2Data 是什麼？</h2>
+<div data-lang="zh">
+<p>想像你有一個問題：「我剛在自己的腫瘤樣本裡發現一個看起來很特別的基因，這到底是全新發現，還是別人早就看過了？」在傳統做法裡，你得下載一堆論文的原始資料、各自跑一遍分析、再手動對照——可能要花好幾週。<strong>Talk2Data</strong> 把這件事變成「打開網頁、搜尋、看結果」，就像用 Google 查一個關鍵字那麼直覺。</p>
+<p><strong>Talk2Data</strong> 是 BioTuring 生態系裡的<strong>分析中樞 (analytics hub)</strong>，背後建立在一個龐大、經過人工<strong>精選 (curated) 的公開單細胞與空間資料庫</strong>之上。它的核心價值是：讓你<strong>不必自己產生資料</strong>，就能直接探勘、比較、重新分析數以千計已發表的研究。這裡的「精選」很關鍵——不是把 GEO 上的檔案原封不動堆在一起，而是有人把每一筆資料的細胞類型、組織、疾病、平台等資訊<strong>對齊到統一的標準</strong>，你才能「一次搜尋、跨庫比對」。</p>
+<p>換句話說，如果 <a href="import.html">BBrowserX</a> 是「分析<strong>你自己</strong>的資料」，那 Talk2Data 就是「分析<strong>全世界已經發表</strong>的資料」。你可以查詢某個基因在哪些組織、疾病、細胞類型中高表達；也可以把你在自己資料裡的發現，拿到成千上萬個公開資料集裡去<strong>驗證是否可重現</strong>。它就像替你的假說做「全庫民調」——不是問幾個人，而是問整個領域已經累積的答案。</p>
+</div>
+<div data-lang="en">
+<p>Picture a question: "I just found a striking gene in my own tumor sample — is this a brand-new discovery, or has the field already seen it?" The traditional route means downloading raw data from a pile of papers, re-analyzing each one, and comparing by hand — possibly weeks of work. <strong>Talk2Data</strong> turns that into "open a webpage, search, read the result," as intuitive as googling a keyword.</p>
+<p><strong>Talk2Data</strong> is the <strong>analytics hub</strong> of the BioTuring ecosystem, built on top of a large, human-<strong>curated public single-cell & spatial database</strong>. Its core value: you can explore, compare, and re-analyze thousands of published studies <strong>without generating your own data</strong>. "Curated" is the key word — it isn't a raw dump of GEO files, but a database where someone has <strong>aligned every dataset's cell types, tissues, diseases, and platforms to a common standard</strong>, so you can "search once, compare across the whole library."</p>
+<p>Put differently — if <a href="import.html">BBrowserX</a> is "analyze <strong>your own</strong> data," Talk2Data is "analyze data <strong>the whole field has already published</strong>." You can ask where a gene is highly expressed across tissues, diseases, and cell types; or take a finding from your own data and <strong>test whether it reproduces</strong> across thousands of public datasets. Think of it as a "field-wide poll" for your hypothesis — not a few opinions, but the accumulated answers of an entire discipline.</p>
+</div>
+<div class="callout tip"><span class="callout-icon">💡</span><div>
+<span data-lang="zh"><strong>一句話定位：</strong>Talk2Data = 「細胞世界的 Google」。它不是取代你的實驗，而是幫你在做實驗<strong>之前</strong>（形成假說、找方向）或<strong>之後</strong>（跨研究驗證、找旁證）快速利用海量公開資源。實驗負責「產生新知識」，Talk2Data 負責「站在別人肩膀上」。</span>
+<span data-lang="en"><strong>In one line:</strong> Talk2Data is "Google for the cellular world." It doesn't replace your experiments — it helps you leverage massive public resources <strong>before</strong> (hypothesis generation, finding direction) or <strong>after</strong> (cross-study validation, supporting evidence) you run them. Experiments generate new knowledge; Talk2Data lets you stand on the shoulders of others.</span>
+</div></div>
+<div class="callout warn"><span class="callout-icon">🎯</span><div>
+<span data-lang="zh"><strong>為什麼重要：</strong>單細胞論文每年以指數成長，一個人再勤勞也讀不完、更別說一一重跑分析。把「已發表的答案」變成可查詢的資料庫，等於把整個領域的集體記憶，濃縮成一個搜尋框。你省下的不只是時間，還有「不知道自己不知道」的盲點——因為搜尋會把你原本沒想到的組織、疾病一起攤在眼前。</span>
+<span data-lang="en"><strong>Why it matters:</strong> Single-cell papers grow exponentially each year — no one can read them all, let alone re-run every analysis. Turning "already-published answers" into a searchable database compresses the field's collective memory into a single search box. What you save isn't just time — it's the blind spot of "not knowing what you don't know," because a search lays out tissues and diseases you never thought to check.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="資料規模" data-en="DATA SCALE">資料規模</div>
+<h2 data-zh="二、資料庫的規模——大到什麼程度？" data-en="II. Scale of the Database — Just How Big?">二、資料庫的規模——大到什麼程度？</h2>
+<div data-lang="zh"><p>Talk2Data 的探勘能力，直接來自其底層精選資料庫的規模。但「120M+ 顆細胞」聽起來只是一串數字——它到底有多大？打個比方：如果把 <strong>1.2 億顆細胞</strong>一顆一顆排成隊，每顆只花你 1 秒看過去，<strong>不吃不睡也要看將近 4 年</strong>。若把每顆細胞當成一位觀眾，這個「細胞演唱會」的人數比整個日本的人口還多。以下為官方公佈的各資料型態數量（注意數量級差異極大，圖表採<strong>對數尺度 (log scale)</strong>——否則 1800 這種小數字會被壓成看不見的一條線）。</p></div>
+<div data-lang="en"><p>Talk2Data's mining power comes straight from the scale of its underlying curated database. But "120M+ cells" is just a string of digits — how big is that really? An analogy: line up <strong>120 million cells</strong> one by one and spend just 1 second on each — you'd need <strong>nearly 4 years without eating or sleeping</strong> to see them all. Treat each cell as an audience member, and this "cell concert" outnumbers the entire population of Japan. Below are the officially published counts per data type (note the magnitudes differ enormously — the chart uses a <strong>log scale</strong>, otherwise a small number like 1800 would be crushed into an invisible sliver).</p></div>
+<div class="stat-grid">
+<div class="stat-box"><div class="stat-num">120M+</div><div class="stat-lab" data-zh="scRNA-seq 單細胞" data-en="scRNA-seq cells">scRNA-seq 單細胞</div></div>
+<div class="stat-box"><div class="stat-num">20M+</div><div class="stat-lab" data-zh="單細胞空間轉錄組細胞" data-en="single-cell spatial transcriptomics cells">單細胞空間轉錄組細胞</div></div>
+<div class="stat-box"><div class="stat-num">100M+</div><div class="stat-lab" data-zh="空間蛋白體細胞" data-en="spatial proteomics cells">空間蛋白體細胞</div></div>
+<div class="stat-box"><div class="stat-num">1800</div><div class="stat-lab" data-zh="bulk 空間切片" data-en="bulk spatial slices">bulk 空間切片</div></div>
+</div>
+<div class="chart-container" style="height:300px;"><canvas id="scaleChart"></canvas></div>
+<p style="font-size:.78rem;color:var(--c-ink-muted);text-align:center;"><span data-zh="數字為 BioTuring 官網公佈值，對數尺度；實際數量與選單可能隨版本更新。log 尺度下，每往右一格代表數量放大 10 倍。" data-en="Figures as published on BioTuring's site (log scale); exact counts and menus may change between releases. On a log axis, each gridline right means 10× more.">數字為 BioTuring 官網公佈值，對數尺度；實際數量與選單可能隨版本更新。log 尺度下，每往右一格代表數量放大 10 倍。</span></p>
+<div class="callout tip"><span class="callout-icon">🔍</span><div>
+<span data-lang="zh"><strong>怎麼讀這張對數圖？</strong>線性尺度下，1800 個切片和 1 億顆細胞畫在一起，前者會小到看不見。對數尺度把「倍數」而非「差額」畫成等距——所以你看到的四根柱子高度差不多，但它們之間其實差了好幾個「10 倍」。這正是為什麼比較數量級懸殊的資料時，log 是專家的預設選擇。（想複習線性 vs 對數的差別，可回顧 <a href="normalization.html">標準化章節</a>。）</span>
+<span data-lang="en"><strong>How to read this log chart:</strong> On a linear scale, 1800 slices next to 100 million cells would vanish. A log scale spaces out <strong>multiples</strong> rather than differences — so the four bars look similar in height, but they're actually several "10×" steps apart. That's exactly why log is the expert default when comparing wildly different magnitudes. (For a refresher on linear vs. log, revisit the <a href="normalization.html">normalization chapter</a>.)</span>
+</div></div>
+<div class="callout warn"><span class="callout-icon">📊</span><div>
+<span data-lang="zh"><strong>更廣的資料庫脈絡：</strong>部分官方與媒體資料另外<strong>提及</strong>整個 BioTuring 資料庫涵蓋跨物種（human / mouse / NHP 非人靈長類）達 <strong>500M+ 多體學 (multi-omics) profiles</strong>，並整合 <strong>Human Cell Atlas（人類細胞圖譜）</strong>、<strong>Tahoe-100M</strong> 等大型資源，部分材料提及由 <strong>NVIDIA</strong> 硬體加速。這些屬「<strong>報導值</strong>」，數字與整合範圍會隨版本而異——就像產品的「官方宣稱規格」，方向對，但小數點別當聖旨。請以你使用的版本畫面為準。</span>
+<span data-lang="en"><strong>Broader database context:</strong> Some official/press materials additionally <strong>report</strong> that the overall BioTuring database spans <strong>500M+ multi-omics profiles</strong> across species (human / mouse / NHP non-human primate), integrating resources like the <strong>Human Cell Atlas</strong> and <strong>Tahoe-100M</strong>, with some materials mentioning <strong>NVIDIA</strong> hardware acceleration. Treat these as <strong>reported</strong> figures — like a product's "advertised specs," the direction is right but don't treat the decimals as gospel. Numbers and scope vary by release, so trust what your version's UI shows.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="核心功能" data-en="KEY FEATURES">核心功能</div>
+<h2 data-zh="三、四項核心功能" data-en="III. Four Key Features">三、四項核心功能</h2>
+<div data-lang="zh"><p>Talk2Data 不是一個籠統的「大資料庫」，而是四種明確的查詢姿勢。用一個比喻：如果資料庫是一座巨大的圖書館，這四項功能就是四種借書方式——<strong>精讀一本</strong>、<strong>跨書比對主題</strong>、<strong>全館關鍵字檢索</strong>、以及<strong>自己編一本選集</strong>。</p></div>
+<div data-lang="en"><p>Talk2Data isn't a vague "big database" — it's four distinct ways to ask a question. A metaphor: if the database is a vast library, these four features are four ways to borrow — <strong>read one book closely</strong>, <strong>compare a theme across books</strong>, <strong>full-library keyword search</strong>, and <strong>compile your own anthology</strong>.</p></div>
+<div class="card-grid cols-2">
+<div class="card"><div class="card-icon">🔬</div><h4 data-zh="單一研究分析（深挖一篇）" data-en="Single-study analysis">單一研究分析（深挖一篇）</h4>
+<div data-lang="zh"><p>選定一個已發表資料集，直接在瀏覽器中做 UMAP、細胞類型檢視、基因表達 violin/heatmap 等分析——<strong>就像分析你自己的資料，但省去下載與前處理</strong>。適合情境：你讀到一篇 Nature 論文，想親眼確認它圖 3 裡那群細胞的某個基因，而不是只看作者挑給你看的那張圖。</p></div>
+<div data-lang="en"><p>Pick one published dataset and run UMAP, cell-type views, gene-expression violin/heatmaps right in the browser — <strong>like analyzing your own data, minus the download and preprocessing</strong>. Good when: you read a Nature paper and want to check a gene in the cell population from Figure 3 yourself, not just the panel the authors chose to show.</p></div>
+</div>
+<div class="card"><div class="card-icon">🔗</div><h4 data-zh="跨研究分析（把一件事比一比）" data-en="Cross-study analysis">跨研究分析（把一件事比一比）</h4>
+<div data-lang="zh"><p>把某個<strong>基因或細胞類型</strong>拿到<strong>許多資料集</strong>之間比較：它在不同組織、疾病、平台間的表達是否一致？這是驗證發現、找規律的關鍵功能。比喻：與其問「我這班學生喜不喜歡數學」，不如問「全國一百個班級，這個現象普遍嗎？」——一致才叫規律，特例往往是雜訊或亮點。</p></div>
+<div data-lang="en"><p>Compare a <strong>gene or cell type across many datasets</strong>: is its expression consistent across tissues, diseases, and platforms? This is the key feature for validating findings and spotting patterns. Metaphor: instead of asking "does my class like math," ask "across a hundred classrooms nationwide, is this pattern universal?" — consistency makes a rule; an outlier is often noise, or a highlight.</p></div>
+</div>
+<div class="card"><div class="card-icon">🔎</div><h4>Gene Search（全庫查一個基因）</h4>
+<div data-lang="zh"><p>輸入一個基因，查詢它在<strong>整個資料庫</strong>中的表達分佈——哪些組織、細胞類型、條件下高表達。這是形成假說最快的入口。比喻：就像在地圖上搜尋一家連鎖店，一秒看出它「開在哪些城市、哪些商圈密集」。一個基因輸入，全庫地圖立刻點亮。</p></div>
+<div data-lang="en"><p>Enter a gene and query its expression across the <strong>whole database</strong> — which tissues, cell types, and conditions express it highly. The fastest on-ramp for hypothesis generation. Metaphor: like searching a chain store on a map and instantly seeing "which cities and which neighborhoods it clusters in." One gene in, the whole map lights up.</p></div>
+</div>
+<div class="card"><div class="card-icon">🗂️</div><h4 data-zh="自訂細胞圖譜（自己編選集）" data-en="Custom cell atlas">自訂細胞圖譜（自己編選集）</h4>
+<div data-lang="zh"><p>從資料庫挑選相關研究，組合成你自己的<strong>參考細胞圖譜 (atlas)</strong>；可回饋到 <a href="annotation.html">MetaReference 自動註釋</a>，作為註釋自己資料的參考。比喻：像從書架挑十本最貼近你研究主題的書，訂製一本「專屬參考手冊」——之後遇到不認識的細胞，就翻這本比對。</p></div>
+<div data-lang="en"><p>Assemble your own <strong>reference cell atlas</strong> from selected studies; feed it back into <a href="annotation.html">MetaReference auto-annotation</a> as a reference for annotating your own data. Metaphor: like pulling ten books closest to your topic off the shelf and binding your own "custom reference manual" — then, whenever an unknown cell appears, you flip to that manual to match it.</p></div>
+</div>
+</div>
+<div class="callout tip"><span class="callout-icon">🧑‍🏫</span><div>
+<span data-lang="zh"><strong>專家小撇步：</strong>四種功能其實對應「問題的粒度」。要看細節 → 單一研究；要看普遍性 → 跨研究；要探索方向 → Gene Search；要建立標準答案 → 自訂圖譜。搞混很常見的後果是：明明只想知道「這基因大概在哪」，卻一頭栽進單篇資料集的細節裡出不來。<strong>先用 Gene Search 大範圍掃，再挑重點深挖</strong>——由粗到細，效率最高。</span>
+<span data-lang="en"><strong>Pro tip:</strong> The four features map onto "the granularity of your question." Need detail → single-study; need generality → cross-study; exploring direction → Gene Search; building a gold standard → custom atlas. A common mix-up: you only wanted to know "roughly where is this gene," but you dive into one dataset's weeds and never come out. <strong>Sweep broadly with Gene Search first, then drill into the hotspots</strong> — coarse-to-fine is the most efficient path.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="互動" data-en="INTERACTIVE">互動</div>
+<h2 data-zh="四、互動示範：Gene Search 跨組織表達" data-en="IV. Interactive: Gene Search Across Tissues">四、互動示範：Gene Search 跨組織表達</h2>
+<div data-lang="zh"><p>選一個基因，看看它在不同組織／細胞類型中的（<strong>模擬</strong>）表達分佈——這正是 Gene Search 的精神：<strong>一次查詢，跨整個資料庫看模式</strong>。試著點不同基因，注意「高柱子」落在哪裡：那根最高的柱子，往往就對應這個基因在生物學上真正「當家作主」的地方。這個小遊戲讓抽象的「marker gene」變得一目了然——marker（標記基因）之所以能標記某種細胞，正因為它在那種細胞裡特別亮、在別處特別暗。</p></div>
+<div data-lang="en"><p>Pick a gene and see its (<strong>simulated</strong>) expression across tissues/cell types — this captures the spirit of Gene Search: <strong>one query, patterns across the whole database</strong>. Click different genes and watch where the "tall bar" lands: that tallest bar usually points to where the gene is biologically "in charge." This little game makes the abstract idea of a "marker gene" click — a marker labels a cell type precisely because it's bright there and dim elsewhere.</p></div>
+<div class="interactive-panel">
+<div class="gene-pick" id="genePick">
+  <button class="toggle-btn active" data-g="CD8A">CD8A</button>
+  <button class="toggle-btn" data-g="FOXP3">FOXP3</button>
+  <button class="toggle-btn" data-g="EPCAM">EPCAM</button>
+  <button class="toggle-btn" data-g="PECAM1">PECAM1</button>
+</div>
+<div class="chart-container" style="height:300px;"><canvas id="geneChart"></canvas></div>
+<div class="gene-note" id="geneNote"></div>
+</div>
+<p style="font-size:.78rem;color:var(--c-ink-muted);text-align:center;"><span data-zh="⚠️ 此為教學用「模擬」數據，僅示意 Gene Search 的呈現方式，並非真實資料庫查詢結果。真實查詢的數值、組織分類與細胞類型會依版本與所選資料集而不同。" data-en="⚠️ These are SIMULATED illustrative values to show how Gene Search presents results — not live database queries. Real values, tissue categories, and cell types vary by version and selected datasets.">⚠️ 此為教學用「模擬」數據，僅示意 Gene Search 的呈現方式，並非真實資料庫查詢結果。真實查詢的數值、組織分類與細胞類型會依版本與所選資料集而不同。</span></p>
+<div class="callout warn"><span class="callout-icon">🧪</span><div>
+<span data-lang="zh"><strong>實戰情境：</strong>假設你在自己的資料裡發現一群不知名細胞，同時高表現 <strong>CD8A</strong>。丟進（真實的）Gene Search，發現它在全庫的「血液」與「腫瘤浸潤 T 細胞」都亮——你幾乎可以斷定這是<strong>細胞毒性 T 細胞 (CD8⁺ T)</strong>。再點 <strong>EPCAM</strong> 對照：它反而在上皮／腫瘤上皮亮。同一張畫面，兩個基因，兩種細胞身份呼之欲出。這就是 Gene Search 把「猜細胞」變成「查細胞」的威力。</span>
+<span data-lang="en"><strong>Real scenario:</strong> Suppose you find an unknown cell population in your data that also highly expresses <strong>CD8A</strong>. Drop it into (a real) Gene Search and see it light up in "blood" and "tumor-infiltrating T cells" database-wide — you can almost call it a <strong>cytotoxic T (CD8⁺ T)</strong> cell. Now click <strong>EPCAM</strong> for contrast: it lights up in epithelium / carcinoma instead. One view, two genes, two cell identities nearly self-evident. That's the power of Gene Search turning "guessing the cell" into "looking it up."</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="使用情境" data-en="USE CASES">使用情境</div>
+<h2 data-zh="五、典型使用情境" data-en="V. Typical Use Cases">五、典型使用情境</h2>
+<div data-lang="zh"><p>把功能背下來不難，難的是「什麼時候該伸手拿哪一把工具」。下面這棵決策樹，就是把你腦中最常出現的那幾個問題，直接對到該用的功能。</p></div>
+<div data-lang="en"><p>Memorizing features is easy; the hard part is "when to reach for which tool." This decision tree maps the questions most likely running through your head straight onto the feature you should use.</p></div>
+<div class="decision-tree">
+<h4 data-zh="🧭 我該怎麼用 Talk2Data？" data-en="🧭 How should I use Talk2Data?">🧭 我該怎麼用 Talk2Data？</h4>
+<div class="dt-node"><span class="dt-q">Q1</span><span class="dt-arrow">→</span><span data-lang="zh"><strong>想驗證自己的發現是否在別人資料中重現？</strong> 用<strong>跨研究分析</strong>，把你的候選基因／細胞類型放到眾多已發表資料集裡看是否可重現。可重現＝有底氣；只在你這一份出現＝先別急著寫進 abstract。</span><span data-lang="en"><strong>Validate that your finding reproduces in others' data?</strong> Use <strong>cross-study analysis</strong> — check whether your candidate gene/cell type reproduces across many published datasets. Reproducible = confidence; unique to your one dataset = don't rush it into the abstract.</span></div>
+<div class="dt-node"><span class="dt-q">Q2</span><span class="dt-arrow">→</span><span data-lang="zh"><strong>想找疾病相關基因在哪些細胞／組織表現？</strong> 用 <strong>Gene Search</strong>，一次查出它在各組織／疾病／細胞類型的表達分佈，快速鎖定「該去哪個細胞找機制」。</span><span data-lang="en"><strong>Find where a disease-related gene is expressed?</strong> Use <strong>Gene Search</strong> to see its distribution across tissues/diseases/cell types at once, quickly pinpointing "which cell to chase for mechanism."</span></div>
+<div class="dt-node"><span class="dt-q">Q3</span><span class="dt-arrow">→</span><span data-lang="zh"><strong>要建立註釋參考、註釋自己的資料？</strong> 用<strong>自訂細胞圖譜</strong>組一個相關參考，回饋到 <a href="annotation.html">MetaReference</a> 自動註釋，讓你的新資料「有標準答案可對」。</span><span data-lang="en"><strong>Build an annotation reference for your own data?</strong> Build a <strong>custom cell atlas</strong> as a relevant reference and feed it into <a href="annotation.html">MetaReference</a> auto-annotation, giving your new data "a gold standard to check against."</span></div>
+<div class="dt-node"><span class="dt-q">Q4</span><span class="dt-arrow">→</span><span data-lang="zh"><strong>只想快速看懂一篇論文的資料？</strong> 用<strong>單一研究分析</strong>，直接互動探索那篇的 UMAP 與基因，不必等作者補圖，也不必自己重跑。</span><span data-lang="en"><strong>Just want to understand one paper's data fast?</strong> Use <strong>single-study analysis</strong> to interactively explore that paper's UMAP and genes — no waiting for author panels, no re-running it yourself.</span></div>
+</div>
+<div class="callout tip"><span class="callout-icon">🔁</span><div>
+<span data-lang="zh"><strong>和你自己的分析串起來（閉環）：</strong>最常見的完整流程是——在 <a href="dge.html">BBrowserX 的差異表達</a> 找到候選 marker → 到 Talk2Data 用 Gene Search / 跨研究分析<strong>驗證</strong>它是否普遍 → 挑相關研究組成<strong>自訂圖譜</strong> → 回到 <a href="annotation.html">annotation</a> 用它註釋新資料。探勘與分析形成閉環，你的每一次公開資料查詢，最後都餵回自己的專案。</span>
+<span data-lang="en"><strong>Wire it into your own analysis (the loop):</strong> the most common full flow — find candidate markers in <a href="dge.html">BBrowserX DE</a> → <strong>validate</strong> whether they generalize in Talk2Data via Gene Search / cross-study analysis → assemble a <strong>custom atlas</strong> from relevant studies → return to <a href="annotation.html">annotation</a> to annotate new data with it. Mining and analysis close the loop; every public-data query eventually feeds back into your own project.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="取捨" data-en="TRADE-OFFS">取捨</div>
+<h2 data-zh="六、分析自己的資料 vs. 探勘公開資料" data-en="VI. Analyzing Your Own vs. Mining Public Data">六、分析自己的資料 vs. 探勘公開資料</h2>
+<div data-lang="zh"><p>初學者最常搞混的，就是「什麼時候該打開 BBrowserX、什麼時候該打開 Talk2Data」。其實它們不是二選一，而是分工——一個處理「你手上的樣本」，一個處理「全世界的參照」。下表把差異一次講清楚。</p></div>
+<div data-lang="en"><p>The most common beginner confusion is "when to open BBrowserX vs. Talk2Data." They aren't either/or — they're a division of labor: one handles "the sample in your hands," the other "the world's reference." The table below spells out the differences at a glance.</p></div>
+<table class="comp-table">
+<thead><tr>
+<th data-zh="面向" data-en="Aspect">面向</th>
+<th data-zh="分析自己的資料（BBrowserX）" data-en="Analyze your OWN data (BBrowserX)">分析自己的資料（BBrowserX）</th>
+<th data-zh="探勘公開資料（Talk2Data）" data-en="Mine PUBLIC data (Talk2Data)">探勘公開資料（Talk2Data）</th>
+</tr></thead>
+<tbody>
+<tr><td data-zh="資料來源" data-en="Data source"><strong>資料來源</strong></td><td data-lang="zh">你自己實驗產生的資料</td><td data-lang="zh">精選的已發表公開資料庫</td><td data-lang="en">Data you generated in the lab</td><td data-lang="en">Curated published public database</td></tr>
+<tr><td data-zh="主要目的" data-en="Main purpose"><strong>主要目的</strong></td><td data-lang="zh">完整分析你的樣本（QC→分群→DE…）</td><td data-lang="zh">形成假說、跨研究驗證、找表達模式</td><td data-lang="en">Full analysis of your samples (QC→cluster→DE…)</td><td data-lang="en">Hypothesis generation, cross-study validation, expression patterns</td></tr>
+<tr><td data-zh="需自備樣本？" data-en="Need your own sample?"><strong>需自備樣本？</strong></td><td data-lang="zh">是——需先做實驗與定序</td><td data-lang="zh">否——直接用公開資料</td><td data-lang="en">Yes — you must run the experiment</td><td data-lang="en">No — use public data directly</td></tr>
+<tr><td data-zh="批次／異質性" data-en="Batch / heterogeneity"><strong>批次／異質性</strong></td><td data-lang="zh">相對可控（同一實驗設計）</td><td data-lang="zh">高——跨平台、跨標註、跨實驗室</td><td data-lang="en">More controlled (one design)</td><td data-lang="en">High — across platforms, annotations, labs</td></tr>
+<tr><td data-zh="速度／門檻" data-en="Speed / barrier"><strong>速度／門檻</strong></td><td data-lang="zh">需先產資料，前置最久</td><td data-lang="zh">開網頁即查，秒級起步</td><td data-lang="en">Must generate data first — longest setup</td><td data-lang="en">Open a page and query — starts in seconds</td></tr>
+<tr><td data-zh="典型入口章節" data-en="Where to start"><strong>典型入口章節</strong></td><td data-lang="zh"><a href="import.html">Step 1: 資料匯入</a></td><td data-lang="zh">本章（Gene Search / 跨研究）</td><td data-lang="en"><a href="import.html">Step 1: Import</a></td><td data-lang="en">This chapter (Gene Search / cross-study)</td></tr>
+</tbody></table>
+<div class="callout tip"><span class="callout-icon">🤝</span><div>
+<span data-lang="zh"><strong>它們是隊友，不是對手：</strong>典型的研究一天可能長這樣——早上用 Talk2Data 的 Gene Search 快速偵察「這個疾病基因大概在哪類細胞」，下午打開 BBrowserX 深入分析你自己那批病人樣本、驗證早上的方向。公開資料給你「地圖」，自有資料給你「這片土地的實測」。兩者合起來，才是完整的研究敘事。</span>
+<span data-lang="en"><strong>Teammates, not rivals:</strong> A typical research day might look like this — morning: use Talk2Data's Gene Search to scout "roughly which cell type this disease gene sits in"; afternoon: open BBrowserX to deeply analyze your own patient cohort and test that morning's direction. Public data gives you the "map"; your own data gives you the "ground survey of this specific terrain." Together they make a complete research story.</span>
+</div></div>
+<div class="callout danger"><span class="callout-icon">⚠️</span><div>
+<span data-lang="zh"><strong>公開資料的重要警語（常見誤區）：</strong>精選 (curated) <strong>不等於</strong>完美。不同研究有<strong>批次效應、平台差異（10x / Smart-seq / 各種空間平台）、標註標準不一</strong>，甚至同一個名字的細胞類型定義都可能不同。跨研究看到的「差異」<strong>可能來自技術而非生物</strong>——例如兩篇論文用不同解離方法，某些脆弱細胞被洗掉了，你卻誤以為「這種細胞在疾病中變少」。<strong>務必回頭查閱原始研究的樣本、條件與方法脈絡</strong>；把 Talk2Data 的結果當作<strong>假說與線索</strong>，而非最終結論。實際數字與選單也會隨版本而異。一句話：<strong>搜尋給你方向，原始論文給你真相。</strong></span>
+<span data-lang="en"><strong>Key caveat for public data (common pitfall):</strong> curated does <strong>not</strong> mean perfect. Studies differ in <strong>batch effects, platforms (10x / Smart-seq / various spatial platforms), and annotation standards</strong> — even the same cell-type name may be defined differently. A "difference" seen across studies <strong>may be technical, not biological</strong> — e.g., two papers used different dissociation methods and some fragile cells were washed out, and you mistakenly conclude "this cell type is depleted in disease." <strong>Always check the original study's samples, conditions, and methods</strong>; treat Talk2Data results as <strong>hypotheses and leads</strong>, not final conclusions. Exact numbers and menus also vary by version. In one line: <strong>search gives you direction; the original paper gives you the truth.</strong></span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="幕後原理" data-en="UNDER THE HOOD">幕後原理</div>
+<h2 data-zh="七、為什麼「精選」這麼關鍵？" data-en="VII. Why Does 'Curation' Matter So Much?">七、為什麼「精選」這麼關鍵？</h2>
+<div data-lang="zh">
+<p>公開資料明明在 GEO、Array Express 上到處都是，為什麼還需要 Talk2Data？關鍵就在「精選 (curation)」這道看不見的工。原始公開資料就像一個沒有標籤、沒有分類的巨大二手書市集——書都在，但你想找「所有講肝臟免疫細胞的段落」，得一本一本翻。<strong>精選做的事，就是替每一筆資料貼上統一的標籤</strong>：這是什麼組織？什麼疾病？什麼平台？細胞類型用的是哪一套命名？把這些「後設資料 (metadata)」對齊之後，跨庫搜尋才變得可能。</p>
+<p>可以把精選想成三層功夫：<strong>（1）收齊</strong>——把散落各處的資料集匯進來並重新處理成統一格式；<strong>（2）對齊</strong>——把不同論文各說各話的細胞名稱、組織分類映射到一套標準詞彙（就像把「番茄／西紅柿／tomato」都對到同一個東西）；<strong>（3）品管</strong>——過濾明顯有問題的樣本、標記資料來源與版本。少了任何一層，「一次搜尋、跨庫比對」就會退化成「搜尋出一堆彼此無法比較的東西」。</p>
+</div>
+<div data-lang="en">
+<p>Public data is already scattered all over GEO and ArrayExpress — so why do we still need Talk2Data? The answer is the invisible labor of <strong>curation</strong>. Raw public data is like a huge second-hand book market with no labels and no shelving — the books are all there, but finding "every passage about liver immune cells" means flipping through them one by one. <strong>Curation attaches a uniform label to every dataset</strong>: which tissue? which disease? which platform? which cell-type naming scheme? Only after aligning this <strong>metadata</strong> does cross-library search become possible.</p>
+<p>Think of curation as three layers: <strong>(1) Collect</strong> — pull scattered datasets in and reprocess them into a uniform format; <strong>(2) Align</strong> — map the cell names and tissue categories that every paper describes differently onto one standard vocabulary (like mapping "tomato / 番茄 / 西紅柿" all to the same thing); <strong>(3) QC</strong> — filter obviously broken samples and tag data source and version. Drop any layer and "search once, compare across the library" degrades into "search up a pile of things that can't be compared."</p>
+</div>
+<div class="card-grid cols-3">
+<div class="card"><div class="card-icon">📥</div><h4 data-zh="1. 收齊" data-en="1. Collect">1. 收齊</h4>
+<div data-lang="zh"><p>把散落的公開資料集匯入，統一重新處理成一致格式，讓後續分析有共同起點。</p></div>
+<div data-lang="en"><p>Ingest scattered public datasets and reprocess them into a consistent format so downstream analysis shares a common starting point.</p></div>
+</div>
+<div class="card"><div class="card-icon">🏷️</div><h4 data-zh="2. 對齊" data-en="2. Align">2. 對齊</h4>
+<div data-lang="zh"><p>把各研究不一致的細胞名稱、組織與疾病標註，映射到統一詞彙——這是「跨庫可比」的命脈。</p></div>
+<div data-lang="en"><p>Map inconsistent cell names, tissue, and disease labels across studies onto one vocabulary — the lifeline of "cross-library comparability."</p></div>
+</div>
+<div class="card"><div class="card-icon">✅</div><h4 data-zh="3. 品管" data-en="3. QC">3. 品管</h4>
+<div data-lang="zh"><p>過濾明顯異常的樣本，保留資料來源與版本標記，讓你能回溯每一筆結果的出處。</p></div>
+<div data-lang="en"><p>Filter clearly anomalous samples and keep source/version tags so you can trace every result back to its origin.</p></div>
+</div>
+</div>
+<div class="callout warn"><span class="callout-icon">🧑‍🏫</span><div>
+<span data-lang="zh"><strong>專家小撇步：</strong>看到跨研究結果時，養成一個好習慣——<strong>先看「這是哪些資料集湊出來的」，再看數字</strong>。同樣是「這個基因在肺高表現」，如果背後 20 篇研究都指向同一方向，那很有份量；如果只有 1 篇、還是某個罕見平台跑的，那充其量是個待驗證的線索。數字會說話，但你要先問清楚「是誰在說話」。</span>
+<span data-lang="en"><strong>Pro tip:</strong> When you see a cross-study result, build one good habit — <strong>look at "which datasets produced this" before you look at the number</strong>. "This gene is high in lung" carries real weight if 20 studies all point the same way; if it's just 1 study on some rare platform, it's at best a lead to verify. Numbers talk, but first ask "who is doing the talking."</span>
+</div></div>
+</section>
+
+<section class="quiz-section">
+<h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">1. Talk2Data 最核心的價值是什麼？</p>
+<p data-lang="en">1. What is the core value of Talk2Data?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 取代你自己實驗室的定序實驗</span><span data-lang="en">A. Replacing your own lab's sequencing experiments</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 只能用來做空間蛋白體分析</span><span data-lang="en">B. Only for spatial proteomics analysis</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 不必自己做實驗，就能探勘、比較大量已發表的公開資料</span><span data-lang="en">C. Mining & comparing large published public data without generating your own</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 撰寫 R / Python 分析腳本</span><span data-lang="en">D. Writing R / Python analysis scripts</span></div>
+</div><div class="quiz-feedback" id="fb1"></div></div>
+
+<div class="quiz-q" data-answer="1">
+<p data-lang="zh">2. 你想查詢某個基因在整個資料庫中、於哪些組織與細胞類型高表達。應該用哪個功能？</p>
+<p data-lang="en">2. You want to find which tissues and cell types highly express a gene across the whole database. Which feature fits?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 樣本 demultiplexing</span><span data-lang="en">A. Sample demultiplexing</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. Gene Search（跨資料庫的基因表達查詢）</span><span data-lang="en">B. Gene Search (gene expression query across the database)</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 軌跡分析 (pseudotime)</span><span data-lang="en">C. Trajectory analysis (pseudotime)</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. QC 過濾</span><span data-lang="en">D. QC filtering</span></div>
+</div><div class="quiz-feedback" id="fb2"></div></div>
+
+<div class="quiz-q" data-answer="3">
+<p data-lang="zh">3. 使用 Talk2Data 探勘公開資料時，下列哪個提醒最正確？</p>
+<p data-lang="en">3. When mining public data in Talk2Data, which caution is most correct?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 精選過的資料一定完美，不需再查原始研究</span><span data-lang="en">A. Curated data is perfect; no need to check the original study</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 跨研究看到的差異一定是生物學差異</span><span data-lang="en">B. Cross-study differences are always biological</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 批次與平台差異不會影響結果</span><span data-lang="en">C. Batch and platform differences never affect results</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 公開資料有批次／平台／標註異質性，結果應視為線索並回查原始研究脈絡</span><span data-lang="en">D. Public data has batch/platform/annotation heterogeneity — treat results as leads and check the original study context</span></div>
+</div><div class="quiz-feedback" id="fb3"></div></div>
+
+<div class="quiz-q" data-answer="1">
+<p data-lang="zh">4. 你想把 BBrowserX 差異表達找到的候選 marker，拿到很多已發表研究中確認它是否普遍。應該用哪個功能？</p>
+<p data-lang="en">4. You want to take a candidate marker from BBrowserX DE and confirm whether it holds across many published studies. Which feature fits?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 單一研究分析（只深挖一篇）</span><span data-lang="en">A. Single-study analysis (drilling into just one paper)</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 跨研究分析（把同一基因橫跨多研究比較）</span><span data-lang="en">B. Cross-study analysis (comparing the same gene across many studies)</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. QC 過濾</span><span data-lang="en">C. QC filtering</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 標準化 (normalization)</span><span data-lang="en">D. Normalization</span></div>
+</div><div class="quiz-feedback" id="fb4"></div></div>
+
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">5. 關於資料庫規模的敘述，下列哪一項最貼近本章的立場？</p>
+<p data-lang="en">5. Regarding database scale, which statement best matches this chapter's stance?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 500M+ profiles、NVIDIA 加速等都是固定不變的官方保證</span><span data-lang="en">A. 500M+ profiles, NVIDIA acceleration, etc. are fixed, guaranteed official specs</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 資料庫其實很小，數字都是誇大</span><span data-lang="en">B. The database is actually tiny; the numbers are exaggerated</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 這些是「報導值」，方向可信但會隨版本變動，應以你使用的版本畫面為準</span><span data-lang="en">C. These are "reported" figures — credible in direction but version-dependent; trust what your version's UI shows</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 對數尺度只是為了讓圖表好看，沒有實際意義</span><span data-lang="en">D. The log scale is just for looks and has no real meaning</span></div>
+</div><div class="quiz-feedback" id="fb5"></div></div>
+</section>
+
+<nav class="page-nav">
+<a href="spatialx.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="SpatialX 空間分析" data-en="SpatialX Spatial Analysis">SpatialX 空間分析 / SpatialX Spatial Analysis</span></a>
+<a href="references/index.html"><span class="nav-dir" data-zh="完成 →" data-en="Finish →">完成 → / Finish</span><span class="nav-title" data-zh="📚 參考資料" data-en="📚 References">📚 參考資料 / References</span></a>
+</nav>
+</main>
+<footer class="site-footer">© Charlene — BioTuring Interactive Tutorial · <span data-zh="教學用途，非 BioTuring 官方文件" data-en="Educational use — not official BioTuring documentation">教學用途，非 BioTuring 官方文件</span></footer>
+<script src="i18n.js"></script>
+<script>
+window.addEventListener('scroll',()=>{const h=document.documentElement;document.getElementById('progressBar').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+'%';});
+
+// Database scale chart (log scale)
+const scaleData={
+  labels_zh:['scRNA-seq 單細胞','單細胞空間轉錄組','空間蛋白體','bulk 空間切片'],
+  labels_en:['scRNA-seq cells','SC spatial transcriptomics','Spatial proteomics cells','Bulk spatial slices'],
+  vals:[120000000,20000000,100000000,1800]
+};
+const scaleChart=new Chart(document.getElementById('scaleChart'),{type:'bar',data:{labels:scaleData.labels_en,datasets:[{label:'count',data:scaleData.vals,backgroundColor:['#5b3fb0','#2563a8','#1a6b5a','#d4a03c']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y.toLocaleString()}}},scales:{y:{type:'logarithmic',title:{display:true,text:'count (log scale)'}},x:{ticks:{font:{size:10}}}}}});
+document.addEventListener('langchange',e=>{scaleChart.data.labels=e.detail.lang==='zh'?scaleData.labels_zh:scaleData.labels_en;scaleChart.update();});
+
+// Gene Search demo (SIMULATED)
+const GENE={
+ CD8A:{vals:[8.7,1.2,0.4,6.1,0.6,2.3],note_zh:'<b>CD8A</b>（模擬）：在<b>血液</b>與<b>腫瘤浸潤 T 細胞</b>高表達，符合它是<b>細胞毒性 T 細胞 (CD8⁺ T)</b> marker 的生物學。',note_en:'<b>CD8A</b> (simulated): high in <b>blood</b> and <b>tumor-infiltrating T cells</b>, consistent with it being a <b>cytotoxic T (CD8⁺ T)</b> marker.'},
+ FOXP3:{vals:[2.1,0.3,0.2,4.9,0.4,0.5],note_zh:'<b>FOXP3</b>（模擬）：訊號集中在<b>腫瘤微環境</b>，符合它標記<b>調節性 T 細胞 (Treg)</b>、常富集於腫瘤的特性。',note_en:'<b>FOXP3</b> (simulated): signal concentrates in the <b>tumor microenvironment</b>, matching its role as a <b>regulatory T (Treg)</b> marker enriched in tumors.'},
+ EPCAM:{vals:[0.5,9.1,7.8,3.2,0.3,0.4],note_zh:'<b>EPCAM</b>（模擬）：在<b>上皮組織</b>與<b>癌上皮</b>高表達，是典型的<b>上皮／腫瘤細胞</b> marker。',note_en:'<b>EPCAM</b> (simulated): high in <b>epithelial tissues</b> and <b>carcinoma epithelium</b> — a classic <b>epithelial/tumor</b> marker.'},
+ PECAM1:{vals:[3.4,2.2,1.9,2.0,8.6,0.7],note_zh:'<b>PECAM1</b>（CD31，模擬）：在各組織的<b>血管內皮細胞</b>普遍表達，是通用的<b>內皮 (endothelial)</b> marker。',note_en:'<b>PECAM1</b> (CD31, simulated): broadly expressed by <b>vascular endothelial cells</b> across tissues — a general <b>endothelial</b> marker.'}
+};
+const geneLabels={zh:['血液','腸道上皮','肺上皮','腫瘤微環境','內皮','纖維母'],en:['Blood','Gut epithelium','Lung epithelium','Tumor microenv.','Endothelial','Fibroblast']};
+let curGene='CD8A';
+const geneChart=new Chart(document.getElementById('geneChart'),{type:'bar',data:{labels:geneLabels.en,datasets:[{label:'mean expr (sim.)',data:GENE.CD8A.vals,backgroundColor:'#5b3fb0'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'expr ≈ '+c.parsed.y}}},scales:{y:{beginAtZero:true,max:10,title:{display:true,text:'mean expression (simulated)'}},x:{ticks:{font:{size:10}}}}}});
+function renderGene(g){curGene=g;const L=I18n.get();geneChart.data.datasets[0].data=GENE[g].vals;geneChart.data.labels=L==='zh'?geneLabels.zh:geneLabels.en;geneChart.update();document.getElementById('geneNote').innerHTML=GENE[g]['note_'+L];}
+document.querySelectorAll('#genePick .toggle-btn').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#genePick .toggle-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderGene(b.dataset.g);}));
+document.addEventListener('langchange',()=>renderGene(curGene));
+renderGene('CD8A');
+
+// Quiz
+const QF={
+ zh:{q1_y:'Talk2Data 讓你不必自備樣本，就能探勘、比較大量已發表的公開單細胞與空間資料。',q1_n:'正確答案已標示。',q2_y:'Gene Search 專為「跨整個資料庫查詢一個基因的表達分佈」而設計。',q2_n:'正確答案已標示。',q3_y:'公開資料存在批次／平台／標註異質性；結果應視為線索並回查原始研究脈絡。',q3_n:'正確答案已標示。',q4_y:'跨研究分析正是把同一基因／細胞類型橫跨許多已發表研究比較、驗證是否普遍。',q4_n:'正確答案已標示。',q5_y:'500M+、NVIDIA 等屬「報導值」：方向可信但會隨版本變動，以你使用的版本畫面為準。',q5_n:'正確答案已標示。'},
+ en:{q1_y:'Talk2Data lets you mine and compare large published public single-cell & spatial data without generating your own.',q1_n:'Correct answer highlighted.',q2_y:'Gene Search is built to query one gene\'s expression distribution across the whole database.',q2_n:'Correct answer highlighted.',q3_y:'Public data carries batch/platform/annotation heterogeneity — treat results as leads and check the original study.',q3_n:'Correct answer highlighted.',q4_y:'Cross-study analysis is exactly for comparing the same gene/cell type across many published studies to test generality.',q4_n:'Correct answer highlighted.',q5_y:'500M+, NVIDIA, etc. are "reported" figures: credible in direction but version-dependent — trust your version\'s UI.',q5_n:'Correct answer highlighted.'}
+};
+document.querySelectorAll('.quiz-q').forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll('.quiz-opt').forEach(o=>{o.addEventListener('click',()=>{if(q.classList.contains('answered'))return;q.classList.add('answered');const fb=document.getElementById('fb'+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?'correct':'wrong');if(!ok)q.querySelectorAll('.quiz-opt')[ans].classList.add('correct');const L=I18n.get();fb.className='quiz-feedback show '+(ok?'correct-fb':'wrong-fb');fb.textContent=(ok?'✅ ':'❌ ')+(QF[L]['q'+(qi+1)+'_'+(ok?'y':'n')]||'');});});});
+</script>
+</body></html>
