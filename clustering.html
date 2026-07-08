@@ -1,0 +1,390 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Clustering & Batch Correction — BioTuring Tutorial</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>.page-hero{background:linear-gradient(160deg,#2b1a5e 0%,#3b2a86 35%,#5b3fb0 70%,#2563a8 100%)}
+.batch-toggle{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+.cluster-badge{display:inline-block;padding:6px 14px;border-radius:20px;background:var(--c-highlight-light);color:var(--c-highlight);font-family:var(--font-mono);font-weight:700;font-size:.9rem}</style></head><body>
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="BioTuring 教學" data-en="BioTuring Tutorial">BioTuring 教學</span></a>
+  <ul class="top-nav-links"><li><a href="overview.html" data-zh="總覽" data-en="Overview">總覽</a></li><li><a href="import.html">Import</a></li><li><a href="qc.html">QC</a></li><li><a href="normalization.html">Norm.</a></li><li><a href="clustering.html" class="active">Cluster</a></li><li><a href="annotation.html">Annot.</a></li><li><a href="dge.html">DE</a></li><li><a href="trajectory.html">Traj.</a></li><li><a href="multimodal.html">Multi</a></li><li><a href="spatialx.html">SpatialX</a></li><li><a href="talk2data.html">Talk2Data</a></li><li><a href="references/index.html" data-zh="📚 參考資料" data-en="📚 References">📚 參考資料</a></li></ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">STEP 4 · <span data-zh="分群與批次校正" data-en="Clustering & Batch Correction">分群與批次校正</span></div>
+<h1 data-zh="分群與批次校正" data-en="Clustering & Batch Correction">分群與批次校正</h1>
+<p class="subtitle" data-lang="zh">用 Louvain 把細胞分成群、用 resolution 控制粒度，並用 Harmony 整合多個批次——理解每個按鈕背後的演算法。</p>
+<p class="subtitle" data-lang="en">Cluster cells with Louvain, tune granularity with resolution, and integrate multiple batches with Harmony — understanding the algorithm behind each button.</p>
+</header>
+<main class="content-wrap">
+
+<section class="section">
+<div class="section-label" data-zh="先抓住大方向" data-en="THE BIG PICTURE">先抓住大方向</div>
+<h2 data-zh="這一步在整條流程裡的位置" data-en="Where This Step Sits in the Pipeline">這一步在整條流程裡的位置</h2>
+<div data-lang="zh">
+<p>想像你剛辦完一場<strong>幾千人的大型派對</strong>——每位賓客就是一顆<strong>細胞 (cell)</strong>。前面幾步（品管、標準化、降維）已經幫每位賓客量好身高、記下穿著、整理成一張「個人特徵卡」。現在最有趣的問題來了：<strong>這一屋子的人，其實可以自動分成哪幾個「聊得來的小圈圈」？</strong>這就是<strong>分群 (clustering)</strong> 要回答的事。</p>
+<p>分群不是隨便貼標籤，而是整條單細胞分析的<strong>樞紐</strong>：分得好，後面的細胞註釋、差異表達、軌跡分析才站得穩；分得糟，等於一開始就把桌次排錯，後面全盤皆錯。而當你把<strong>好幾場派對（多個樣本／批次）</strong>合在一起辦時，還會遇到「不同攝影棚打光不同」的麻煩——同一種人在不同棚裡看起來竟然不一樣，這就需要<strong>批次校正 (batch correction)</strong> 出馬。這一頁就把這兩件事一次講透。</p>
+</div>
+<div data-lang="en">
+<p>Picture a <strong>party with a few thousand guests</strong> — each guest is a <strong>cell</strong>. The earlier steps (QC, normalization, dimensionality reduction) already measured everyone's height, noted their outfit, and compiled a personal "trait card." Now comes the fun question: <strong>which "cliques that vibe together" does this crowd naturally fall into?</strong> That is what <strong>clustering</strong> answers.</p>
+<p>Clustering is not random labeling — it is the <strong>hinge</strong> of the whole single-cell analysis. Get it right and the downstream annotation, differential expression, and trajectory work stand on solid ground; get it wrong and it is like seating everyone at the wrong tables, so everything after collapses. And when you throw <strong>several parties (multiple samples / batches)</strong> into one room, you hit the "different studios light the set differently" problem — the same kind of person looks different from studio to studio, which calls for <strong>batch correction</strong>. This page covers both, end to end.</p>
+</div>
+<div class="card-grid cols-3">
+<div class="card"><div class="card-icon">🎉</div><h4 data-zh="派對分圈圈" data-en="Party into cliques">派對分圈圈</h4>
+<p data-lang="zh">分群 = 讓一屋子賓客自動聚成「聊得來的小圈圈」，每個圈圈就是一個推定細胞群。</p>
+<p data-lang="en">Clustering = letting the crowd self-organize into "cliques that click." Each clique is a putative cell population.</p></div>
+<div class="card"><div class="card-icon">🔍</div><h4 data-zh="放大鏡倍率" data-en="Magnifier zoom">放大鏡倍率</h4>
+<p data-lang="zh">Resolution = 放大鏡倍率。調高看到更多小圈圈，調低就併成大團體——沒有唯一正確倍率。</p>
+<p data-lang="en">Resolution = the magnifier's zoom. Turn it up to see more small cliques, down to merge into big groups — no single correct zoom.</p></div>
+<div class="card"><div class="card-icon">💡</div><h4 data-zh="統一打光" data-en="Unify the lighting">統一打光</h4>
+<p data-lang="zh">Harmony = 把不同攝影棚的燈光統一，讓「真正的差異」才被看見，而不是被打光騙了。</p>
+<p data-lang="en">Harmony = unifying the studio lighting so only <em>real</em> differences show through, instead of being fooled by the lighting.</p></div>
+</div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="為什麼要分群" data-en="WHY CLUSTER">為什麼要分群</div>
+<h2 data-zh="一、分群：從降維空間找出細胞群" data-en="I. Clustering: Finding Cell Populations">一、分群：從降維空間找出細胞群</h2>
+<div data-lang="zh">
+<p>做完 <a href="normalization.html">標準化與降維（Step 3）</a> 之後，每個細胞都被壓縮成 <strong>PCA 空間 (主成分空間)</strong> 中的一個點——你可以想像成把每位賓客濃縮成一張「幾十個數字」的座標卡。<strong>分群 (clustering)</strong> 的任務，就是把「座標相近、表現相似」的細胞聚在一起，得到一個個<strong>推定的細胞群 (putative cell populations)</strong>。「推定」兩字很重要：這些群此刻<strong>還沒有名字</strong>，只是「第 1 群、第 2 群⋯⋯」，得等到下一步 <a href="annotation.html">細胞註釋</a> 才會用 marker gene 認出它們是 T 細胞、B 細胞還是巨噬細胞。</p>
+<p>那電腦到底怎麼「看出」哪些人是一圈的？BBrowserX 在背後採用 <strong>Louvain 社群偵測演算法 (Louvain community detection)</strong>，作用在 PCA 空間上建構的 <strong>k-最近鄰圖 (kNN graph)</strong>。用派對來比喻，整件事分成三步：</p>
+</div>
+<div data-lang="en">
+<p>After <a href="normalization.html">normalization & dimensionality reduction (Step 3)</a>, each cell is squeezed into a single point in <strong>PCA space</strong> — think of it as boiling each guest down to a coordinate card of a few dozen numbers. <strong>Clustering</strong> groups cells whose coordinates (and thus expression) are similar, yielding <strong>putative cell populations</strong>. The word "putative" matters: these groups have <strong>no names yet</strong> — just "Cluster 1, Cluster 2…" — until the next step, <a href="annotation.html">cell annotation</a>, uses marker genes to recognize them as T cells, B cells, or macrophages.</p>
+<p>So how does the computer actually "see" who belongs together? Under the hood, BBrowserX uses the <strong>Louvain community-detection algorithm</strong> on a <strong>k-nearest-neighbor (kNN) graph</strong> built in PCA space. In party terms, it happens in three steps:</p>
+</div>
+<div class="workflow">
+<div class="workflow-step" data-step="1"><h4 data-zh="建立 kNN 圖：每個人牽起最聊得來的鄰居" data-en="Build the kNN graph: everyone links their closest neighbors">建立 kNN 圖：每個人牽起最聊得來的鄰居</h4>
+<p data-lang="zh">在 PCA 空間中，為每個細胞找出離它最近的 <strong>k</strong> 個鄰居（例如 k=15、20），彼此牽一條線，就織成一張圖 (graph)——節點是細胞，邊代表「你們很像」。這一步只看「誰跟誰最像」，還沒開始分群。</p>
+<p data-lang="en">In PCA space, find each cell's <strong>k</strong> nearest neighbors (say k=15 or 20) and draw an edge between them, weaving a graph — nodes are cells, edges mean "you two are alike." This step only records who resembles whom; no grouping yet.</p></div>
+<div class="workflow-step" data-step="2"><h4 data-zh="社群偵測 (Louvain)：自動找出哪些人其實屬於同一群" data-en="Community detection (Louvain): who really belongs together">社群偵測 (Louvain)：自動找出哪些人其實屬於同一群</h4>
+<p data-lang="zh">Louvain 在這張人際網上，找出「圈內牽線密、圈外牽線疏」的<strong>社群 (community)</strong>——也就是內部彼此都認識、對外卻很少往來的小團體。每一個這樣的社群，就是一個群。它靠最佳化一個叫 <strong>modularity（模組度）</strong> 的分數來衡量「分得夠不夠乾淨」。</p>
+<p data-lang="en">On this social web, Louvain finds <strong>communities</strong> that are densely wired inside and sparsely wired outside — tight-knit groups that all know each other but barely mingle across. Each such community is a cluster. It does this by maximizing a score called <strong>modularity</strong>, a measure of how cleanly the split separates dense groups from sparse links.</p></div>
+<div class="workflow-step" data-step="3"><h4 data-zh="群 = 推定細胞群：等著被命名" data-en="Clusters = putative populations: awaiting names">群 = 推定細胞群：等著被命名</h4>
+<p data-lang="zh">得到的每個群，都是一個「還沒命名」的推定細胞群，等著在下一步用 marker gene 註釋成 T 細胞、B 細胞、NK 細胞⋯⋯。此刻的顏色標籤只是編號，別急著賦予生物意義。</p>
+<p data-lang="en">Each resulting cluster is an unnamed putative population, waiting to be annotated (T cell, B cell, NK cell…) via marker genes in the next step. The color labels right now are just IDs — don't rush to read biology into them.</p></div>
+</div>
+<div class="callout tip"><span class="callout-icon">💡</span><div>
+<span data-lang="zh"><strong>重要觀念：分群發生在 PCA 空間，不是在 UMAP 上。</strong>UMAP 只是把高維結果<strong>攤平畫出來</strong>看的 2D 視覺化，像是把立體地球硬壓成平面地圖——會失真。即使兩個群在 UMAP 上看起來擠在一起，它們仍是 Louvain 在高維空間中判定的<strong>獨立社群</strong>；反過來，UMAP 上兩坨看起來分很開的細胞也未必真的差很多。<strong>永遠以 marker gene，而不是 UMAP 上的距離，來下最終判斷。</strong></span>
+<span data-lang="en"><strong>Key point: clustering happens in PCA space, not on the UMAP.</strong> UMAP is only a 2D <strong>flattened rendering</strong> of a high-dimensional result — like squashing a globe onto a flat map, distortion is inevitable. Two clusters that look squeezed together on the UMAP are still separate <strong>communities</strong> Louvain identified in high-dimensional space; conversely, two blobs that look far apart on the UMAP may not differ much. <strong>Always make the final call from marker genes, not from distances on the UMAP.</strong></span>
+</div></div>
+<div class="callout warn"><span class="callout-icon">🎯</span><div>
+<span data-lang="zh"><strong>為什麼重要：</strong>分群是整條流程的「分桌」動作。這一步的每一個群，都會被當成一個獨立的細胞型送進註釋、差異表達與軌跡分析。分錯了，後面所有結論都建立在錯誤的桌次上——所以值得多花點時間把它調好、驗好。</span>
+<span data-lang="en"><strong>Why it matters:</strong> clustering is the "seating the tables" moment of the pipeline. Every cluster here gets treated as a distinct cell type by annotation, differential expression, and trajectory analysis downstream. Seat people wrong and every later conclusion rests on the wrong tables — so it is worth the extra time to tune and validate.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="互動" data-en="INTERACTIVE">互動</div>
+<h2 data-zh="二、Resolution 參數：控制分群粒度" data-en="II. The Resolution Parameter: Cluster Granularity">二、Resolution 參數：控制分群粒度</h2>
+<div data-lang="zh">
+<p>Louvain 有一個最關鍵的旋鈕：<strong>resolution（解析度）</strong>。它就像<strong>放大鏡的倍率</strong>——<strong>調高倍率</strong>，原本一大團的圈圈會被看穿成好幾個小圈圈（群越多、每群越小）；<strong>調低倍率</strong>，這些小圈圈又會併回一個大團體（群越少、每群越大）。技術上，resolution 調整的是 Louvain 最佳化 modularity 時「多在意小社群」的權重。</p>
+<p>拖動下方滑桿，看看<strong>同一批細胞</strong>在不同 resolution 下被切成幾群。注意：細胞的位置<strong>完全沒變</strong>，變的只是「你用多細的顏色去切它」——這正是重點：<strong>群數是你的選擇，不是資料的鐵律。</strong></p>
+</div>
+<div data-lang="en">
+<p>Louvain has one crucial knob: <strong>resolution</strong>. Think of it as a <strong>magnifier's zoom</strong> — <strong>zoom in</strong> and one big clique gets seen through as several small ones (more, smaller clusters); <strong>zoom out</strong> and those small ones merge back into a big group (fewer, larger clusters). Technically, resolution tunes how much Louvain "cares about" small communities when maximizing modularity.</p>
+<p>Drag the slider below to see how the <strong>same cells</strong> split into different numbers of clusters. Notice the cell positions <strong>never move</strong> — only how finely you color-cut them. That is exactly the point: <strong>the number of clusters is your choice, not a hard fact of the data.</strong></p>
+</div>
+<div class="interactive-panel">
+<div class="slider-group"><label><span data-zh="Resolution 解析度" data-en="Resolution">Resolution 解析度</span><span id="resVal">0.8</span></label>
+<input type="range" id="resSlider" min="0.1" max="2.0" step="0.1" value="0.8"></div>
+<div class="sim-stats">
+<div class="sim-stat pass"><span data-zh="偵測到的群數" data-en="Clusters detected">偵測到的群數</span>: <span id="clusterCount">4</span></div>
+<div class="sim-stat pass"><span data-zh="粒度" data-en="Granularity">粒度</span>: <span id="granLabel" data-zh="中" data-en="Medium">中</span></div>
+</div>
+<div class="chart-container" style="height:340px;"><canvas id="clusterChart"></canvas></div>
+<p style="font-size:.78rem;color:var(--c-ink-muted);text-align:center;margin-top:8px;"><span data-zh="合成資料示意——同一批點在不同 resolution 下被切成不同群數；點位置不變，只有顏色分法改變。非真實生物資料。" data-en="Synthetic data for illustration — the same points cut into different cluster counts at different resolutions; positions stay fixed, only the coloring changes. Not real biology.">合成資料示意——同一批點在不同 resolution 下被切成不同群數；點位置不變，只有顏色分法改變。非真實生物資料。</span></p>
+</div>
+<div class="callout warn"><span class="callout-icon">⚠️</span><div>
+<span data-lang="zh"><strong>沒有唯一正確的 resolution。</strong>不要盲目相信預設值（BBrowserX 常見預設約 0.8）。若群被切得太細，可能把一個真實細胞型硬拆成好幾群（例如把一種 T 細胞誤分成三群）；太粗則可能把兩種不同細胞混成一群。正確做法是<strong>用已知 marker gene 驗證</strong>：一個「乾淨」的群，內部應該有一致的 marker 表現；如果一群裡有些細胞高表現 CD4、有些高表現 CD8，那它八成該再切開。</span>
+<span data-lang="en"><strong>There is no single correct resolution.</strong> Don't blindly trust the default (BBrowserX often defaults around 0.8). Too high and one real cell type may be forced apart into several clusters (e.g., one T-cell type split into three); too low and two distinct types may merge. The fix is to <strong>validate with known marker genes</strong>: a clean cluster should show consistent marker expression inside. If some cells in a cluster are high for CD4 and others high for CD8, it probably needs splitting.</span>
+</div></div>
+<div class="card-grid cols-2">
+<div class="card"><div class="card-icon">🧭</div><h4 data-zh="專家小撇步：掃描而非猜測" data-en="Pro tip: sweep, don't guess">專家小撇步：掃描而非猜測</h4>
+<p data-lang="zh">別執著於「找那一個神奇數值」。實務上會<strong>掃描一段範圍</strong>（例如 0.4、0.8、1.2）各跑一次，再挑「marker 最說得通、群數最穩定」的那一檔。穩定 = 稍微改 resolution，主要的群結構不會大變。</p>
+<p data-lang="en">Don't chase one magic value. In practice you <strong>sweep a range</strong> (say 0.4, 0.8, 1.2), run each, and pick the one where markers make the most sense and the structure is most stable — stable meaning a small resolution change doesn't scramble the main clusters.</p></div>
+<div class="card"><div class="card-icon">🩺</div><h4 data-zh="實戰情境：稀有細胞被吞掉" data-en="In the field: a rare type gets swallowed">實戰情境：稀有細胞被吞掉</h4>
+<p data-lang="zh">你在找一群只佔 1% 的稀有細胞（例如漿細胞樣樹突細胞）。在低 resolution 下它被併進大群、消失無蹤；把 resolution 調高後，它才「浮」出來成為獨立一群。稀有族群往往需要較高 resolution 或針對性再分群才看得見。</p>
+<p data-lang="en">You're hunting a rare population that's only 1% of cells (say plasmacytoid dendritic cells). At low resolution it gets absorbed into a big cluster and vanishes; raise the resolution and it finally "surfaces" as its own cluster. Rare populations often need higher resolution or targeted subclustering to appear.</p></div>
+</div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="操作與再分群" data-en="OPERATION & SUBCLUSTERING">操作與再分群</div>
+<h2 data-zh="三、在 BBrowserX 中怎麼做 + 再分群" data-en="III. Doing It in BBrowserX + Subclustering">三、在 BBrowserX 中怎麼做 + 再分群</h2>
+<div data-lang="zh">
+<p>好消息是：以上這些高深的圖論與最佳化，在 BBrowserX 裡都被收進<strong>幾個按鈕</strong>。在分析選單中，分群通常是「一鍵」執行 Louvain 並自動幫細胞上色標群；你可以在介面上<strong>調整 resolution 後重新分群</strong>，即時看 UMAP 上的顏色重新洗牌。這正是無程式碼 (no-code) 平台的價值——把「建 kNN 圖 → Louvain → 調 resolution」這串演算法，變成拖一下、按一下就完成。</p>
+<p>但有時你會遇到一種尷尬狀況：某一群明明用了合理 resolution，marker 卻<strong>不一致</strong>——它其實是個<strong>混合群</strong>（例如一群「T 細胞」裡藏著 CD4 與 CD8 兩種）。這時暴力地把全域 resolution 一路調高並不划算，因為那會順便把其他本來就分好的群也切碎。更精準的做法是<strong>再分群 (subclustering / reclustering)</strong>：把那一群<strong>單獨拿出來</strong>，只在這群內部重新建 kNN 圖、重跑一次 Louvain，把它切得更細——像是把某一桌客人單獨拉到一間小房間再重新分組，完全不打擾其他桌。</p>
+</div>
+<div data-lang="en">
+<p>The good news: all that graph theory and optimization is folded into <strong>a few buttons</strong> in BBrowserX. In the analysis menu, clustering is typically a one-click Louvain run that automatically colors and labels the cells; you can <strong>adjust resolution and re-cluster</strong> from the interface and watch the UMAP colors reshuffle live. That is exactly the value of a no-code platform — the whole "build kNN graph → Louvain → tune resolution" chain becomes a drag and a click.</p>
+<p>But sometimes you hit an awkward case: a cluster uses a reasonable resolution yet its markers are <strong>inconsistent</strong> — it's really a <strong>mixture</strong> (e.g., a "T-cell" cluster hiding both CD4 and CD8 cells). Brute-forcing the global resolution higher is a bad deal here, because it also shatters the other clusters that were already fine. The precise move is <strong>subclustering / reclustering</strong>: take that cluster <strong>on its own</strong>, rebuild the kNN graph within just those cells, and rerun Louvain to split it finer — like pulling one table of guests into a side room to regroup, without disturbing anyone else.</p>
+</div>
+<div class="decision-tree">
+<h4 data-zh="🌳 我的群需要再分群嗎？" data-en="🌳 Does my cluster need subclustering?">🌳 我的群需要再分群嗎？</h4>
+<div class="dt-node"><span class="dt-q">Q1</span><span class="dt-arrow">→</span><span data-lang="zh">這一群的 marker gene 是否<strong>不一致</strong>（不同細胞表現不同 marker）？<strong>是</strong> → 可能是混合群，考慮再分群。<strong>否</strong> → 這群大概已經乾淨，收工。</span><span data-lang="en">Are the cluster's markers <strong>inconsistent</strong> (different cells express different markers)? <strong>Yes</strong> → likely a mixture, consider subclustering. <strong>No</strong> → it's probably clean, done.</span></div>
+<div class="dt-node"><span class="dt-q">Q2</span><span class="dt-arrow">→</span><span data-lang="zh">先試著<strong>提高 resolution</strong> 全域重跑，這一群會自然分開、又不把別的群切爛嗎？<strong>會</strong> → 不必單獨再分群。</span><span data-lang="en">Try <strong>raising resolution</strong> globally first — does the cluster split on its own without shredding the others? <strong>Yes</strong> → no separate subclustering needed.</span></div>
+<div class="dt-node"><span class="dt-q">Q3</span><span class="dt-arrow">→</span><span data-lang="zh">若只有這一群要更細、其他群不動 → 用 <strong>subclustering</strong> 只針對它重新分群，再回頭用 marker 確認切出來的子群各自乾淨。</span><span data-lang="en">If only this cluster needs finer resolution while others stay put → use <strong>subclustering</strong> on that cluster alone, then re-check with markers that each subcluster is clean.</span></div>
+</div>
+<div class="callout tip"><span class="callout-icon">🧭</span><div>
+<span data-lang="zh"><strong>版本差異提醒：</strong>選單名稱（例如 <em>Cluster</em>、<em>Sub-cluster</em>、<em>Run Louvain</em>）與確切按鈕位置，會隨 BBrowserX 版本略有不同，本教學截自撰稿當下的版本。但「建 kNN 圖 → Louvain → 可調 resolution → 可再分群」的核心流程在各版本間一致——認觀念，不必死背選單。</span>
+<span data-lang="en"><strong>Version note:</strong> exact menu labels (<em>Cluster</em>, <em>Sub-cluster</em>, <em>Run Louvain</em>) and precise button locations vary a bit across BBrowserX versions, and this tutorial reflects the version at time of writing. But the core flow — build kNN graph → Louvain → tunable resolution → optional subclustering — is the same everywhere. Learn the concept, don't memorize the menu.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="怎麼判斷分得好不好" data-en="IS THE CLUSTERING GOOD?">怎麼判斷分得好不好</div>
+<h2 data-zh="四、怎麼判斷分群分得好不好？" data-en="IV. How Do You Know the Clustering Is Good?">四、怎麼判斷分群分得好不好？</h2>
+<div data-lang="zh">
+<p>初學者最常問：「那我怎麼知道我分對了？」殘酷的事實是——<strong>沒有「正確答案」可以對照</strong>，這是非監督式 (unsupervised) 分析的本質。但這不代表全憑感覺；有幾個實用的<strong>健檢清單</strong>，能讓你對「分得好不好」很有底氣：</p>
+</div>
+<div data-lang="en">
+<p>The question every beginner asks: "How do I know I got it right?" The hard truth — <strong>there is no answer key to check against</strong>, because this is unsupervised analysis. But that doesn't mean flying blind; a few practical <strong>health checks</strong> give you real confidence in whether the clustering is good:</p>
+</div>
+<div class="card-grid cols-2">
+<div class="card"><div class="card-icon">🧬</div><h4 data-zh="① 每群有一致、專屬的 marker" data-en="① Each cluster has consistent, exclusive markers">① 每群有一致、專屬的 marker</h4>
+<p data-lang="zh">最重要的一條。跑差異表達，看每群是否有<strong>幾個明確的 top marker</strong>，而且群內細胞大多都表現它。若一群找不出任何專屬 marker，它可能只是雜訊或該被併掉。</p>
+<p data-lang="en">The single most important check. Run DE and see whether each cluster has <strong>a few clear top markers</strong> that most of its cells express. A cluster with no exclusive markers may be noise or should be merged.</p></div>
+<div class="card"><div class="card-icon">🎨</div><h4 data-zh="② 生物邊界對得上" data-en="② Biological boundaries line up">② 生物邊界對得上</h4>
+<p data-lang="zh">把已知的關鍵基因（如 CD3、MS4A1、LYZ）畫在 UMAP 上，群的邊界應該<strong>大致對得上</strong>這些基因的高／低表現分界。對得越齊，越可信。</p>
+<p data-lang="en">Overlay known key genes (CD3, MS4A1, LYZ) on the UMAP; cluster boundaries should <strong>roughly align</strong> with the high/low expression borders of those genes. The tighter the alignment, the more trustworthy.</p></div>
+<div class="card"><div class="card-icon">⚖️</div><h4 data-zh="③ 對 resolution 穩定" data-en="③ Stable across resolution">③ 對 resolution 穩定</h4>
+<p data-lang="zh">稍微上下調 resolution，<strong>主要的群</strong>應該還在、只有邊緣細節微變。若一動就天翻地覆，代表這個切法很脆弱、不可靠。</p>
+<p data-lang="en">Nudge resolution up and down; the <strong>major clusters</strong> should persist with only minor edge changes. If everything reshuffles at the slightest tweak, that split is fragile and unreliable.</p></div>
+<div class="card"><div class="card-icon">🚫</div><h4 data-zh="④ 排除技術假象" data-en="④ Rule out technical artifacts">④ 排除技術假象</h4>
+<p data-lang="zh">確認某群不是被 QC 沒清乾淨的東西撐起來的——例如高粒線體比例（將死細胞）、doublet，或（多樣本時）純粹的批次。這些會偽裝成「一群」，讓你誤以為找到新細胞型。</p>
+<p data-lang="en">Make sure a cluster isn't propped up by leftover QC issues — high mitochondrial fraction (dying cells), doublets, or (with multiple samples) pure batch. These masquerade as "a cluster" and can fool you into thinking you found a new cell type.</p></div>
+</div>
+<div class="callout tip"><span class="callout-icon">🧠</span><div>
+<span data-lang="zh"><strong>心法一句話：</strong>好的分群不是「群數最多」或「UMAP 最漂亮」，而是<strong>每一群都能用生物學講出一個合理的故事</strong>。當你能對每個群說出「這是⋯⋯細胞，因為它高表現⋯⋯」，才算真的分好了。</span>
+<span data-lang="en"><strong>The one-line rule:</strong> good clustering isn't "the most clusters" or "the prettiest UMAP" — it's when <strong>every cluster tells a sensible biological story</strong>. Once you can say "this is a ___ cell, because it's high in ___" for each cluster, you've truly clustered well.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="批次校正" data-en="BATCH CORRECTION">批次校正</div>
+<h2 data-zh="五、批次校正 / 整合：Harmony" data-en="V. Batch Correction / Integration: Harmony">五、批次校正 / 整合：Harmony</h2>
+<div data-lang="zh">
+<p>現在把場景放大：你不只辦一場派對，而是把<strong>好幾場派對（多個樣本 / 批次）</strong>——不同病人、不同定序日、甚至不同實驗室的資料——合在同一個房間分析。麻煩來了：這些派對是在<strong>不同攝影棚</strong>拍的，每個棚<strong>打光不同</strong>。結果同一種細胞（比如同一種 T 細胞），只因為「來自哪個棚」，在資料上看起來竟然不一樣。這種純粹由技術造成、與生物無關的系統性差異，就叫 <strong>批次效應 (batch effect)</strong>。</p>
+<p>批次效應從哪來？常見來源包括：<strong>不同定序批 (run)</strong>、不同批號的<strong>試劑 (reagent lot)</strong>、不同<strong>平台 / 機台</strong>、不同<strong>操作日期或人員</strong>、樣本處理與保存差異等。若不處理，細胞很可能<strong>依「來自哪個批次」而非「是哪種細胞」分群</strong>——UMAP 上你會看到每個批次各自縮成一座孤島，而不是同型細胞不分批次地聚在一起。這時做出來的「群」，其實是批次，不是生物。</p>
+<p>BBrowserX 支援 <strong>Harmony</strong> 做批次校正 / 整合。它的角色，就是那位<strong>把不同攝影棚燈光統一的燈光師</strong>：目標很明確——<strong>移除技術性的批次差異，同時保留真正的生物差異</strong>，讓「真正的不同」才被看見。切換下方按鈕，親眼比較 Harmony 校正前後的差別。</p>
+</div>
+<div data-lang="en">
+<p>Now zoom out: you're not running one party but merging <strong>several parties (multiple samples / batches)</strong> — different patients, different sequencing days, even different labs — into one room to analyze together. Here's the snag: those parties were shot in <strong>different studios</strong>, each with <strong>different lighting</strong>. So the same cell type (say, one kind of T cell) ends up looking different in the data purely because of <strong>which studio it came from</strong>. That systematic, technology-driven, biology-irrelevant difference is the <strong>batch effect</strong>.</p>
+<p>Where do batch effects come from? Common sources: different <strong>sequencing runs</strong>, different <strong>reagent lots</strong>, different <strong>platforms / machines</strong>, different <strong>dates or operators</strong>, and differences in sample handling and storage. Left untreated, cells tend to cluster by <strong>which batch they came from rather than which cell type they are</strong> — on the UMAP you'll see each batch shrink into its own island instead of same-type cells grouping across batches. The "clusters" you'd get are batches, not biology.</p>
+<p>BBrowserX supports <strong>Harmony</strong> for batch correction / integration. Its role is the <strong>lighting director who unifies every studio's lighting</strong>: the goal is explicit — <strong>remove the technical batch difference while preserving the true biological difference</strong>, so only what's really different shows. Toggle the buttons below to see the before-vs-after with your own eyes.</p>
+</div>
+<div class="interactive-panel">
+<div class="batch-toggle" id="batchToggle">
+<button class="toggle-btn active" data-mode="before"><span data-zh="校正前 (Before)" data-en="Before Harmony">校正前 (Before)</span></button>
+<button class="toggle-btn" data-mode="after"><span data-zh="Harmony 校正後 (After)" data-en="After Harmony">Harmony 校正後 (After)</span></button>
+</div>
+<div class="chart-container" style="height:340px;"><canvas id="batchChart"></canvas></div>
+<p id="batchCaption" style="font-size:.85rem;color:var(--c-ink-light);text-align:center;margin-top:8px;font-weight:600;"></p>
+<p style="font-size:.78rem;color:var(--c-ink-muted);text-align:center;margin-top:4px;"><span data-zh="合成資料示意——展示批次效應與整合前後的差異，非真實生物資料。" data-en="Synthetic data for illustration of batch effect and integration — not real biology.">合成資料示意——展示批次效應與整合前後的差異，非真實生物資料。</span></p>
+</div>
+<table class="comp-table">
+<thead><tr>
+<th data-zh="面向" data-en="Aspect">面向</th>
+<th data-zh="批次效應 (技術性)" data-en="Batch effect (technical)">批次效應 (技術性)</th>
+<th data-zh="生物訊號 (要保留)" data-en="Biological signal (keep)">生物訊號 (要保留)</th>
+</tr></thead>
+<tbody>
+<tr><td data-zh="來源" data-en="Source"><strong>來源</strong></td><td data-lang="zh">不同定序批、試劑批號、平台、日期、操作者</td><td data-lang="zh">真實細胞型、細胞狀態、處理 / 疾病組別</td><td data-lang="en">Sequencing run, reagent lot, platform, date, operator</td><td data-lang="en">Real cell types, cell states, treatment / disease groups</td></tr>
+<tr><td data-zh="打光比喻" data-en="Lighting analogy"><strong>打光比喻</strong></td><td data-lang="zh">攝影棚的燈光差異（假的差異）</td><td data-lang="zh">被拍的人本身的差異（真的差異）</td><td data-lang="en">Difference in studio lighting (fake difference)</td><td data-lang="en">Difference in the people themselves (real difference)</td></tr>
+<tr><td data-zh="在 UMAP 上" data-en="On the UMAP"><strong>在 UMAP 上</strong></td><td data-lang="zh">細胞依「批次」成團（不想要）</td><td data-lang="zh">細胞依「細胞型」成團（想要）</td><td data-lang="en">Cells cluster by batch (unwanted)</td><td data-lang="en">Cells cluster by cell type (wanted)</td></tr>
+<tr><td data-zh="Harmony 的目標" data-en="Harmony's goal"><strong>Harmony 的目標</strong></td><td data-lang="zh">移除 / 減弱</td><td data-lang="zh">保留</td><td data-lang="en">Remove / reduce</td><td data-lang="en">Preserve</td></tr>
+<tr><td data-zh="過度校正風險" data-en="Over-correction risk"><strong>過度校正風險</strong></td><td data-lang="zh">—</td><td data-lang="zh">被誤刪！真實差異被抹平</td><td data-lang="en">—</td><td data-lang="en">Erased! Real differences flattened</td></tr>
+</tbody></table>
+<div class="callout danger"><span class="callout-icon">⚠️</span><div>
+<span data-lang="zh"><strong>過度校正 (over-correction) 的危險。</strong>燈光師若「調過頭」，把光打得太平，會連<strong>被拍的人本身真實的差異也一起抹掉</strong>。Harmony 校正過頭時同理——可能把<strong>本該分開的細胞硬拉在一起</strong>。<strong>具體情境：</strong>你比較<em>腫瘤</em>與<em>正常組織</em>，兩者剛好各是一個批次。若 Harmony 校正過度，它會把「腫瘤 vs 正常」這個<strong>真實的生物差異</strong>誤當成批次效應一起消掉——結果腫瘤細胞和正常細胞被硬混成同一群，你研究的核心差異就這樣不見了。整合後<strong>務必檢查兩件事</strong>：① 不同批次是否混合良好；② <strong>已知該分開的細胞型是否仍然分得開</strong>。批次效應是否需要校正、要校正到什麼程度，是一個<strong>判斷題</strong>，不是永遠都要開的開關。</span>
+<span data-lang="en"><strong>The danger of over-correction.</strong> A lighting director who "overdoes it" and flattens the light will also <strong>wipe out the real differences among the people</strong>. Same with an over-aggressive Harmony — it can <strong>force cells that should stay apart to merge</strong>. <strong>Concrete scenario:</strong> you compare <em>tumor</em> vs <em>normal</em> tissue, and each happens to be its own batch. Over-correct and Harmony mistakes the <strong>real biological "tumor vs normal" difference</strong> for a batch effect and removes it too — tumor and normal cells get forced into the same cluster, and the very difference you're studying disappears. After integration, <strong>always check two things</strong>: ① do the batches mix well; ② do <strong>cell types that should stay separate still stay separate?</strong> Whether — and how strongly — to correct is a <strong>judgment call</strong>, not an always-on switch.</span>
+</div></div>
+<div class="callout warn"><span class="callout-icon">🩺</span><div>
+<span data-lang="zh"><strong>實戰情境：先問「值不值得校」。</strong>如果你所有樣本都是同一天、同一批試劑、同一台機器跑的，批次效應可能很小，貿然開 Harmony 反而是「治療沒生的病」。反之，跨病人、跨定序日的大型整合資料，批次效應通常明顯，該校。<strong>判斷起點：先不校正跑一次分群、依批次上色看 UMAP——如果各批次已經混得很好，就不必動手；如果各成孤島，才輪到 Harmony。</strong></span>
+<span data-lang="en"><strong>In the field: first ask "is correction even worth it?"</strong> If all your samples ran on the same day, same reagent lot, same machine, the batch effect may be tiny, and firing up Harmony "treats a disease you don't have." Conversely, large integrations across patients and sequencing days usually have obvious batch effects worth correcting. <strong>Starting point: cluster once without correction, color the UMAP by batch — if batches already mix well, leave it alone; if they form islands, then Harmony's turn has come.</strong></span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="常見誤區" data-en="COMMON PITFALLS">常見誤區</div>
+<h2 data-zh="六、常見誤區與破解" data-en="VI. Common Pitfalls & Fixes">六、常見誤區與破解</h2>
+<div data-lang="zh">
+<p>分群與批次校正這一步，最容易踩的坑往往不是技術操作，而是<strong>心態</strong>。把這幾個常見誤區記在心裡，能省下大量事後重做的時間：</p>
+</div>
+<div data-lang="en">
+<p>The biggest traps in clustering and batch correction usually aren't about buttons — they're about <strong>mindset</strong>. Keeping these common pitfalls in mind will save you a lot of rework later:</p>
+</div>
+<div class="card-grid cols-2">
+<div class="card"><div class="card-icon">🔬</div><h4 data-zh="誤區①：盲目追求最多群" data-en="Pitfall ①: chasing the most clusters">誤區①：盲目追求最多群</h4>
+<p data-lang="zh">「群越多是不是越厲害？」——不是。把 resolution 一路拉滿，會得到一堆<strong>沒有專屬 marker、彼此難以區分</strong>的碎群，反而讓下游註釋變成惡夢。<strong>破解：</strong>以「每群都講得出生物故事」為上限，而非以群數多寡自豪。</p>
+<p data-lang="en">"More clusters = more impressive?" No. Cranking resolution to the max yields a pile of tiny clusters with <strong>no exclusive markers, indistinguishable from each other</strong>, turning downstream annotation into a nightmare. <strong>Fix:</strong> cap it at "every cluster tells a biological story," not at a high cluster count.</p></div>
+<div class="card"><div class="card-icon">🧯</div><h4 data-zh="誤區②：過度整合" data-en="Pitfall ②: over-integration">誤區②：過度整合</h4>
+<p data-lang="zh">「反正 Harmony 開了穩妥。」——不。過度整合會抹平真實差異（見上一節的腫瘤 vs 正常）。<strong>破解：</strong>先看批次是否真的分離再決定校不校，整合後一定要驗「該分開的還分得開嗎」。</p>
+<p data-lang="en">"Just turn Harmony on to be safe." No. Over-integration erases real biology (see the tumor-vs-normal case above). <strong>Fix:</strong> check whether batches actually separate before correcting, and after integrating always verify "do the things that should stay apart still stay apart?"</p></div>
+<div class="card"><div class="card-icon">🗺️</div><h4 data-zh="誤區③：拿 UMAP 距離下結論" data-en="Pitfall ③: judging by UMAP distance">誤區③：拿 UMAP 距離下結論</h4>
+<p data-lang="zh">「這兩群在 UMAP 上很近，應該很像吧？」——不一定。UMAP 是壓扁後的視覺化，群間距離不能當量尺。<strong>破解：</strong>相似度用 marker 與差異表達判斷，UMAP 只當導覽圖。</p>
+<p data-lang="en">"These two clusters are close on the UMAP, so they must be alike?" Not necessarily. UMAP is a flattened view; inter-cluster distance isn't a ruler. <strong>Fix:</strong> judge similarity by markers and DE; treat the UMAP as a map, not a measuring tape.</p></div>
+<div class="card"><div class="card-icon">🎯</div><h4 data-zh="誤區④：一次分群定終身" data-en="Pitfall ④: one-and-done clustering">誤區④：一次分群定終身</h4>
+<p data-lang="zh">「跑一次就完事。」——分群其實是<strong>迭代</strong>的：分群→看 marker→發現混合群→再分群或調 resolution→再驗證。第一次的結果只是草稿。<strong>破解：</strong>把它當一個來回打磨的循環，而非一次性動作。</p>
+<p data-lang="en">"Run it once and move on." Clustering is actually <strong>iterative</strong>: cluster → inspect markers → spot a mixture → subcluster or retune → re-validate. The first pass is just a draft. <strong>Fix:</strong> treat it as a refine-and-repeat loop, not a single action.</p></div>
+</div>
+</section>
+
+<section class="quiz-section">
+<h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">1. BBrowserX 用來做細胞分群的社群偵測演算法是？</p>
+<p data-lang="en">1. Which community-detection algorithm does BBrowserX use to cluster cells?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. Harmony</span><span data-lang="en">A. Harmony</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. Monocle</span><span data-lang="en">B. Monocle</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. Louvain（作用在 PCA 空間的 kNN 圖上）</span><span data-lang="en">C. Louvain (on a kNN graph in PCA space)</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. Venice</span><span data-lang="en">D. Venice</span></div>
+</div><div class="quiz-feedback" id="fb1"></div></div>
+
+<div class="quiz-q" data-answer="0">
+<p data-lang="zh">2. 關於 resolution 參數，下列何者<strong>正確</strong>？</p>
+<p data-lang="en">2. Which statement about the resolution parameter is <strong>correct</strong>?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. resolution 越高 → 群越多、越小；沒有唯一正確值，應以 marker 驗證</span><span data-lang="en">A. Higher resolution → more, smaller clusters; no single right value, validate with markers</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. resolution 越高 → 群一定越少</span><span data-lang="en">B. Higher resolution always gives fewer clusters</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 預設值永遠是最佳答案</span><span data-lang="en">C. The default is always the best answer</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. resolution 控制批次校正強度</span><span data-lang="en">D. Resolution controls batch-correction strength</span></div>
+</div><div class="quiz-feedback" id="fb2"></div></div>
+
+<div class="quiz-q" data-answer="1">
+<p data-lang="zh">3. 用 Harmony 整合多批次資料時，最需要警惕的風險是？</p>
+<p data-lang="en">3. When integrating multiple batches with Harmony, the main risk to watch for is?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 它會刪除低品質細胞</span><span data-lang="en">A. It deletes low-quality cells</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 過度校正——連真實的生物差異也一起抹平</span><span data-lang="en">B. Over-correction — erasing real biological differences too</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 它只能用於單一樣本</span><span data-lang="en">C. It only works on a single sample</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 它會自動命名細胞型</span><span data-lang="en">D. It auto-names cell types</span></div>
+</div><div class="quiz-feedback" id="fb3"></div></div>
+
+<div class="quiz-q" data-answer="3">
+<p data-lang="zh">4. 分群其實發生在哪個空間？UMAP 又扮演什麼角色？</p>
+<p data-lang="en">4. In which space does clustering actually happen, and what role does the UMAP play?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 分群在 UMAP 上進行，PCA 只是視覺化</span><span data-lang="en">A. Clustering runs on the UMAP; PCA is just visualization</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 兩者都只是視覺化，分群靠肉眼</span><span data-lang="en">B. Both are just visualizations; clustering is done by eye</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. UMAP 上距離越近的群一定越相似</span><span data-lang="en">C. Clusters closer on the UMAP are always more similar</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 分群在 PCA 空間的 kNN 圖上進行；UMAP 只是把結果攤平畫出來的 2D 視覺化</span><span data-lang="en">D. Clustering runs on a kNN graph in PCA space; the UMAP is only a 2D rendering of the result</span></div>
+</div><div class="quiz-feedback" id="fb4"></div></div>
+
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">5. 某一群的 marker 不一致（有些細胞高 CD4、有些高 CD8），但其他群都很乾淨。最合適的做法是？</p>
+<p data-lang="en">5. One cluster has inconsistent markers (some cells high CD4, others high CD8), but all other clusters are clean. Best move?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 直接刪掉這一群</span><span data-lang="en">A. Just delete this cluster</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 開 Harmony 校正它</span><span data-lang="en">B. Turn on Harmony to correct it</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 對這一群做 subclustering（只針對它再分群），或適度提高 resolution 後用 marker 確認</span><span data-lang="en">C. Subcluster just this cluster (or modestly raise resolution) and confirm with markers</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 把全域 resolution 拉到最高</span><span data-lang="en">D. Crank global resolution to the maximum</span></div>
+</div><div class="quiz-feedback" id="fb5"></div></div>
+</section>
+
+<nav class="page-nav">
+<a href="normalization.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Prev">← 上一步</span><span class="nav-title" data-zh="Step 3: 標準化與降維" data-en="Step 3: Normalization & Dim-Reduction">Step 3: 標準化與降維</span></a>
+<a href="annotation.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 5: 細胞註釋" data-en="Step 5: Cell Annotation">Step 5: 細胞註釋</span></a>
+</nav>
+</main>
+<footer class="site-footer">© Charlene — BioTuring Interactive Tutorial · <span data-zh="教學用途，非 BioTuring 官方文件" data-en="Educational use — not official BioTuring documentation">教學用途，非 BioTuring 官方文件</span></footer>
+<script src="i18n.js"></script>
+<script>
+window.addEventListener('scroll',()=>{const h=document.documentElement;document.getElementById('progressBar').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+'%';});
+
+// ---- Palette ----
+const PAL=['#5b3fb0','#2563a8','#1a6b5a','#d4a03c','#c0392b','#e07b39','#7d5fff','#2aa198'];
+
+// ---- Synthetic base points: a few "true" blobs, plus finer sub-structure ----
+function rng(seed){let s=seed;return()=>{s=(s*9301+49297)%233280;return s/233280;};}
+const R=rng(42);
+// 8 latent sub-blobs arranged so low res merges them into fewer groups
+const subCenters=[[-6,4],[-4.5,5.2],[6,4.5],[7.5,3.3],[-5,-4],[-3.5,-5.3],[6,-4],[7.6,-5.2]];
+const basePts=[];
+subCenters.forEach((c,si)=>{for(let i=0;i<26;i++){basePts.push({x:c[0]+(R()-0.5)*2.4,y:c[1]+(R()-0.5)*2.4,sub:si});}});
+// map: at a given cluster count k, which color group each sub belongs to
+function groupOf(sub,k){
+  if(k<=2)return sub<4?0:1;
+  if(k===3)return sub<3?0:(sub<6?1:2);
+  if(k===4)return Math.floor(sub/2);        // 4 quadrants (pairs)
+  if(k===5)return sub<2?0:(sub<4?1:(sub<6?2:(sub<7?3:4)));
+  if(k===6)return sub<2?0:(sub<4?1:(sub<5?2:(sub<6?3:(sub<7?4:5))));
+  if(k===7)return sub<2?0:sub-1;            // 7 groups
+  return sub;                                // 8 = every sub its own cluster
+}
+// resolution -> cluster count mapping (monotonic)
+function resToK(res){
+  if(res<0.3)return 2;if(res<0.5)return 3;if(res<0.8)return 4;
+  if(res<1.1)return 5;if(res<1.4)return 6;if(res<1.7)return 7;return 8;
+}
+function granLabel(k){if(k<=3)return['粗','Coarse'];if(k<=5)return['中','Medium'];return['細','Fine'];}
+
+function buildClusterDatasets(k){
+  const groups={};
+  basePts.forEach(p=>{const g=groupOf(p.sub,k);(groups[g]=groups[g]||[]).push({x:p.x,y:p.y});});
+  return Object.keys(groups).sort((a,b)=>a-b).map(g=>({
+    label:(I18n.get()==='zh'?'群 ':'Cluster ')+(+g+1),
+    data:groups[g],backgroundColor:PAL[g%PAL.length],pointRadius:3.5,pointHoverRadius:5
+  }));
+}
+const scatterOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{boxWidth:10,font:{size:10}}}},scales:{x:{ticks:{display:false},title:{display:true,text:'UMAP-1'}},y:{ticks:{display:false},title:{display:true,text:'UMAP-2'}}}};
+
+let curK=resToK(0.8);
+const clusterChart=new Chart(document.getElementById('clusterChart'),{type:'scatter',data:{datasets:buildClusterDatasets(curK)},options:scatterOpts});
+function refreshCluster(res){
+  const k=resToK(res);curK=k;
+  document.getElementById('resVal').textContent=(+res).toFixed(1);
+  document.getElementById('clusterCount').textContent=k;
+  const gl=granLabel(k);const gEl=document.getElementById('granLabel');
+  gEl.setAttribute('data-zh',gl[0]);gEl.setAttribute('data-en',gl[1]);
+  gEl.textContent=I18n.get()==='zh'?gl[0]:gl[1];
+  clusterChart.data.datasets=buildClusterDatasets(k);clusterChart.update();
+}
+document.getElementById('resSlider').addEventListener('input',e=>refreshCluster(e.target.value));
+refreshCluster(0.8);
+
+// ---- Batch correction chart ----
+const RB=rng(7);
+// two batches; in "before" they are offset (separate islands); in "after" they overlap by cell type
+const batchAcells=[],batchBcells=[];
+const bioCenters=[[-3.5,3],[3.5,3],[0,-3.5]]; // 3 real cell types
+bioCenters.forEach(c=>{
+  for(let i=0;i<22;i++){
+    batchAcells.push({x:c[0]+(RB()-0.5)*2.4,y:c[1]+(RB()-0.5)*2.4});
+    batchBcells.push({x:c[0]+(RB()-0.5)*2.4,y:c[1]+(RB()-0.5)*2.4});
+  }
+});
+// offset applied to batch B in "before" mode (batch effect)
+const OFFSET={x:7,y:-1.5};
+function batchData(mode){
+  const bShift=mode==='before'?OFFSET:{x:0,y:0};
+  return[
+    {label:I18n.get()==='zh'?'批次 A':'Batch A',data:batchAcells.map(p=>({x:p.x,y:p.y})),backgroundColor:'#5b3fb0',pointRadius:3.5},
+    {label:I18n.get()==='zh'?'批次 B':'Batch B',data:batchBcells.map(p=>({x:p.x+bShift.x,y:p.y+bShift.y})),backgroundColor:'#d4a03c',pointRadius:3.5}
+  ];
+}
+let batchMode='before';
+const batchChart=new Chart(document.getElementById('batchChart'),{type:'scatter',data:{datasets:batchData('before')},options:scatterOpts});
+const BATCAP={before:{zh:'校正前：兩批次各自成團——像不同攝影棚打光不同，細胞依「批次」而非「細胞型」分開（不想要）。',en:'Before: each batch forms its own island — like different studios lit differently, cells separate by batch, not cell type (unwanted).'},after:{zh:'Harmony 後：燈光統一，兩批次混合良好，細胞依三種真實細胞型聚在一起（想要）。',en:'After Harmony: lighting unified; batches mix well and cells group by the three real cell types (wanted).'}};
+function refreshBatch(){
+  batchChart.data.datasets=batchData(batchMode);batchChart.update();
+  document.getElementById('batchCaption').textContent=BATCAP[batchMode][I18n.get()];
+}
+document.querySelectorAll('#batchToggle .toggle-btn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#batchToggle .toggle-btn').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');batchMode=b.dataset.mode;refreshBatch();
+}));
+refreshBatch();
+
+// ---- Respond to language change ----
+document.addEventListener('langchange',()=>{refreshCluster(document.getElementById('resSlider').value);refreshBatch();});
+
+// ---- Quiz ----
+const QF={
+ zh:{q1_y:'BBrowserX 在 PCA 空間的 kNN 圖上用 Louvain 做社群偵測分群。',q1_n:'正確答案已標示。',q2_y:'resolution 越高→群越多越小；沒有唯一正確值，應以 marker gene 驗證。',q2_n:'正確答案已標示。',q3_y:'過度校正會連真實生物差異一起抹平，整合後務必檢查該分開的細胞型仍分得開。',q3_n:'正確答案已標示。',q4_y:'分群在 PCA 空間的 kNN 圖上進行；UMAP 只是把結果攤平的 2D 視覺化，距離不能當量尺。',q4_n:'正確答案已標示。',q5_y:'只針對那一群 subclustering（或適度提高 resolution）再用 marker 確認，最精準又不打擾其他群。',q5_n:'正確答案已標示。'},
+ en:{q1_y:'BBrowserX runs Louvain community detection on a kNN graph in PCA space.',q1_n:'Correct answer highlighted.',q2_y:'Higher resolution → more, smaller clusters; there is no single right value — validate with markers.',q2_n:'Correct answer highlighted.',q3_y:'Over-correction can erase real biology; after integration check that distinct cell types still separate.',q3_n:'Correct answer highlighted.',q4_y:'Clustering runs on a kNN graph in PCA space; the UMAP is only a flattened 2D rendering — distance is not a ruler.',q4_n:'Correct answer highlighted.',q5_y:'Subcluster just that cluster (or modestly raise resolution) and confirm with markers — precise, without disturbing the others.',q5_n:'Correct answer highlighted.'}
+};
+document.querySelectorAll('.quiz-q').forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll('.quiz-opt').forEach(o=>{o.addEventListener('click',()=>{if(q.classList.contains('answered'))return;q.classList.add('answered');const fb=document.getElementById('fb'+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?'correct':'wrong');if(!ok)q.querySelectorAll('.quiz-opt')[ans].classList.add('correct');const L=I18n.get();fb.className='quiz-feedback show '+(ok?'correct-fb':'wrong-fb');fb.textContent=(ok?'✅ ':'❌ ')+(QF[L]['q'+(qi+1)+'_'+(ok?'y':'n')]||'');});});});
+</script>
+</body></html>
