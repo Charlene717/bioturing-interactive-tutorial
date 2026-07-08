@@ -1,0 +1,370 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Normalization & Dimensionality Reduction — BioTuring Tutorial</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>.page-hero{background:linear-gradient(160deg,#2b1a5e 0%,#3b2a86 35%,#5b3fb0 70%,#2563a8 100%)}
+.pipe-flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:0;margin:22px 0}
+.pipe-step{flex:1;min-width:150px;background:var(--c-surface);border:1px solid var(--c-border-light);border-radius:var(--radius-lg);padding:16px 18px;box-shadow:var(--shadow-sm);position:relative}
+.pipe-step .pipe-num{font-size:.72rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--c-accent)}
+.pipe-step h4{font-family:var(--font-display);font-size:1.02rem;margin:4px 0 6px}
+.pipe-step p{font-size:.82rem;color:var(--c-ink-muted);margin:0;line-height:1.5}
+.pipe-arrow{display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:var(--c-accent);font-weight:700;padding:0 6px}
+@media(max-width:640px){.pipe-arrow{transform:rotate(90deg);padding:6px 0}.pipe-step{min-width:100%}}</style></head><body>
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="BioTuring 教學" data-en="BioTuring Tutorial">BioTuring 教學</span></a>
+  <ul class="top-nav-links"><li><a href="overview.html" data-zh="總覽" data-en="Overview">總覽</a></li><li><a href="import.html">Import</a></li><li><a href="qc.html">QC</a></li><li><a href="normalization.html" class="active">Norm.</a></li><li><a href="clustering.html">Cluster</a></li><li><a href="annotation.html">Annot.</a></li><li><a href="dge.html">DE</a></li><li><a href="trajectory.html">Traj.</a></li><li><a href="multimodal.html">Multi</a></li><li><a href="spatialx.html">SpatialX</a></li><li><a href="talk2data.html">Talk2Data</a></li><li><a href="references/index.html" data-zh="📚 參考資料" data-en="📚 References">📚 參考資料</a></li></ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">STEP 3 · <span data-zh="標準化與降維" data-en="Normalization & Dimensionality Reduction">標準化與降維</span></div>
+<h1 data-zh="標準化與降維" data-en="Normalization & Dimensionality Reduction">標準化與降維</h1>
+<p class="subtitle" data-lang="zh">在分群之前，BBrowserX 會依序做三件事：標準化、挑選高變異基因、以 PCA→UMAP/t-SNE 降維。這一章我們把每個按鈕背後的「為什麼」講清楚——用相機曝光、貧富差距、濃縮主題、壓平地圖四個比喻，讓你按下去時心裡有底。</p>
+<p class="subtitle" data-lang="en">Before clustering, BBrowserX runs three linked steps: normalization, highly-variable-gene selection, and PCA→UMAP/t-SNE. This chapter unpacks the "why" behind each button — using four analogies (camera exposure, wealth gaps, distilling themes, flattening a map) so you know exactly what you're doing when you click.</p>
+</header>
+<main class="content-wrap">
+
+<section class="section">
+<div class="section-label" data-zh="流程" data-en="PIPELINE">流程</div>
+<h2 data-zh="從原始計數到 2D 圖：三個連動步驟" data-en="From Raw Counts to a 2D Map: Three Linked Steps">從原始計數到 2D 圖：三個連動步驟</h2>
+<div data-lang="zh">
+<p>通過 QC 之後，你手上仍是一張龐大的「細胞 × 基因」<strong>原始計數 (raw counts)</strong> 表——想像一張有幾萬列（細胞）、幾萬欄（基因）的巨型 Excel，每個格子是「這顆細胞測到這個基因幾個分子」。這張表雖然資訊豐富，卻<strong>還不能直接拿去分群</strong>，原因有三：</p>
+<ul style="color:var(--c-ink-light);margin:0 0 16px 20px;font-size:.95rem;line-height:1.8;">
+<li><strong>深度不公平</strong>——每顆細胞被定序到的分子總數天差地遠（可能差 5 倍以上），不校正就像拿「曝光不同的照片」硬比亮度。</li>
+<li><strong>雜訊淹沒訊號</strong>——上萬個基因裡，真正能區分細胞類型的只是一小撮，其餘大多是背景噪音，白白增加計算量。</li>
+<li><strong>高維看不見</strong>——幾千個基因等於幾千個維度，人眼只能看 2D，必須壓平才能畫成散點圖。</li>
+</ul>
+<p>BBrowserX 用三個環環相扣的步驟把資料整理好，讓後面的分群站在乾淨、公平、可視化的地基上。這三步是<strong>有順序、有依賴</strong>的：標準化的輸出餵給 HVG，HVG 的輸出餵給 PCA，PCA 的輸出才餵給 UMAP/t-SNE——任何一步搞砸，後面全歪。</p>
+</div>
+<div data-lang="en">
+<p>After QC, you still hold a large <strong>raw-count</strong> matrix of cells × genes — picture a giant spreadsheet with tens of thousands of rows (cells) and columns (genes), each cell holding "how many molecules of this gene were detected in this cell." Information-rich, yes — but it <strong>can't go straight into clustering</strong>, for three reasons:</p>
+<ul style="color:var(--c-ink-light);margin:0 0 16px 20px;font-size:.95rem;line-height:1.8;">
+<li><strong>Unfair depth</strong> — each cell was sequenced to a wildly different total molecule count (often a 5×+ range); comparing without correcting is like judging brightness across photos shot at different exposures.</li>
+<li><strong>Noise drowns signal</strong> — of the tens of thousands of genes, only a small handful truly separate cell types; the rest is mostly background that just burns compute.</li>
+<li><strong>High-D is invisible</strong> — thousands of genes means thousands of dimensions, and human eyes see only 2D, so it must be flattened to be plotted.</li>
+</ul>
+<p>BBrowserX uses three interlocking steps to tidy the data so clustering rests on a clean, fair, viewable foundation. These steps are <strong>ordered and dependent</strong>: normalization feeds HVGs, HVGs feed PCA, PCA feeds UMAP/t-SNE — botch any step and everything downstream tilts.</p>
+</div>
+<div class="pipe-flow">
+  <div class="pipe-step"><div class="pipe-num" data-zh="步驟 1" data-en="Step 1">步驟 1</div><h4 data-zh="標準化" data-en="Normalization">標準化</h4><p data-zh="校正每個細胞的定序深度，讓細胞彼此可比。log-normalize。" data-en="Correct per-cell sequencing depth so cells are comparable. log-normalize.">校正每個細胞的定序深度，讓細胞彼此可比。log-normalize。</p></div>
+  <div class="pipe-arrow">→</div>
+  <div class="pipe-step"><div class="pipe-num" data-zh="步驟 2" data-en="Step 2">步驟 2</div><h4 data-zh="高變異基因" data-en="HVGs">高變異基因</h4><p data-zh="挑出攜帶最多生物訊號的基因作為特徵。" data-en="Pick the genes carrying the most biological signal as features.">挑出攜帶最多生物訊號的基因作為特徵。</p></div>
+  <div class="pipe-arrow">→</div>
+  <div class="pipe-step"><div class="pipe-num" data-zh="步驟 3" data-en="Step 3">步驟 3</div><h4 data-zh="PCA → UMAP/t-SNE" data-en="PCA → UMAP/t-SNE">PCA → UMAP/t-SNE</h4><p data-zh="先壓縮去噪，再投影到 2D 供視覺化。" data-en="Compress & denoise first, then project to 2D for viewing.">先壓縮去噪，再投影到 2D 供視覺化。</p></div>
+</div>
+<div class="callout tip"><span class="callout-icon">💡</span><div>
+<span data-lang="zh"><strong>選單提示：</strong>在 BBrowserX 中，這些步驟多半在建立或處理 embedding 時一併完成（例如 <em>Run analysis</em> / <em>New embedding</em> 面板中的 Normalization、Highly variable genes、PCA、UMAP/t-SNE 選項）。你通常在<strong>同一個面板裡把四個參數一次設好</strong>，按下去後由 GPU 一路跑完。<strong>確切的選單名稱會隨版本不同</strong>——以你安裝的介面為準。</span>
+<span data-lang="en"><strong>Menu note:</strong> In BBrowserX these steps are usually configured together when you create or process an embedding (e.g. the Normalization, Highly-variable-genes, PCA, and UMAP/t-SNE options inside a <em>Run analysis</em> / <em>New embedding</em> panel). You typically <strong>set all four parameters in one panel</strong> and let the GPU run them end-to-end. <strong>Exact menu names vary by version</strong> — follow your installed interface.</span>
+</div></div>
+<div class="callout warn"><span class="callout-icon">🧭</span><div>
+<span data-lang="zh"><strong>心智模型：</strong>把這三步想成「<strong>公平化 → 去蕪存菁 → 壓平上桌</strong>」。標準化讓每顆細胞站上同一條起跑線；HVG 把幾萬個基因濃縮成最有鑑別力的幾千個；PCA→UMAP 再把它濃縮、壓平成一張你看得懂的地圖。記住這條主線，後面的細節都是它的展開。</span>
+<span data-lang="en"><strong>Mental model:</strong> Read the three steps as "<strong>level the field → keep the good stuff → flatten & serve</strong>." Normalization puts every cell on the same starting line; HVGs distill tens of thousands of genes down to the few thousand most discriminating; PCA→UMAP condenses and flattens that into a map you can actually read. Hold this spine and every detail below is just its expansion.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="標準化" data-en="NORMALIZATION">標準化</div>
+<h2 data-zh="一、標準化：為什麼不能直接比原始計數？" data-en="I. Normalization: Why Not Compare Raw Counts?">一、標準化：為什麼不能直接比原始計數？</h2>
+<div class="callout tip"><span class="callout-icon">📷</span><div>
+<span data-lang="zh"><strong>一句話比喻：</strong>標準化就是「把不同曝光、不同深度拍出來的照片，調成同一個亮度基準，才能公平比較誰真的比較亮」。沒調之前，看起來比較亮的細胞，可能只是「曝光比較久（定序比較深）」，而不是真的表達比較高。</span>
+<span data-lang="en"><strong>One-line analogy:</strong> Normalization is "re-grading photos shot at different exposures and depths onto a single brightness baseline, so you can fairly ask which is truly brighter." Before it, a cell that looks brighter might just have had a longer exposure (deeper sequencing) — not genuinely higher expression.</span>
+</div></div>
+<div data-lang="zh">
+<p>假設細胞 A 總共被捕捉到 <strong>2,000</strong> 個 UMI（unique molecular identifier，可以想成「數到的分子張數」），細胞 B 被捕捉到 <strong>10,000</strong> 個。就算兩者<strong>生物上完全相同</strong>，B 的每個基因計數都會系統性地比較高——大約高 5 倍——這純粹是<strong>定序深度 (sequencing depth)</strong> 的差異，不是生物差異。若直接拿原始計數比較，分群會被「誰被測得比較深」主導，而不是被真正的細胞類型主導。你會得到一團假群：不是「T 細胞 vs. B 細胞」，而是「淺測 vs. 深測」。</p>
+<p><strong>那深度差異是怎麼來的？</strong>並不是細胞本身有問題，而是實驗與技術的隨機性：液滴裡捕捉效率不同、mRNA 逆轉錄與擴增效率有波動、細胞大小不同（大細胞 mRNA 天生多）、以及定序讀數在細胞間的分配不均。這些都是<strong>技術雜訊 (technical noise)</strong>，我們想在分析前把它抹平。</p>
+<p>BBrowserX 主要使用 <strong>log-normalization</strong>，實際上是兩個動作接力：</p>
+<ul style="color:var(--c-ink-light);margin:0 0 16px 20px;font-size:.95rem;line-height:1.8;">
+<li><strong>① 定序深度校正（library-size / CP10K）</strong>——先把每個細胞的每個基因計數<strong>除以該細胞的總計數</strong>（library size，可想成「該細胞總共測到幾張分子」），得到「佔比」；再<strong>乘上一個固定尺度</strong>（常見 10,000，即 <strong>CP10K＝counts per 10K</strong>）。這一步的效果是：把每顆細胞的總表達統統拉到 10,000，讓 A、B 站上同一起跑線。用照片比喻，這是「統一曝光」。</li>
+<li><strong>② log1p 對數轉換</strong>——接著對每個值取 <strong>log1p</strong>（即 <code>log(1+x)</code>，加 1 是為了避免對 0 取對數）。這一步把少數超高表達基因的巨大數值<strong>壓縮</strong>，讓分佈從嚴重右偏變得比較對稱、接近可比較的常態。</li>
+</ul>
+<p>做完這兩步，「表達高／低」才真正代表生物差異，而不是曝光差異。下面的互動圖就是在展示第 ② 步的威力。</p>
+</div>
+<div data-lang="en">
+<p>Say cell A was captured with <strong>2,000</strong> UMIs total (unique molecular identifiers — think "how many molecule tags were counted") and cell B with <strong>10,000</strong>. Even if the two are <strong>biologically identical</strong>, every gene count in B will be systematically higher — about 5× higher — purely a <strong>sequencing-depth</strong> artifact, not biology. Compare raw counts directly and clustering gets driven by "who was sequenced deeper" rather than by real cell type. You'd get fake clusters: not "T cell vs. B cell" but "shallow-read vs. deep-read."</p>
+<p><strong>Where does the depth difference come from?</strong> Not from a flaw in the cell, but from experimental and technical randomness: differing capture efficiency per droplet, fluctuating reverse-transcription and amplification efficiency, differing cell size (bigger cells naturally hold more mRNA), and uneven allocation of sequencing reads across cells. All of this is <strong>technical noise</strong> we want to iron out before analysis.</p>
+<p>BBrowserX primarily uses <strong>log-normalization</strong>, which is really two moves in sequence:</p>
+<ul style="color:var(--c-ink-light);margin:0 0 16px 20px;font-size:.95rem;line-height:1.8;">
+<li><strong>① Depth correction (library-size / CP10K)</strong> — divide each gene count by that cell's total counts (its <strong>library size</strong> — "how many molecules the cell yielded in total") to get a fraction, then multiply by a fixed scale (commonly 10,000 — i.e. <strong>CP10K = counts per 10K</strong>). The effect: every cell's total expression is pulled to 10,000, putting A and B on the same starting line. In photo terms, this is "equalizing the exposure."</li>
+<li><strong>② log1p transform</strong> — then take <strong>log1p</strong> of each value (i.e. <code>log(1+x)</code>; the +1 avoids taking log of 0). This <strong>compresses</strong> the huge values of a few super-high genes, turning a heavily right-skewed distribution into something more symmetric and comparable — closer to normal.</li>
+</ul>
+<p>After both moves, "high vs. low expression" finally reflects real biology instead of exposure. The interactive below shows the power of move ②.</p>
+</div>
+
+<div class="callout tip"><span class="callout-icon">💰</span><div>
+<span data-lang="zh"><strong>log 轉換的比喻：</strong>想像一群人的年收入從三萬到三千萬，畫成直方圖時，那少數幾個「三千萬」會把整張圖拉得又扁又長，其他人全擠在最左邊看不清。取對數就像把「貧富差距極大的數字壓縮」——三萬變 10.3、三千萬變 17.2，差距從一千倍縮成不到 2 倍，讓少數超高表現的基因不會霸佔全場，中低表達的細節終於看得見。基因表達也是這樣：少數高表達基因（如管家基因、rRNA）動輒是別人的幾百倍，不壓縮就會主導所有計算。</span>
+<span data-lang="en"><strong>Analogy for the log:</strong> Imagine annual incomes from $30K to $30M. On a histogram, the few "$30M" earners stretch the axis flat and long, cramming everyone else into an unreadable spike on the left. Taking the log is like <strong>compressing extreme wealth gaps</strong> — $30K becomes 10.3, $30M becomes 17.2, shrinking a 1000× gap to under 2×, so a handful of top earners can't dominate the whole picture and the mid/low detail finally shows. Gene expression is the same: a few super-high genes (housekeepers, rRNA) run hundreds of times higher than the rest, and without compression they'd dominate every downstream computation.</span>
+</div></div>
+
+<div class="interactive-panel">
+<div data-lang="zh"><p style="margin-bottom:6px;"><strong>互動：原始計數 vs. log-標準化分佈</strong>。下面是一份隨機模擬的表達值。切換按鈕，看看 log1p 如何把嚴重右偏（一條長長的右尾、大多數擠在左邊）的原始計數，壓成較對稱、可比較的「鐘形」分佈。這正是為什麼 log 之後，大部分統計方法才能好好運作。</p></div>
+<div data-lang="en"><p style="margin-bottom:6px;"><strong>Interactive: raw vs. log-normalized distribution.</strong> Below is a randomly simulated set of expression values. Toggle to see how log1p squashes the heavily right-skewed raw counts (a long right tail, most values crammed left) into a more symmetric, comparable, bell-shaped distribution. This is exactly why most statistics behave well only after the log.</p></div>
+<div class="toggle-row" id="distToggle">
+  <button class="toggle-btn active" data-k="raw"><span data-zh="原始計數" data-en="Raw counts">原始計數</span></button>
+  <button class="toggle-btn" data-k="log"><span data-zh="log-標準化後" data-en="Log-normalized">log-標準化後</span></button>
+</div>
+<div class="chart-container" style="height:300px;"><canvas id="distChart"></canvas></div>
+<p style="font-size:.78rem;color:var(--c-ink-muted);text-align:center;margin:0;"><span data-zh="純隨機模擬資料，僅示意分佈形狀，非真實資料。切到「log-標準化後」，注意長尾被拉回、分佈變得對稱。" data-en="Purely random synthetic data — illustrates distribution shape only, not real data. Switch to 'Log-normalized' and watch the long tail pull in and the distribution become symmetric.">純隨機模擬資料，僅示意分佈形狀，非真實資料。切到「log-標準化後」，注意長尾被拉回、分佈變得對稱。</span></p>
+</div>
+
+<div class="card-grid cols-3" style="margin-top:8px;">
+<div class="card"><div class="card-icon">🎯</div><h4 data-zh="為什麼重要" data-en="Why it matters">為什麼重要</h4><p data-zh="不標準化，你的「群」其實是在分「定序深淺」而非細胞類型。這是新手最容易掉進去、卻最難自己發現的陷阱。" data-en="Skip it and your 'clusters' actually split by sequencing depth, not cell type — the easiest trap for beginners to fall into and the hardest to notice.">不標準化，你的「群」其實是在分「定序深淺」而非細胞類型。這是新手最容易掉進去、卻最難自己發現的陷阱。</p></div>
+<div class="card"><div class="card-icon">⚠️</div><h4 data-zh="常見誤區" data-en="Common pitfall">常見誤區</h4><p data-zh="以為「標準化＝把資料變好看」。它其實是把技術雜訊抹平的關鍵矯正；也別把 log 後的值當成真實表達量去做算術。" data-en="Thinking normalization just 'makes data pretty.' It's a critical correction that removes technical noise — and don't treat log-values as literal expression amounts for arithmetic.">以為「標準化＝把資料變好看」。它其實是把技術雜訊抹平的關鍵矯正；也別把 log 後的值當成真實表達量去做算術。</p></div>
+<div class="card"><div class="card-icon">💡</div><h4 data-zh="專家小撇步" data-en="Pro tip">專家小撇步</h4><p data-zh="log1p 的「1」不是隨便加的：它讓 0 計數（沒測到）安全地映射到 0，避免 log(0) 爆掉，同時保留「有 vs. 沒有」的資訊。" data-en="The '1' in log1p isn't arbitrary: it maps zero counts (not detected) safely to 0, dodging log(0), while preserving the 'present vs. absent' signal.">log1p 的「1」不是隨便加的：它讓 0 計數（沒測到）安全地映射到 0，避免 log(0) 爆掉，同時保留「有 vs. 沒有」的資訊。</p></div>
+</div>
+
+<div class="callout warn"><span class="callout-icon">⚠️</span><div>
+<span data-lang="zh"><strong>方法彈性的取捨：</strong>相較於 Seurat/Scanpy 可自由選擇 SCTransform、Pearson residuals、分位數標準化等多種方案，BBrowserX 的標準化選項<strong>較為固定，主要就是 log-normalization</strong>。對絕大多數探索與視覺化足夠；若你需要特定的變異穩定化（variance-stabilizing）方法，或要嚴謹處理 UMI 計數的技術變異，仍建議回到程式碼工具再做一次。這不是缺點，而是「無程式碼、快速探索」定位下的合理取捨。</span>
+<span data-lang="en"><strong>Flexibility trade-off:</strong> Whereas Seurat/Scanpy let you pick SCTransform, Pearson residuals, quantile normalization and more, BBrowserX's normalization options are <strong>more limited — mainly log-normalization</strong>. That's fine for the vast majority of exploration and visualization; if you need a specific variance-stabilizing method or rigorous handling of UMI-count technical variance, drop back to code tools for that step. It's not a flaw — it's a sensible trade-off for a no-code, fast-exploration platform.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="特徵選擇" data-en="FEATURE SELECTION">特徵選擇</div>
+<h2 data-zh="二、高變異基因 (HVGs)：只留下有訊號的特徵" data-en="II. Highly Variable Genes (HVGs): Keep Only Informative Features">二、高變異基因 (HVGs)：只留下有訊號的特徵</h2>
+<div data-lang="zh">
+<p>一個細胞可能表達上萬個基因，但其中<strong>絕大多數在所有細胞裡都差不多</strong>。想想那些<strong>管家基因 (housekeeping genes)</strong>——像 ACTB（肌動蛋白）、GAPDH（能量代謝）——不管是 T 細胞、神經元還是肝細胞，全都得穩定表達才能活著。它們對「區分細胞類型」毫無幫助，反而像會議室裡一直講廢話的人，增加雜訊、拖慢計算。</p>
+<p><strong>高變異基因 (highly variable genes, HVGs)</strong> 的想法很直接：只挑出<strong>在細胞之間變異特別大</strong>的基因——這些變異往往就是生物差異的來源（某些基因只在特定細胞類型高表達，就是最好的「身分標記」）——作為後續 PCA 的<strong>特徵 (features)</strong>。技術上，工具會沿著「平均表達 vs. 變異度」的關係擬合一條基準線，再挑出<strong>超出基準、變異異常大</strong>的基因，這樣就不會只選到「本來就高表達所以變異也大」的基因。</p>
+<p>BBrowserX 通常會讓你設定要保留的 HVG 數量（例如 top 2,000）。挑太少可能丟掉罕見細胞類型的標記（那顆稀有的樹突細胞可能就此隱形）；挑太多則放進更多雜訊、稀釋訊號。<strong>2,000 是社群公認的預設起點</strong>，適合大多數資料。</p>
+</div>
+<div data-lang="en">
+<p>A cell may express tens of thousands of genes, but <strong>the vast majority look about the same across all cells</strong>. Think of <strong>housekeeping genes</strong> — ACTB (actin), GAPDH (energy metabolism) — that every cell, whether a T cell, neuron, or hepatocyte, must express steadily just to stay alive. They do nothing to separate cell types; like the person in a meeting who won't stop stating the obvious, they only add noise and slow the compute.</p>
+<p><strong>Highly variable genes (HVGs)</strong> apply a simple idea: keep only the genes that <strong>vary the most between cells</strong> — where the variation is often the biological signal itself (a gene expressed only in one cell type is the best possible "ID badge") — and use them as the <strong>features</strong> for PCA. Technically, the tool fits a baseline of the "mean-expression vs. variability" relationship, then picks genes whose variability is <strong>unusually high above that baseline</strong>, so it doesn't just grab genes that are variable merely because they're highly expressed.</p>
+<p>BBrowserX usually lets you set how many HVGs to keep (e.g. top 2,000). Too few and you may drop markers of rare cell types (that one rare dendritic cell could vanish); too many and you feed in more noise, diluting the signal. <strong>2,000 is the community-standard default starting point</strong>, right for most datasets.</p>
+</div>
+<div class="callout tip"><span class="callout-icon">🎯</span><div>
+<span data-lang="zh"><strong>直覺：</strong>把 HVG 想成「面試時只看能區分候選人的題目」。所有人都答對的題目（不變的基因）沒有鑑別力；答案差異大的題目（高變異基因）才幫你分辨誰是誰。與其問一百個「你會呼吸嗎」，不如問幾題真正的難題。</span>
+<span data-lang="en"><strong>Intuition:</strong> Think of HVGs as interview questions that actually distinguish candidates. Questions everyone answers the same (invariant genes) carry no signal; questions with widely different answers (high-variance genes) are what let you tell people apart. Better a few real challenges than a hundred "can you breathe?" questions.</span>
+</div></div>
+<div class="card-grid cols-3" style="margin-top:8px;">
+<div class="card"><div class="card-icon">🔍</div><h4 data-zh="為什麼重要" data-en="Why it matters">為什麼重要</h4><p data-zh="PCA 對「無訊號的高維雜訊」很敏感。先用 HVG 去蕪存菁，PCA 才抓得到真正的生物結構，而不是被幾萬個沉默基因稀釋。" data-en="PCA is sensitive to high-D noise. Pruning to HVGs first lets PCA capture real biology instead of being diluted by tens of thousands of silent genes.">PCA 對「無訊號的高維雜訊」很敏感。先用 HVG 去蕪存菁，PCA 才抓得到真正的生物結構，而不是被幾萬個沉默基因稀釋。</p></div>
+<div class="card"><div class="card-icon">⚠️</div><h4 data-zh="常見誤區" data-en="Common pitfall">常見誤區</h4><p data-zh="以為 HVG 越多越保險。太多會把技術雜訊也選進來，反而讓群變模糊。找不到某罕見群時，「調高 HVG」比「盲目調高」更有針對性。" data-en="Assuming more HVGs is safer. Too many pulls in technical noise and blurs clusters. If a rare population is missing, raising HVGs on purpose beats bumping the number blindly.">以為 HVG 越多越保險。太多會把技術雜訊也選進來，反而讓群變模糊。找不到某罕見群時，「調高 HVG」比「盲目調高」更有針對性。</p></div>
+<div class="card"><div class="card-icon">💡</div><h4 data-zh="實戰情境" data-en="In practice">實戰情境</h4><p data-zh="做免疫圖譜、想抓稀有亞群？把 HVG 從 2,000 調到 3,000–5,000，讓稀有標記有機會被選進特徵，再重跑 embedding 對照。" data-en="Building an immune atlas and chasing rare subsets? Raise HVGs from 2,000 to 3,000–5,000 so rare markers get a chance to enter the features, then re-run the embedding to compare.">做免疫圖譜、想抓稀有亞群？把 HVG 從 2,000 調到 3,000–5,000，讓稀有標記有機會被選進特徵，再重跑 embedding 對照。</p></div>
+</div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="降維" data-en="DIMENSIONALITY REDUCTION">降維</div>
+<h2 data-zh="三、PCA → UMAP / t-SNE：兩段式降維" data-en="III. PCA → UMAP / t-SNE: Two-Stage Reduction">三、PCA → UMAP / t-SNE：兩段式降維</h2>
+<div class="callout tip"><span class="callout-icon">🎼</span><div>
+<span data-lang="zh"><strong>PCA 的比喻：</strong>PCA 就像「把上萬個基因濃縮成幾十個最有資訊量的『主題軸』並去雜訊」。想像一場擁擠的樂團，幾千支樂器同時演奏；PCA 幫你找出「哪幾條旋律線最能解釋整體變化」——把幾千支樂器濃縮成幾十條主旋律 (主成分)，雜音被留在後面沒人聽的聲部。</span>
+<span data-lang="en"><strong>PCA analogy:</strong> PCA is like "distilling tens of thousands of genes into a few dozen most-informative 'theme axes' while denoising." Picture a crowded orchestra with thousands of instruments playing at once; PCA finds "which few melodic lines best explain the overall variation" — condensing thousands of instruments into a few dozen lead melodies (principal components), leaving the noise in back parts nobody hears.</span>
+</div></div>
+<div data-lang="zh">
+<p>即使只留 2,000 個 HVG，維度仍然太高、且彼此相關（很多基因會一起漲一起跌）。BBrowserX 先做 <strong>PCA（主成分分析，Principal Component Analysis）</strong>：把數千個基因<strong>線性重組</strong>成數十個彼此獨立的<strong>主成分 (principal components, PCs)</strong>，每個 PC 都是一組基因的加權組合，依「能解釋多少變異」排序——第 1 個 PC 抓住最大變異方向，第 2 個抓次大，以此類推。前幾十個 PC 通常就涵蓋了絕大部分的生物訊號，後面的多半是雜訊，<strong>丟掉它們＝去噪</strong>。</p>
+<p>關鍵觀念：<strong>後面所有的鄰居計算、分群，其實都是在這幾十個 PC 上進行</strong>，而不是原始的幾千個基因、更不是你眼睛看到的 2D 圖。PCA 空間才是「真理」發生的地方。</p>
+<p>但幾十維人眼還是看不到。於是再用 <strong>UMAP</strong> 或 <strong>t-SNE</strong> 把 PC 空間<strong>投影到 2D</strong>，畫成你熟悉的散點圖。這兩者都是「<strong>把高維的細胞城市壓平成一張 2D 地圖</strong>」的工具——就像把立體的地球壓成平面世界地圖，一定會有某種扭曲（格陵蘭看起來超大）。兩者都是<strong>視覺化工具</strong>：</p>
+<ul style="color:var(--c-ink-light);margin:0 0 16px 20px;font-size:.95rem;line-height:1.8;">
+<li><strong>t-SNE</strong> — 專注保留<strong>局部鄰域</strong>：相近的細胞在圖上也相近；但群與群之間的<strong>相對距離與大小</strong>幾乎不可信，就像一張只保證「鄰居沒錯位」、卻不保證「城市間里程正確」的地圖。</li>
+<li><strong>UMAP</strong> — 同樣強調局部結構，但通常能保留<strong>更多整體 (global) 結構</strong>（群之間的相對關係較有參考價值），速度也較快、更能撐大資料；目前是單細胞領域的<strong>預設選擇</strong>。</li>
+</ul>
+</div>
+<div data-lang="en">
+<p>Even with just 2,000 HVGs, the dimensionality is still too high and the genes are correlated (many rise and fall together). BBrowserX first runs <strong>PCA (Principal Component Analysis)</strong>: it <strong>linearly recombines</strong> thousands of genes into a few dozen independent <strong>principal components (PCs)</strong>, each a weighted mix of genes, ranked by "how much variation it explains" — PC1 captures the largest direction of variation, PC2 the next, and so on. The first few dozen PCs usually cover the bulk of the biological signal; the rest is mostly noise, and <strong>discarding them = denoising</strong>.</p>
+<p>Key idea: <strong>all downstream neighbor-finding and clustering actually happen on these few dozen PCs</strong> — not on the original thousands of genes, and definitely not on the 2D plot your eyes see. PCA space is where the "truth" happens.</p>
+<p>But dozens of dimensions still aren't viewable. So <strong>UMAP</strong> or <strong>t-SNE</strong> then <strong>projects the PC space to 2D</strong> for the scatter plot you know. Both are tools for "<strong>flattening the high-dimensional city of cells into a single 2D map</strong>" — like squashing the round Earth onto a flat world map, some distortion is inevitable (Greenland looks enormous). Both are <strong>visualization tools</strong>:</p>
+<ul style="color:var(--c-ink-light);margin:0 0 16px 20px;font-size:.95rem;line-height:1.8;">
+<li><strong>t-SNE</strong> — focuses on preserving <strong>local neighborhoods</strong>: nearby cells stay nearby on the plot; but the <strong>relative distance and size</strong> between clusters is largely untrustworthy — a map that guarantees "neighbors aren't misplaced" but not "the mileage between cities is right."</li>
+<li><strong>UMAP</strong> — also emphasizes local structure but tends to keep <strong>more global structure</strong> (relative relationships between clusters carry more meaning), and is faster and scales better; it's the current <strong>default</strong> in single-cell work.</li>
+</ul>
+</div>
+<div class="interactive-panel">
+<div data-lang="zh"><p style="margin-bottom:6px;"><strong>互動：同一份資料，UMAP vs. t-SNE 兩種擺法。</strong>下面是三群隨機模擬細胞。切換投影方式——注意兩者<strong>都能分開這三群</strong>，但群與群之間的相對位置與間距明顯不同。這正說明：分群結果（哪些細胞是一群）是穩定的，但 2D 圖上的「距離」是排版藝術，不要當成真理。</p></div>
+<div data-lang="en"><p style="margin-bottom:6px;"><strong>Interactive: same data, laid out by UMAP vs. t-SNE.</strong> Below are three randomly simulated clusters. Toggle the projection — note both <strong>separate the three groups</strong>, yet the relative positions and gaps between groups clearly differ. That's the point: which cells form a group is stable, but the "distance" on the 2D plot is layout art, not truth.</p></div>
+<div class="toggle-row" id="projToggle">
+  <button class="toggle-btn active" data-k="umap">UMAP</button>
+  <button class="toggle-btn" data-k="tsne">t-SNE</button>
+</div>
+<div class="chart-container" style="height:320px;"><canvas id="projChart"></canvas></div>
+<p style="font-size:.78rem;color:var(--c-ink-muted);text-align:center;margin:0;"><span data-zh="純隨機模擬三群細胞；座標為示意，非真實嵌入。切換 UMAP/t-SNE，三群成員不變、但擺放位置改變——正是「別讀距離」的最佳示範。" data-en="Purely random three synthetic clusters; coordinates are illustrative, not a real embedding. Toggle UMAP/t-SNE: the group memberships stay, but placements change — the perfect 'don't read distances' demo.">純隨機模擬三群細胞；座標為示意，非真實嵌入。切換 UMAP/t-SNE，三群成員不變、但擺放位置改變——正是「別讀距離」的最佳示範。</span></p>
+</div>
+
+<table class="comp-table">
+<thead><tr>
+<th data-zh="面向" data-en="Aspect">面向</th>
+<th>UMAP</th>
+<th>t-SNE</th>
+</tr></thead>
+<tbody>
+<tr><td data-zh="主要保留" data-en="Preserves"><strong data-zh="主要保留" data-en="Preserves">主要保留</strong></td><td data-lang="zh">局部 + 部分整體結構</td><td data-lang="zh">局部鄰域為主</td><td data-lang="en">Local + some global structure</td><td data-lang="en">Mostly local neighborhoods</td></tr>
+<tr><td><strong data-zh="群間距離" data-en="Between-cluster distance">群間距離</strong></td><td data-lang="zh">較有意義，但仍不可全信</td><td data-lang="zh">基本上不可信</td><td data-lang="en">More meaningful, still not literal</td><td data-lang="en">Essentially unreliable</td></tr>
+<tr><td><strong data-zh="速度／規模" data-en="Speed / scale">速度／規模</strong></td><td data-lang="zh">較快，適合大資料</td><td data-lang="zh">較慢，大資料吃力</td><td data-lang="en">Faster, scales to large data</td><td data-lang="en">Slower on large data</td></tr>
+<tr><td><strong data-zh="常見用途" data-en="Typical use">常見用途</strong></td><td data-lang="zh">單細胞領域預設視覺化</td><td data-lang="zh">傳統選擇，仍常見</td><td data-lang="en">Default single-cell visualization</td><td data-lang="en">Classic choice, still common</td></tr>
+<tr><td><strong data-zh="關鍵旋鈕" data-en="Key knob">關鍵旋鈕</strong></td><td data-lang="zh">n_neighbors、min_dist</td><td data-lang="zh">perplexity</td><td data-lang="en">n_neighbors, min_dist</td><td data-lang="en">perplexity</td></tr>
+<tr><td><strong data-zh="用於距離計算？" data-en="Use for distances?">用於距離計算？</strong></td><td data-lang="zh">否——分群在 PCA 空間做</td><td data-lang="zh">否——僅供看圖</td><td data-lang="en">No — cluster in PCA space</td><td data-lang="en">No — for viewing only</td></tr>
+</tbody></table>
+
+<div class="callout tip"><span class="callout-icon">🧭</span><div>
+<span data-lang="zh"><strong>UMAP vs. t-SNE 怎麼選？</strong>簡單原則：<strong>大多數情況直接用 UMAP</strong>——它快、能撐大資料、保留較多整體結構，是現在的社群預設。<strong>想跟舊文獻（2015–2019 年前後多為 t-SNE）對照</strong>、或審稿人指定時，再補跑 t-SNE。若你發現 t-SNE 圖上群「散得很開很漂亮」，別高興太早——那多半是 perplexity 調出來的視覺效果，不代表生物差異更大。兩張圖的<strong>分群結果應該一致</strong>；如果不一致，問題通常出在前面的 PCA / HVG 設定，而不是投影本身。</span>
+<span data-lang="en"><strong>UMAP vs. t-SNE — how to choose?</strong> Simple rule: <strong>reach for UMAP by default</strong> — fast, scales, keeps more global structure, and it's today's community default. <strong>Add t-SNE when comparing to older literature</strong> (papers around 2015–2019 mostly used t-SNE) or when a reviewer asks. If t-SNE spreads clusters out "nice and wide," don't over-celebrate — that's usually a perplexity-driven visual effect, not bigger biological difference. The <strong>cluster assignments should agree</strong> across both plots; if they don't, the culprit is usually your upstream PCA/HVG settings, not the projection.</span>
+</div></div>
+
+<div class="callout danger"><span class="callout-icon">⚠️</span><div>
+<span data-lang="zh"><strong>常見誤區：直接比較 UMAP 上兩群的距離。</strong>這是單細胞分析最普遍的誤讀。UMAP/t-SNE 上兩個相距很遠的群，<strong>不代表</strong>它們在生物上就差很多；相鄰的群也不一定親緣接近。同樣地，圖上某一群<strong>看起來比較大／比較鬆散</strong>，<strong>不代表</strong>那類細胞數量比較多、或差異程度比較大——群的大小與形狀主要由投影演算法的參數（如 min_dist、perplexity）決定，是排版產物。這些圖是<strong>投影</strong>，會為了把局部畫清楚而扭曲整體。真正的距離、鄰居與分群，都是在 <strong>PCA 空間</strong>裡計算的——2D 圖只是拿來「看」的。想量化兩群到底多不同？請回到差異表達（下一步 DE）與 PCA 空間的距離，別用尺量 UMAP。</span>
+<span data-lang="en"><strong>Common pitfall: reading distances between two clusters on a UMAP.</strong> This is the single most widespread misread in single-cell analysis. Two clusters far apart on a UMAP/t-SNE do <strong>not</strong> necessarily mean they're biologically very different, and adjacent clusters aren't guaranteed to be closely related. Likewise, a cluster that <strong>looks bigger or looser</strong> does <strong>not</strong> mean that cell type is more abundant or more variable — cluster size and shape are set mainly by the projection's parameters (min_dist, perplexity) and are layout artifacts. These are <strong>projections</strong> that distort global layout to render local structure clearly. Real distances, neighbors, and clustering are computed in <strong>PCA space</strong> — the 2D plot is only for looking. Want to quantify how different two clusters really are? Go to differential expression (next step, DE) and PCA-space distances — don't put a ruler on the UMAP.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="怎麼看圖" data-en="READING THE MAP">怎麼看圖</div>
+<h2 data-zh="四、看懂一張 UMAP：能讀什麼、不能讀什麼" data-en="IV. Reading a UMAP: What You Can and Can't Trust">四、看懂一張 UMAP：能讀什麼、不能讀什麼</h2>
+<div data-lang="zh">
+<p>既然人人都在看 UMAP，這裡直接給你一張「可信 vs. 不可信」對照表。把它貼在螢幕旁，能省下無數誤判。核心原則只有一句：<strong>UMAP 是可信的「誰跟誰一群」，是不可信的「距離尺」。</strong></p>
+</div>
+<div data-lang="en">
+<p>Since everyone stares at UMAPs, here's a "trust vs. don't-trust" cheat sheet. Tape it next to your screen and save yourself countless misreads. The core rule is one line: <strong>a UMAP is a trustworthy "who groups with whom," and an untrustworthy "distance ruler."</strong></p>
+</div>
+<table class="comp-table">
+<thead><tr>
+<th data-zh="圖上看到的" data-en="What you see">圖上看到的</th>
+<th data-zh="✅ 通常可信" data-en="✅ Usually trustworthy">✅ 通常可信</th>
+<th data-zh="❌ 別過度解讀" data-en="❌ Don't over-read">❌ 別過度解讀</th>
+</tr></thead>
+<tbody>
+<tr><td data-lang="zh"><strong>哪些細胞聚成一團</strong></td><td data-lang="zh">✅ 同一團多半真的相似（局部結構保存好）</td><td data-lang="zh">—</td><td data-lang="en"><strong>Which cells clump together</strong></td><td data-lang="en">✅ A clump is usually genuinely similar (local structure is well kept)</td><td data-lang="en">—</td></tr>
+<tr><td data-lang="zh"><strong>兩群之間的距離</strong></td><td data-lang="zh">—</td><td data-lang="zh">❌ 遠≠差很多、近≠很相似；別當量尺</td><td data-lang="en"><strong>Distance between two clusters</strong></td><td data-lang="en">—</td><td data-lang="en">❌ Far ≠ very different, near ≠ very similar; not a ruler</td></tr>
+<tr><td data-lang="zh"><strong>某群看起來很大／很鬆</strong></td><td data-lang="zh">—</td><td data-lang="zh">❌ 大小、密度由參數決定，非細胞數或變異度</td><td data-lang="en"><strong>A cluster looks big / loose</strong></td><td data-lang="en">—</td><td data-lang="en">❌ Size &amp; density come from parameters, not cell count or variance</td></tr>
+<tr><td data-lang="zh"><strong>細長的「橋」或軌跡</strong></td><td data-lang="zh">✅ 有時反映連續轉變（配合軌跡分析再確認）</td><td data-lang="zh">❌ 也可能是投影假象，需交叉驗證</td><td data-lang="en"><strong>A thin "bridge" or trajectory</strong></td><td data-lang="en">✅ Sometimes reflects a real continuum (confirm with trajectory analysis)</td><td data-lang="en">❌ Can also be a projection artifact — cross-check</td></tr>
+<tr><td data-lang="zh"><strong>顏色（基因表達）疊上去</strong></td><td data-lang="zh">✅ 標記基因在哪群高，很有用</td><td data-lang="zh">—</td><td data-lang="en"><strong>Color (gene expression) overlaid</strong></td><td data-lang="en">✅ Where a marker lights up is genuinely useful</td><td data-lang="en">—</td></tr>
+</tbody></table>
+<div class="callout tip"><span class="callout-icon">🔬</span><div>
+<span data-lang="zh"><strong>實戰情境：</strong>老闆指著 UMAP 說「這兩群離這麼遠，一定是完全不同的細胞」。你該做的不是點頭，而是回到 <strong>PCA 空間或做差異表達</strong>驗證：也許它們只差幾個基因、其實是同型的兩個狀態。反過來，兩群明明黏在一起，DE 卻找出上百個顯著差異基因——那它們就是實實在在的兩種細胞，別被「看起來很近」騙了。</span>
+<span data-lang="en"><strong>In practice:</strong> Your PI points at the UMAP: "these two clusters are so far apart, they must be totally different cells." Don't just nod — go verify in <strong>PCA space or with differential expression</strong>: maybe they differ by only a few genes and are really two states of one type. Conversely, two clusters glued together on the map may show hundreds of significant DE genes — then they truly are two cell types, and "they look close" was a lie.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="決策" data-en="DECISION">決策</div>
+<h2 data-zh="五、實務決策：我該怎麼設這些參數？" data-en="V. Practical Decisions: How Do I Set These?">五、實務決策：我該怎麼設這些參數？</h2>
+<div class="decision-tree">
+<h4 data-zh="快速決策指南" data-en="Quick decision guide">快速決策指南</h4>
+<div class="dt-node"><span class="dt-q" data-zh="標準化" data-en="Norm">標準化</span><span class="dt-arrow">→</span><span data-lang="zh">用預設的 <strong>log-normalization</strong>（CP10K + log1p）即可，適合絕大多數探索場景。需要變異穩定化再回程式碼工具。</span><span data-lang="en">Use the default <strong>log-normalization</strong> (CP10K + log1p) — right for almost all exploration. Drop to code tools if you need variance stabilization.</span></div>
+<div class="dt-node"><span class="dt-q" data-zh="HVG 數" data-en="#HVGs">HVG 數</span><span class="dt-arrow">→</span><span data-lang="zh">從 <strong>2,000</strong> 起步；擔心漏掉罕見群就調高到 3,000–5,000。</span><span data-lang="en">Start at <strong>2,000</strong>; raise to 3,000–5,000 if worried about missing rare populations.</span></div>
+<div class="dt-node"><span class="dt-q" data-zh="PC 數" data-en="#PCs">PC 數</span><span class="dt-arrow">→</span><span data-lang="zh">常見 <strong>30–50</strong> 個 PC；太少會丟結構，太多會放進雜訊。不確定就用預設。</span><span data-lang="en">Commonly <strong>30–50</strong> PCs; too few loses structure, too many adds noise. When unsure, keep the default.</span></div>
+<div class="dt-node"><span class="dt-q" data-zh="投影" data-en="Projection">投影</span><span class="dt-arrow">→</span><span data-lang="zh">預設用 <strong>UMAP</strong>；想和舊文獻對照時可再看 t-SNE。</span><span data-lang="en">Default to <strong>UMAP</strong>; also try t-SNE when comparing with older literature.</span></div>
+<div class="dt-node"><span class="dt-q" data-zh="下一步" data-en="Next">下一步</span><span class="dt-arrow">→</span><span data-lang="zh">若有多個樣本／批次，先做<strong>批次校正</strong>（下一章）再分群。</span><span data-lang="en">With multiple samples/batches, apply <strong>batch correction</strong> (next chapter) before clustering.</span></div>
+</div>
+<div class="callout tip"><span class="callout-icon">🔁</span><div>
+<span data-lang="zh"><strong>可以反覆嘗試。</strong>這些參數不是一次定終身——BBrowserX 讓你重跑 embedding、比較不同設定的結果。先用預設看一遍，再視分群品質微調，是很正常、也很健康的工作流程。改一個參數就重跑一次，並排比較，比「一次想到最完美設定」實際得多。</span>
+<span data-lang="en"><strong>Iterate freely.</strong> These settings aren't one-shot — BBrowserX lets you re-run the embedding and compare. Running defaults first, then tuning based on clustering quality, is a perfectly normal and healthy workflow. Change one parameter, re-run, compare side by side — far more practical than trying to nail the perfect config in one go.</span>
+</div></div>
+<div class="callout danger"><span class="callout-icon">🚦</span><div>
+<span data-lang="zh"><strong>順序警告：</strong>如果你的資料來自<strong>多個樣本、多個批次</strong>（不同天、不同試劑、不同儀器），千萬別跳過批次校正就直接分群——否則你會分出「批次群」而不是「細胞類型群」，跟不標準化的錯誤同源。BBrowserX 主要以 <strong>Harmony</strong> 做批次校正，通常接在 PCA 之後、UMAP/分群之前。細節留到下一章。</span>
+<span data-lang="en"><strong>Order warning:</strong> If your data spans <strong>multiple samples or batches</strong> (different days, reagents, machines), never skip batch correction and cluster directly — you'll carve out "batch clusters" instead of "cell-type clusters," the same class of error as skipping normalization. BBrowserX mainly uses <strong>Harmony</strong> for batch correction, usually slotted after PCA and before UMAP/clustering. Details in the next chapter.</span>
+</div></div>
+</section>
+
+<section class="quiz-section">
+<h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">1. 為什麼要先做標準化 (normalization)，才能比較不同細胞的基因表達？</p>
+<p data-lang="en">1. Why must we normalize before comparing gene expression across cells?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 為了把資料投影到 2D</span><span data-lang="en">A. To project the data into 2D</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 為了刪掉低品質細胞</span><span data-lang="en">B. To remove low-quality cells</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 為了校正每個細胞不同的定序深度，讓細胞可比</span><span data-lang="en">C. To correct differing per-cell sequencing depth so cells are comparable</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 為了挑出高變異基因</span><span data-lang="en">D. To select highly variable genes</span></div>
+</div><div class="quiz-feedback" id="fb1"></div></div>
+
+<div class="quiz-q" data-answer="1">
+<p data-lang="zh">2. 關於 UMAP / t-SNE 的 2D 圖，下列何者<strong>正確</strong>？</p>
+<p data-lang="en">2. Which statement about the UMAP / t-SNE 2D plot is <strong>correct</strong>?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 群與群之間的距離可以直接當成生物差異的量尺</span><span data-lang="en">A. Distances between clusters directly measure biological difference</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 它們是視覺化投影；分群其實在 PCA 空間計算，不要過度解讀 2D 距離</span><span data-lang="en">B. They are visualization projections; clustering is done in PCA space, so don't over-read 2D distances</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. t-SNE 保留的整體結構總是比 UMAP 多</span><span data-lang="en">C. t-SNE always preserves more global structure than UMAP</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. UMAP 會取代標準化這一步</span><span data-lang="en">D. UMAP replaces the normalization step</span></div>
+</div><div class="quiz-feedback" id="fb2"></div></div>
+
+<div class="quiz-q" data-answer="0">
+<p data-lang="zh">3. 在 PCA → UMAP 的兩段式降維中，PCA 的主要作用是？</p>
+<p data-lang="en">3. In the PCA → UMAP two-stage reduction, what does PCA mainly do?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 把數千個基因壓縮成數十個主成分並去噪，作為後續計算的基礎</span><span data-lang="en">A. Compress thousands of genes into a few dozen PCs and denoise, as the basis for later computation</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 直接把資料畫成最終的 2D 散點圖</span><span data-lang="en">B. Directly draw the final 2D scatter plot</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 移除定序深度差異</span><span data-lang="en">C. Remove sequencing-depth differences</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 註釋細胞類型</span><span data-lang="en">D. Annotate cell types</span></div>
+</div><div class="quiz-feedback" id="fb3"></div></div>
+
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">4. 挑選高變異基因 (HVGs) 的主要目的是？</p>
+<p data-lang="en">4. What is the main purpose of selecting highly variable genes (HVGs)?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 保留管家基因，因為它們最穩定</span><span data-lang="en">A. Keep housekeeping genes because they are the most stable</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 校正每個細胞的定序深度</span><span data-lang="en">B. Correct each cell's sequencing depth</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 只留下細胞間變異大、最能區分細胞類型的基因，去除雜訊與計算量</span><span data-lang="en">C. Keep only the genes that vary most between cells and best separate cell types, cutting noise and compute</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 把資料壓成 2D 好視覺化</span><span data-lang="en">D. Flatten the data into 2D for visualization</span></div>
+</div><div class="quiz-feedback" id="fb4"></div></div>
+
+<div class="quiz-q" data-answer="1">
+<p data-lang="zh">5. 在 UMAP 上，某一群看起來比另一群「大很多、鬆很多」。下列詮釋何者最恰當？</p>
+<p data-lang="en">5. On a UMAP, one cluster looks "much bigger and looser" than another. Which interpretation is most appropriate?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 那類細胞的數量一定比較多</span><span data-lang="en">A. That cell type must be more abundant</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 大小與鬆緊主要由投影參數決定，不能直接當成數量或變異程度</span><span data-lang="en">B. Size and looseness are set mainly by projection parameters and don't directly indicate abundance or variability</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 那類細胞的定序深度比較高</span><span data-lang="en">C. That cell type was sequenced more deeply</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 代表標準化失敗，需要重做</span><span data-lang="en">D. It means normalization failed and must be redone</span></div>
+</div><div class="quiz-feedback" id="fb5"></div></div>
+</section>
+
+<nav class="page-nav">
+<a href="qc.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Step 2: 品質管控 (QC) / Quality Control" data-en="Step 2: Quality Control (QC)">Step 2: 品質管控 (QC) / Quality Control</span></a>
+<a href="clustering.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="Step 4: 分群與批次校正 / Clustering & Batch Correction" data-en="Step 4: Clustering & Batch Correction">Step 4: 分群與批次校正 / Clustering & Batch Correction</span></a>
+</nav>
+</main>
+<footer class="site-footer">© Charlene — BioTuring Interactive Tutorial · <span data-zh="教學用途，非 BioTuring 官方文件" data-en="Educational use — not official BioTuring documentation">教學用途，非 BioTuring 官方文件</span></footer>
+<script src="i18n.js"></script>
+<script>
+window.addEventListener('scroll',()=>{const h=document.documentElement;document.getElementById('progressBar').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+'%';});
+
+// ---- Synthetic data (pure random) ----
+function rnd(seed){let s=seed;return()=>{s=(s*9301+49297)%233280;return s/233280;};}
+
+// Raw vs log-normalized histograms
+const R=rnd(42);
+const rawVals=[];
+for(let i=0;i<2000;i++){ // heavy right-skew: exponential-ish
+  let u=R();rawVals.push(Math.round(-Math.log(1-u)*8+R()*3));
+}
+function histo(vals,bins,max){const h=new Array(bins).fill(0);const w=max/bins;vals.forEach(v=>{let b=Math.min(bins-1,Math.floor(v/w));if(b>=0)h[b]++;});const labels=[];for(let i=0;i<bins;i++)labels.push((i*w).toFixed(1));return{h,labels};}
+const rawH=histo(rawVals,16,60);
+const logVals=rawVals.map(v=>Math.log(1+v));
+const logH=histo(logVals,16,4.5);
+
+const DIST={
+ raw:{data:rawH.h,labels:rawH.labels,color:'#5b3fb0',xz:'原始計數值',xe:'Raw count value'},
+ log:{data:logH.h,labels:logH.labels,color:'#2563a8',xz:'log(1+計數)',xe:'log(1+count)'}
+};
+let distKey='raw';
+const distChart=new Chart(document.getElementById('distChart'),{type:'bar',
+ data:{labels:DIST.raw.labels,datasets:[{data:DIST.raw.data,backgroundColor:DIST.raw.color}]},
+ options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>i[0].label}}},
+ scales:{y:{title:{display:true,text:'cells'}},x:{title:{display:true,text:DIST.raw.xz},ticks:{font:{size:9},maxRotation:0}}}}});
+function renderDist(){const L=I18n.get();const d=DIST[distKey];distChart.data.labels=d.labels;distChart.data.datasets[0].data=d.data;distChart.data.datasets[0].backgroundColor=d.color;distChart.options.scales.x.title.text=L==='zh'?d.xz:d.xe;distChart.update();}
+document.querySelectorAll('#distToggle .toggle-btn').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#distToggle .toggle-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');distKey=b.dataset.k;renderDist();}));
+
+// UMAP vs t-SNE synthetic clusters (same 3 groups, two layouts)
+function cluster(gen,cx,cy,spread,n){const pts=[];for(let i=0;i<n;i++){pts.push({x:cx+(gen()-.5)*spread,y:cy+(gen()-.5)*spread});}return pts;}
+const G1=rnd(7),G2=rnd(19);
+// UMAP-like: groups fairly separated, some global structure
+const umap=[cluster(G1,-4,2,3,60),cluster(G1,4,3,3,60),cluster(G1,0,-5,3.4,60)];
+// t-SNE-like: tighter blobs, different relative spacing/positions
+const tsne=[cluster(G2,-6,5,2.2,60),cluster(G2,6,4.5,2.2,60),cluster(G2,1,-3,2.4,60)];
+const cols=['#5b3fb0','#2563a8','#1a6b5a'];
+const clabZ=['群 A','群 B','群 C'],clabE=['Cluster A','Cluster B','Cluster C'];
+let projKey='umap';
+function projDatasets(src){const L=I18n.get();return src.map((c,i)=>({label:(L==='zh'?clabZ:clabE)[i],data:c,backgroundColor:cols[i],pointRadius:3}));}
+const projChart=new Chart(document.getElementById('projChart'),{type:'scatter',
+ data:{datasets:projDatasets(umap)},
+ options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11}}}},
+ scales:{x:{title:{display:true,text:'UMAP-1'},ticks:{display:false}},y:{title:{display:true,text:'UMAP-2'},ticks:{display:false}}}}});
+function renderProj(){const src=projKey==='umap'?umap:tsne;const ax=projKey==='umap'?'UMAP':'t-SNE';projChart.data.datasets=projDatasets(src);projChart.options.scales.x.title.text=ax+'-1';projChart.options.scales.y.title.text=ax+'-2';projChart.update();}
+document.querySelectorAll('#projToggle .toggle-btn').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#projToggle .toggle-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');projKey=b.dataset.k;renderProj();}));
+
+document.addEventListener('langchange',()=>{renderDist();renderProj();});
+
+// Quiz
+const QF={
+ zh:{q1_y:'標準化校正每個細胞不同的定序深度，讓「表達高低」代表生物差異而非技術差異。',q1_n:'正確答案已標示。',q2_y:'UMAP/t-SNE 是視覺化投影；真正的距離與分群在 PCA 空間計算，不要過度解讀 2D 距離。',q2_n:'正確答案已標示。',q3_y:'PCA 把數千基因壓縮成數十個主成分並去噪，作為鄰居計算與分群的基礎。',q3_n:'正確答案已標示。',q4_y:'HVG 只留下細胞間變異大、最能區分細胞類型的基因，去除管家基因等雜訊並減少計算量。',q4_n:'正確答案已標示。',q5_y:'UMAP 上群的大小與鬆緊主要由 min_dist 等投影參數決定，不能直接解讀成細胞數量或變異程度。',q5_n:'正確答案已標示。'},
+ en:{q1_y:'Normalization corrects each cell’s sequencing depth so high/low expression reflects biology, not technical depth.',q1_n:'Correct answer highlighted.',q2_y:'UMAP/t-SNE are visualization projections; real distances and clustering happen in PCA space, so don’t over-read 2D distances.',q2_n:'Correct answer highlighted.',q3_y:'PCA compresses thousands of genes into a few dozen denoised PCs, the basis for neighbor-finding and clustering.',q3_n:'Correct answer highlighted.',q4_y:'HVGs keep only the genes that vary most between cells and best separate cell types, removing housekeeping noise and cutting compute.',q4_n:'Correct answer highlighted.',q5_y:'Cluster size and looseness on a UMAP are set mainly by projection parameters like min_dist — not a readout of abundance or variability.',q5_n:'Correct answer highlighted.'}
+};
+document.querySelectorAll('.quiz-q').forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll('.quiz-opt').forEach(o=>{o.addEventListener('click',()=>{if(q.classList.contains('answered'))return;q.classList.add('answered');const fb=document.getElementById('fb'+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?'correct':'wrong');if(!ok)q.querySelectorAll('.quiz-opt')[ans].classList.add('correct');const L=I18n.get();fb.className='quiz-feedback show '+(ok?'correct-fb':'wrong-fb');fb.textContent=(ok?'✅ ':'❌ ')+(QF[L]['q'+(qi+1)+'_'+(ok?'y':'n')]||'');});});});
+</script>
+</body></html>
