@@ -1,0 +1,387 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Multimodal & Immune Profiling — BioTuring Tutorial</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>.page-hero{background:linear-gradient(160deg,#2b1a5e 0%,#3b2a86 35%,#5b3fb0 70%,#2563a8 100%)}
+.mod-chip{display:inline-block;padding:3px 12px;border-radius:20px;font-size:.78rem;font-weight:700;margin-right:6px}
+.mod-chip.rna{background:var(--c-highlight-light);color:var(--c-highlight)}
+.mod-chip.adt{background:var(--c-accent-light);color:var(--c-accent-dark)}
+.mod-chip.vdj{background:#f3e8ff;color:#7c3aed}
+.mod-chip.hto{background:#fde8e5;color:var(--c-danger)}
+.rec-box{margin-top:16px;padding:18px 20px;border-radius:var(--radius-lg);background:var(--c-accent-light);border-left:4px solid var(--c-accent);font-size:.95rem}
+.rec-box b{color:var(--c-accent-dark)}
+.analogy{display:flex;gap:14px;padding:18px 22px;border-radius:var(--radius-lg);margin:20px 0;background:linear-gradient(135deg,#fdf8ee 0%,#f0f7f5 100%);border-left:4px solid #d4a03c;font-size:.95rem}
+.analogy .analogy-icon{font-size:1.6rem;flex-shrink:0}
+.mini-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:18px 0}
+.mini-card{background:var(--c-surface);border:1px solid var(--c-border-light);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow-sm)}
+.mini-card .mc-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--c-accent);margin-bottom:6px}
+.mini-card .mc-big{font-family:var(--font-display);font-size:1.5rem;font-weight:700;color:var(--c-ink);line-height:1.1}
+.mini-card p{font-size:.82rem;color:var(--c-ink-muted);margin:6px 0 0}</style></head><body>
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="BioTuring 教學" data-en="BioTuring Tutorial">BioTuring 教學</span></a>
+  <ul class="top-nav-links"><li><a href="overview.html" data-zh="總覽" data-en="Overview">總覽</a></li><li><a href="import.html">Import</a></li><li><a href="qc.html">QC</a></li><li><a href="normalization.html">Norm.</a></li><li><a href="clustering.html">Cluster</a></li><li><a href="annotation.html">Annot.</a></li><li><a href="dge.html">DE</a></li><li><a href="trajectory.html">Traj.</a></li><li><a href="multimodal.html" class="active">Multi</a></li><li><a href="spatialx.html">SpatialX</a></li><li><a href="talk2data.html">Talk2Data</a></li><li><a href="references/index.html" data-zh="📚 參考資料" data-en="📚 References">📚 參考資料</a></li></ul>
+</div></nav>
+<div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+<header class="page-hero"><div class="step-badge">ADVANCED · <span data-zh="多模態與免疫圖譜" data-en="Multimodal & Immune Profiling">多模態與免疫圖譜</span></div>
+<h1 data-zh="多模態與免疫圖譜分析" data-en="Multimodal & Immune Profiling">多模態與免疫圖譜分析</h1>
+<p class="subtitle" data-lang="zh">在同一顆細胞裡同時讀取 RNA、表面蛋白 (ADT) 與免疫受體 (TCR/BCR)，並用 hashtag 把多個樣本合併定序後再拆回。一顆細胞、多層真相。</p>
+<p class="subtitle" data-lang="en">Read RNA, surface protein (ADT), and immune receptors (TCR/BCR) in the same cell — and pool multiple samples with hashtags, then demultiplex them back. One cell, many layers of truth.</p>
+</header>
+<main class="content-wrap">
+
+<section class="section">
+<div class="section-label" data-zh="概念" data-en="CONCEPT">概念</div>
+<h2 data-zh="一、什麼是「多模態」單細胞？" data-en="I. What Is “Multimodal” Single-Cell?">一、什麼是「多模態」單細胞？</h2>
+<div data-lang="zh">
+<p>傳統 scRNA-seq 只量測一種模態：<strong>mRNA 表達</strong>——它告訴你「這顆細胞<em>想</em>做什麼」。但細胞不只有基因藍圖，它表面掛著什麼蛋白、它的免疫受體長什麼樣、它到底是從哪個病人來的，這些都是同一顆細胞身上的其他真相。<strong>多模態 (multimodal)</strong> 指在<strong>同一顆細胞</strong>裡同時捕捉這些不同層次的生物訊息——例如 RNA 加上<strong>表面蛋白</strong>，或 RNA 加上<strong>免疫受體序列</strong>。</p>
+<p>關鍵在於「同一顆細胞」四個字。因為所有模態都來自同一顆細胞，你可以把「這顆細胞表現哪些基因」與「它表面有哪些蛋白、它的 T/B 細胞受體是什麼」<strong>直接對應起來</strong>，而不是把兩批不同細胞硬湊在一起猜。這就像同時拿到一個人的「履歷」與「員工證」——兩份文件講的是同一個人，才能交叉比對。</p>
+<p>BBrowserX 的多模態模組涵蓋三大主軸：<strong>①</strong> CITE-seq / ADT（表面蛋白）；<strong>②</strong> TCR/BCR（免疫受體 repertoire）；<strong>③</strong> demultiplexing（樣本 hashing 拆分）。本章逐一說明它們「量什麼、為何有用、常見誤區、在 BBrowserX 怎麼看」，最後告訴你怎麼把它們疊在同一張圖上一起解讀。</p>
+</div>
+<div data-lang="en">
+<p>Classic scRNA-seq measures one modality: <strong>mRNA expression</strong> — it tells you what a cell <em>wants</em> to do. But a cell is more than its gene blueprint: which proteins sit on its surface, what its immune receptor looks like, which patient it came from — these are all other truths about the very same cell. <strong>Multimodal</strong> single-cell captures those different layers from the <strong>same cell</strong> at once — e.g. RNA plus <strong>surface protein</strong>, or RNA plus <strong>immune-receptor sequence</strong>.</p>
+<p>The magic is in those two words: <em>same cell</em>. Because every layer comes from the same cell, you can <strong>directly link</strong> “which genes this cell expresses” with “which proteins sit on its surface” and “what its T/B-cell receptor is” — instead of stitching together two separate batches of cells and guessing. It's like holding both a person's <em>résumé</em> and their <em>ID badge</em> — cross-checking only works when both documents describe the same individual.</p>
+<p>The BBrowserX multimodal module covers three pillars: <strong>(1)</strong> CITE-seq / ADT (surface protein); <strong>(2)</strong> TCR/BCR (immune-receptor repertoire); and <strong>(3)</strong> demultiplexing (sample hashing). This chapter walks through what each measures, why it helps, common pitfalls, and how you view it in BBrowserX — then shows how to layer them all on one plot.</p>
+</div>
+<div class="card-grid cols-3">
+<div class="card"><div class="card-icon">🧫</div><h4><span class="mod-chip adt">ADT</span>CITE-seq</h4>
+<div data-lang="zh"><p>抗體標記 (Antibody-Derived Tags) 量測<strong>表面蛋白</strong>，與 RNA 互補。蛋白量 ≠ mRNA 量。RNA 是「履歷」，ADT 是「名片」。</p></div>
+<div data-lang="en"><p>Antibody-Derived Tags measure <strong>surface protein</strong>, complementing RNA. Protein level ≠ mRNA level. RNA is the “résumé,” ADT the “business card.”</p></div></div>
+<div class="card"><div class="card-icon">🛡️</div><h4><span class="mod-chip vdj">V(D)J</span>TCR / BCR</h4>
+<div data-lang="zh"><p>單細胞免疫受體定序：每顆 T/B 細胞的受體序列就像<strong>獨一無二的指紋</strong>，可看 clonotype 與<strong>選殖擴增</strong>。</p></div>
+<div data-lang="en"><p>Single-cell immune receptor sequencing: each T/B cell's receptor is like a <strong>unique fingerprint</strong> — read clonotype and <strong>clonal expansion</strong>.</p></div></div>
+<div class="card"><div class="card-icon">🏷️</div><h4><span class="mod-chip hto">HTO</span>Hashing</h4>
+<div data-lang="zh"><p>用 hashtag oligo 把多個樣本併在一次定序，事後靠「手環顏色」<strong>demultiplex</strong> 拆回並抓 doublet。</p></div>
+<div data-lang="en"><p>Hashtag oligos pool many samples in one run; <strong>demultiplex</strong> by “wristband color” to assign cells and flag doublets.</p></div></div>
+</div>
+<div class="callout tip"><span class="callout-icon">🧭</span><div>
+<span data-lang="zh"><strong>一句話記住三者的分工：</strong>RNA 告訴你細胞「是誰、想做什麼」；ADT 告訴你它「表面實際掛了什麼」；TCR/BCR 告訴你它「屬於哪個家族、有沒有被抗原點名擴增」；HTO 告訴你它「從哪個樣本來、是不是兩顆黏在一起」。四張拼圖拼起來，才是完整的細胞故事。</span>
+<span data-lang="en"><strong>One-line division of labor:</strong> RNA tells you who a cell is and what it wants to do; ADT tells you what's actually on its surface; TCR/BCR tells you which family it belongs to and whether an antigen has expanded it; HTO tells you which sample it came from and whether it's two cells stuck together. Snap all four puzzle pieces together for the full story.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="表面蛋白" data-en="SURFACE PROTEIN">表面蛋白</div>
+<h2 data-zh="二、CITE-seq / ADT：量測表面蛋白" data-en="II. CITE-seq / ADT: Measuring Surface Protein">二、CITE-seq / ADT：量測表面蛋白</h2>
+<div class="analogy"><span class="analogy-icon">📇</span><div>
+<span data-lang="zh"><strong>比喻：履歷 vs 名片。</strong>RNA 是細胞的「履歷」——它寫著這顆細胞<em>打算</em>合成哪些蛋白（它想做什麼）。ADT 則是細胞的「名片」——它表面<em>實際</em>掛著哪些蛋白（它現在真正的身分）。有時候履歷寫得天花亂墜，名片卻很樸素；有時候履歷平平，名片上頭銜卻很硬。CITE-seq 讓你同時讀這兩份文件，於是你不必再從履歷「猜」名片上會寫什麼。</span>
+<span data-lang="en"><strong>Analogy: résumé vs business card.</strong> RNA is the cell's <em>résumé</em> — it lists which proteins the cell <em>intends</em> to make (what it wants to do). ADT is the cell's <em>business card</em> — which proteins <em>actually</em> sit on its surface right now (who it really is). Sometimes the résumé is flashy but the card is plain; sometimes the résumé is modest but the card carries a heavy title. CITE-seq lets you read both documents at once, so you never again have to <em>guess</em> the card from the résumé.</span>
+</div></div>
+<div data-lang="zh">
+<p><strong>CITE-seq</strong>（Cellular Indexing of Transcriptomes and Epitopes by sequencing）用<strong>帶條碼寡核苷酸的抗體</strong>去染細胞表面蛋白。想像每種抗體屁股上綁著一小段獨特的 DNA「條碼」，稱為 <strong>ADT（Antibody-Derived Tag，抗體衍生標籤）</strong>。抗體黏到細胞表面對應的蛋白（例如 CD4 抗體找 CD4 蛋白），沒黏上的洗掉，剩下的 DNA 條碼就跟 mRNA 一起被定序讀出。定序時，某顆細胞上 CD4 的 ADT 計數越高，代表它表面 CD4 蛋白越多。整個過程與 RNA library <strong>平行讀出</strong>，互不干擾。</p>
+<p><strong>為什麼重要？因為蛋白量不等於 mRNA 量。</strong>mRNA 只是「訂單」，蛋白才是「成品」——中間隔著轉譯效率、蛋白半衰期、翻譯後修飾與蛋白週轉率等好幾道關卡。舉個經典例子：許多免疫細胞的 <strong>CD4</strong>、<strong>CD8A</strong> 這類表面標記，在 RNA 層次因為表達低、又容易 dropout（該有訊號卻讀成 0），常糊成一團難以分群；但在<strong>蛋白層次</strong>卻乾淨俐落、呈現清楚的「陰性 vs 陽性」雙峰，一眼就能把 CD4⁺ T 細胞與 CD8⁺ T 細胞分開。ADT 提供更穩定、更接近流式細胞儀 (flow cytometry) 的表面表型讀數，特別適合免疫細胞分型。</p>
+<p>在 BBrowserX 中，ADT 會以獨立的「protein / ADT」特徵集載入，可與基因表達<strong>並排視覺化</strong>——在同一張 UMAP 上切換顯示 CD4 <em>基因</em> 或 CD4 <em>蛋白</em>，或針對 ADT 做 feature plot、violin plot（實際選單名稱依版本略有不同）。</p>
+</div>
+<div data-lang="en">
+<p><strong>CITE-seq</strong> (Cellular Indexing of Transcriptomes and Epitopes by sequencing) stains surface proteins with <strong>oligo-barcoded antibodies</strong>. Picture every antibody carrying a tiny unique DNA “barcode” on its tail — an <strong>ADT (Antibody-Derived Tag)</strong>. The antibody binds its target protein on the surface (a CD4 antibody hunts CD4 protein), unbound antibody is washed off, and the remaining DNA tags get sequenced right alongside the mRNA. On sequencing, the higher a cell's CD4 ADT count, the more CD4 protein sits on its surface. The whole thing is read out <strong>in parallel</strong> with the RNA library, without interfering.</p>
+<p><strong>Why does it matter? Because protein level ≠ mRNA level.</strong> mRNA is just the “order slip”; protein is the finished product — and in between sit translation efficiency, protein half-life, post-translational modification, and turnover. A classic example: surface markers like <strong>CD4</strong> and <strong>CD8A</strong> are lowly expressed and dropout-prone at the RNA level (real signal reads as 0), smearing into an unresolvable blob; yet at the <strong>protein level</strong> they're crisp and clearly bimodal (negative vs positive), letting you separate CD4⁺ from CD8⁺ T cells at a glance. ADT gives a steadier, flow-cytometry-like surface phenotype — especially handy for immune-cell typing.</p>
+<p>In BBrowserX, ADT loads as a separate “protein / ADT” feature set and can be <strong>visualized side-by-side</strong> with gene expression — toggle CD4 <em>gene</em> vs CD4 <em>protein</em> on the same UMAP, or make ADT feature/violin plots (exact menu names vary by version).</p>
+</div>
+<div class="callout warn"><span class="callout-icon">⚠️</span><div>
+<span data-lang="zh"><strong>常見誤區：ADT 也有「雜訊底噪」與「溢出 (spillover)」。</strong>ADT 訊號並非全然乾淨——沒黏好的抗體會留下環境背景 (ambient/background) 訊號，讓「應該是陰性」的細胞出現一點點計數；不同抗體之間也可能互相干擾造成溢出。所以判讀時看的是「相對雙峰結構」而非絕對數字，通常會做 ADT 正規化（如 DSB、CLR）來壓背景。看到少量非零計數別急著喊陽性——先問「它落在雙峰的哪一峰？」</span>
+<span data-lang="en"><strong>Pitfall: ADT has background noise and spillover, too.</strong> ADT signal isn't perfectly clean — unbound antibody leaves an ambient/background floor, so cells that “should” be negative still show a few counts, and antibodies can bleed into one another (spillover). Read the <em>relative bimodal structure</em>, not absolute numbers, and normalize ADT (e.g. DSB, CLR) to suppress background. Don't call a cell positive just because its count is non-zero — first ask which of the two peaks it falls into.</span>
+</div></div>
+<div class="interactive-panel">
+<h3 style="margin-top:0" data-zh="互動 ①：RNA vs 蛋白 (ADT) 的不一致" data-en="Interactive ①: RNA vs Protein (ADT) Discordance">互動 ①：RNA vs 蛋白 (ADT) 的不一致</h3>
+<div data-lang="zh"><p style="font-size:.9rem">選一個表面標記，看它在 T 細胞群中的 <strong>RNA 訊號</strong>（常稀疏、有 dropout，糊成一坨）與 <strong>ADT 蛋白訊號</strong>（乾淨、雙峰分明）如何不同。留意藍色 RNA 幾乎都擠在「陰性/低」，而綠色 ADT 卻在「高/很高」冒出第二個高峰——那第二峰就是真正的陽性細胞。這正是為什麼加做 ADT 有價值。（合成示意資料）</p></div>
+<div data-lang="en"><p style="font-size:.9rem">Pick a surface marker and compare its <strong>RNA signal</strong> (often sparse, dropout-prone, smeared into one lump) with its <strong>ADT protein signal</strong> (clean, clearly bimodal) across a T-cell population. Notice the blue RNA bars pile up in “neg/low,” while the green ADT bars raise a second peak at “high/very high” — that second peak is the truly positive cells. This is exactly why adding ADT pays off. (Synthetic illustrative data.)</p></div>
+<div class="toggle-row" id="markerPick">
+  <button class="toggle-btn active" data-k="cd4">CD4</button>
+  <button class="toggle-btn" data-k="cd8">CD8A</button>
+  <button class="toggle-btn" data-k="cd19">CD19</button>
+</div>
+<div class="chart-container" style="height:300px;"><canvas id="adtChart"></canvas></div>
+<div class="rec-box" id="adtNote"></div>
+</div>
+<div class="callout tip"><span class="callout-icon">🎯</span><div>
+<span data-lang="zh"><strong>實戰情境：CITE-seq 精準分辨相似亞群。</strong>假設你有一群 CD4 T 細胞，光靠 RNA 很難把「幼稚 (naïve)」、「記憶 (memory)」與「調節 (Treg)」細分開，因為它們轉錄體很像。這時加上 CD45RA、CD45RO、CD25、CD127 等表面蛋白的 ADT，就像替每顆細胞多發了幾張名片——CD45RA⁺CD45RO⁻ 偏 naïve、CD25 高 CD127 低偏 Treg——原本糊在一起的亞群立刻各就各位。一句話：<strong>RNA 定大群，ADT 分細群。</strong></span>
+<span data-lang="en"><strong>In practice: CITE-seq resolves look-alike subsets.</strong> Say you have a blob of CD4 T cells; RNA alone struggles to split naïve, memory, and Treg because their transcriptomes are so similar. Add ADT for surface proteins like CD45RA, CD45RO, CD25, CD127 — like handing each cell extra business cards. CD45RA⁺CD45RO⁻ leans naïve; CD25-high CD127-low leans Treg — and the tangled subsets snap into place. In short: <strong>RNA defines the big clusters, ADT splits the fine ones.</strong></span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="免疫受體" data-en="IMMUNE RECEPTOR">免疫受體</div>
+<h2 data-zh="三、TCR / BCR：免疫 repertoire" data-en="III. TCR / BCR: Immune Repertoire">三、TCR / BCR：免疫 repertoire</h2>
+<div class="analogy"><span class="analogy-icon">🔎</span><div>
+<span data-lang="zh"><strong>比喻：受體序列 = 身分證／指紋。</strong>每顆 T 細胞的 TCR、每顆 B 細胞的 BCR 序列，都是這顆細胞獨一無二的「身分證字號」。<strong>clonotype（選殖型）</strong>就是「同一個字號的家族」——來自同一個祖先細胞、複製出來的所有後代都共用同一組受體序列。當某個家族因為抗原刺激大量繁衍，在人群（細胞群）中壯大到隨處可見，就是 <strong>clonal expansion（選殖擴增）</strong>：像一個原本默默無聞的姓氏，突然變成滿街都是的大家族。</span>
+<span data-lang="en"><strong>Analogy: the receptor sequence is an ID card / fingerprint.</strong> Each T cell's TCR and each B cell's BCR sequence is that cell's one-of-a-kind “ID number.” A <strong>clonotype</strong> is “the family sharing one ID” — all the descendants copied from a single ancestor cell carry the same receptor sequence. When one family multiplies explosively after antigen stimulation until it's everywhere in the crowd (the cell population), that's <strong>clonal expansion</strong>: like an obscure surname suddenly becoming a huge clan you see on every street.</span>
+</div></div>
+<div data-lang="zh">
+<p>每顆 T 細胞的 <strong>TCR</strong>（T-cell receptor）與每顆 B 細胞的 <strong>BCR</strong>（B-cell receptor / 抗體）序列，是在發育時經由 <strong>V(D)J 重組</strong>把 V、(D)、J 幾段基因片段隨機拼接、再加上接點處的隨機插入／刪除拼出來的。這種「隨機洗牌」讓可能的序列組合高達天文數字，因此幾乎每顆淋巴球都有一個獨特的受體序列。單細胞 V(D)J 定序可讀出<strong>每一顆細胞</strong>的受體序列（連 α/β 或 heavy/light 鏈配對都能保留），共享同一受體序列的細胞就屬於同一個 <strong>clonotype（選殖型）</strong>。</p>
+<p>當某個 clonotype 因為抗原刺激而大量增殖，就出現 <strong>clonal expansion（選殖擴增）</strong>：少數 clonotype 佔據大部分細胞，整體多樣性 (diversity) 隨之下降。這是判讀免疫反應的核心指標——如果 repertoire 從「一堆小家族、人人平等」變成「少數大家族說了算」，往往代表有<strong>抗原專一性</strong>的反應正在發生。例如腫瘤浸潤的 T 細胞若出現大幅擴增，通常暗示某些 clone 認得腫瘤抗原、正在被點名放大。</p>
+<p>BBrowserX 的威力，在於把 <strong>clonotype 連結到轉錄體表型</strong>：你可以問「這些大幅擴增的 clone，是不是正好是表現耗竭標記 (PDCD1、HAVCR2、LAG3、TOX) 的<strong>耗竭型 CD8 T 細胞</strong>？」——這是免疫學裡最有故事的組合：擴增，代表這些 T 細胞曾被強力活化過；耗竭，代表長期慢性刺激把它們榨乾了。把 repertoire（誰是大家族）與 RNA/ADT（這些大家族處在什麼功能狀態）疊在同一群細胞上一起解讀，遠比任何單一模態更有說服力。</p>
+</div>
+<div data-lang="en">
+<p>Each T cell's <strong>TCR</strong> and each B cell's <strong>BCR</strong> (antibody) sequence is assembled during development by <strong>V(D)J recombination</strong> — randomly splicing V, (D), and J gene segments and adding random insertions/deletions at the junctions. This “shuffle” makes the number of possible sequences astronomical, so nearly every lymphocyte carries a unique receptor. Single-cell V(D)J sequencing reads out the receptor of <strong>each individual cell</strong> (even preserving the paired α/β or heavy/light chains); cells sharing the same receptor belong to one <strong>clonotype</strong>.</p>
+<p>When a clonotype proliferates after antigen stimulation you get <strong>clonal expansion</strong>: a few clonotypes dominate the population and overall diversity drops. This is a core readout of immune response — when a repertoire shifts from “many small, egalitarian families” to “a few big families running the show,” an <strong>antigen-specific</strong> reaction is usually underway. Heavily expanded tumor-infiltrating T cells, for instance, often hint that certain clones recognize tumor antigen and are being amplified.</p>
+<p>The power of BBrowserX is <strong>linking clonotype to transcriptomic phenotype</strong>: you can ask, “Are these heavily expanded clones exactly the <strong>exhausted CD8 T cells</strong> expressing PDCD1, HAVCR2, LAG3, TOX?” — the most story-rich combination in immunology: expansion means these T cells were once strongly activated; exhaustion means chronic stimulation has worn them out. Overlaying repertoire (who's a big family) with RNA/ADT (what functional state those families are in) on the same cells is far more convincing than any single modality.</p>
+</div>
+<div class="mini-cards">
+<div class="mini-card"><div class="mc-label" data-zh="組合數" data-en="Combinations">組合數</div><div class="mc-big">10<sup>15</sup>+</div><p data-zh="V(D)J 隨機重組理論上的 TCR 多樣性" data-en="Theoretical TCR diversity from V(D)J shuffling">V(D)J 隨機重組理論上的 TCR 多樣性</p></div>
+<div class="mini-card"><div class="mc-label" data-zh="定義" data-en="Definition">定義</div><div class="mc-big" data-zh="1 序列" data-en="1 seq">1 序列</div><p data-zh="共享同一受體序列 = 同一 clonotype" data-en="Same receptor sequence = one clonotype">共享同一受體序列 = 同一 clonotype</p></div>
+<div class="mini-card"><div class="mc-label" data-zh="訊號" data-en="Signal">訊號</div><div class="mc-big" data-zh="多樣性↓" data-en="Diversity↓">多樣性↓</div><p data-zh="擴增時多樣性下降 = 抗原專一反應" data-en="Falling diversity on expansion = antigen-specific response">擴增時多樣性下降 = 抗原專一反應</p></div>
+</div>
+<div class="interactive-panel">
+<h3 style="margin-top:0" data-zh="互動 ②：選殖擴增 — 健康 vs 擴增 repertoire" data-en="Interactive ②: Clonal Expansion — Healthy vs Expanded">互動 ②：選殖擴增 — 健康 vs 擴增 repertoire</h3>
+<div data-lang="zh"><p style="font-size:.9rem">切換兩種情境：<strong>健康 / 多樣</strong>（許多小 clone、人人平等、高多樣性）與<strong>擴增</strong>（少數大家族主宰）。觀察前幾大 clonotype 佔的比例——「其他」那一大塊縮水，就是多樣性崩盤、某些 clone 被抗原點名放大的訊號。（合成示意資料）</p></div>
+<div data-lang="en"><p style="font-size:.9rem">Toggle two scenarios: <strong>healthy / diverse</strong> (many small clones, egalitarian, high diversity) vs <strong>expanded</strong> (a few dominant families). Watch the top clonotypes' share — when the big “others” slice shrinks, that's diversity collapsing as certain clones get amplified by antigen. (Synthetic illustrative data.)</p></div>
+<div class="toggle-row" id="repPick">
+  <button class="toggle-btn active" data-k="healthy"><span data-zh="健康 / 多樣" data-en="Healthy / diverse">健康 / 多樣</span></button>
+  <button class="toggle-btn" data-k="expanded"><span data-zh="選殖擴增" data-en="Clonally expanded">選殖擴增</span></button>
+</div>
+<div class="chart-container" style="height:300px;"><canvas id="cloneChart"></canvas></div>
+<div class="sim-stats"><div class="sim-stat pass" id="repStat"></div></div>
+</div>
+<div class="callout tip"><span class="callout-icon">💉</span><div>
+<span data-lang="zh"><strong>實戰情境：免疫治療前後追蹤 T 細胞 clone。</strong>因為每個 clonotype 有獨一無二的序列「身分證」，你可以在<strong>治療前</strong>與<strong>治療後</strong>兩個時間點抓同一組序列，看它們的命運：某個原本很小的 clone 在打了 anti-PD-1 之後暴增，代表這個 clone 被「解封」重新活化（clonal replacement / expansion），常是有效反應的指標；反之若原本擴增的耗竭 clone 治療後仍原地踏步，可能提示反應不佳。把 TCR 當「條碼」，你就能像追蹤包裹一樣，一路追蹤每個 T 細胞家族在治療旅程中的動態。</span>
+<span data-lang="en"><strong>In practice: tracking T-cell clones before and after immunotherapy.</strong> Because each clonotype has a unique sequence “ID card,” you can grab the same sequences at a <strong>pre-treatment</strong> and a <strong>post-treatment</strong> timepoint and follow their fates: a small clone that surges after anti-PD-1 has been “unleashed” and re-activated (clonal replacement/expansion) — often a marker of effective response; conversely, previously expanded exhausted clones that don't budge may signal poor response. Treat the TCR as a barcode and you can track each T-cell family through the treatment journey like tracing a parcel.</span>
+</div></div>
+<div class="callout warn"><span class="callout-icon">⚠️</span><div>
+<span data-lang="zh"><strong>常見誤區：TCR/BCR 只適用於淋巴球。</strong>V(D)J 重組只發生在 T 與 B 細胞——巨噬細胞、樹突細胞、NK 細胞、腫瘤細胞這些<strong>沒有受體序列</strong>，所以在它們身上找不到 clonotype 是正常的，別誤以為是資料出錯。另一個易踩的坑：偵測到的 TCR 有時<strong>只抓到單一條鏈</strong>（只有 α 或只有 β），配對不完整；分析擴增時，通常以「完整成對」的 clonotype 較可靠，並注意過濾掉背景污染的低品質 contig。</span>
+<span data-lang="en"><strong>Pitfall: TCR/BCR applies only to lymphocytes.</strong> V(D)J recombination happens only in T and B cells — macrophages, dendritic cells, NK cells, and tumor cells have <strong>no receptor sequence</strong>, so finding no clonotype in them is expected, not a data error. Another trap: a detected TCR sometimes has <strong>only one chain</strong> (α or β alone), an incomplete pairing; for expansion analysis, fully paired clonotypes are more reliable, and low-quality/ambient contigs should be filtered out.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="樣本合併" data-en="POOLING">樣本合併</div>
+<h2 data-zh="四、Demultiplexing / 細胞 hashing" data-en="IV. Demultiplexing / Cell Hashing">四、Demultiplexing / 細胞 hashing</h2>
+<div class="analogy"><span class="analogy-icon">🎫</span><div>
+<span data-lang="zh"><strong>比喻：演唱會手環。</strong>想像好幾場演唱會共用同一個場地同一批工作人員，為了省錢一次辦完。每場觀眾入場時發不同顏色的手環（<strong>HTO</strong>），然後所有人混進同一個大廳（一次定序 run）。散場時，你只要看每個人手上的手環顏色，就能把他歸回原本那一場——這就是 <strong>demultiplexing</strong>。更妙的是：如果有人手上戴了<strong>兩條不同顏色</strong>的手環，那八成是兩個人擠在一起被當成一個計數，也就是 <strong>doublet</strong>，當場抓出剔除。</span>
+<span data-lang="en"><strong>Analogy: concert wristbands.</strong> Picture several concerts sharing one venue and crew, held together to save money. Each show's audience gets a different-colored wristband (<strong>HTO</strong>) at entry, then everyone mingles in one big hall (a single sequencing run). Afterward, just read each person's wristband color to send them back to their own show — that's <strong>demultiplexing</strong>. Even better: anyone wearing <strong>two different colors</strong> is probably two people counted as one — a <strong>doublet</strong> — caught and removed on the spot.</span>
+</div></div>
+<div data-lang="zh">
+<p><strong>細胞 hashing</strong> 讓你把<strong>多個樣本混在一次定序 run</strong> 裡跑，藉此攤平每個細胞的成本、並大幅減少批次效應（因為所有樣本在同一台機器、同一天、同一批試劑下處理）。做法：先用帶有 <strong>HTO（Hashtag Oligo，雜交標籤寡核苷酸）</strong>的抗體分別標記每個樣本——每個樣本一種「手環顏色」——混合後一起上機。每個 HTO 對應一個樣本身分。</p>
+<p>定序後執行 <strong>demultiplexing（去多工／拆樣本）</strong>：依每顆細胞的 HTO 計數判斷它來自哪個樣本。這裡有個「買一送一」的好處——如果一顆 barcode（液滴）同時偵測到<strong>兩種以上</strong> HTO 都明顯高於背景，代表它可能是把<strong>來自不同樣本的兩顆細胞</strong>包在同一滴裡的 <strong>doublet</strong>，可以直接標記剔除；只偵測到極低 HTO 的則為 <strong>negative</strong>（空液滴 / 環境沾附）。也就是說，hashing 不只幫你省錢分樣本，還順手幫你抓了一部分 doublet。</p>
+<p>BBrowserX 支援載入並執行 demultiplexing，把每顆細胞指派回原樣本並標記 doublet／negative，讓你在後續分群、比較不同樣本時，都建立在「乾淨、來源明確」的細胞上。</p>
+</div>
+<div data-lang="en">
+<p><strong>Cell hashing</strong> lets you run <strong>several samples in one sequencing run</strong>, spreading per-cell cost and sharply cutting batch effects (all samples ride the same machine, same day, same reagent lot). How: label each sample with an antibody carrying a distinct <strong>HTO (Hashtag Oligo)</strong> — one “wristband color” per sample — pool them, and load together. Each HTO encodes one sample identity.</p>
+<p>After sequencing you run <strong>demultiplexing</strong>: each cell's HTO counts reveal its sample of origin. Here's the buy-one-get-one bonus — if one barcode (droplet) shows <strong>two or more</strong> HTOs clearly above background, it likely wrapped <strong>two cells from different samples</strong> into one droplet: a <strong>doublet</strong>, flagged and removed. Barcodes with almost no HTO are <strong>negatives</strong> (empty droplets / ambient). So hashing doesn't just save money and split samples — it catches a chunk of doublets for free.</p>
+<p>BBrowserX supports loading and running demultiplexing, assigning each cell back to its sample and flagging doublets/negatives, so your downstream clustering and cross-sample comparisons rest on clean, source-known cells.</p>
+</div>
+<div class="decision-tree">
+<h4 data-zh="🔀 一顆 barcode 的 HTO 判讀邏輯" data-en="🔀 How one barcode’s HTO signal is classified">🔀 一顆 barcode 的 HTO 判讀邏輯</h4>
+<div class="dt-node"><span class="dt-q" data-zh="問" data-en="Q">問</span><span class="dt-arrow">→</span><span data-lang="zh">這個 barcode 偵測到<strong>幾種</strong> HTO 明顯高於背景？（也就是手上戴了幾條手環？）</span><span data-lang="en">How <strong>many</strong> HTOs are clearly above background for this barcode? (How many wristbands is it wearing?)</span></div>
+<div class="dt-node"><span class="dt-q">0</span><span class="dt-arrow">→</span><span data-lang="zh"><strong>Negative</strong>：沒戴手環——空液滴或環境訊號，多半剔除。</span><span data-lang="en"><strong>Negative</strong>: no wristband — empty droplet / ambient, usually discarded.</span></div>
+<div class="dt-node"><span class="dt-q">1</span><span class="dt-arrow">→</span><span data-lang="zh"><strong>Singlet</strong>：一條手環——指派回該 HTO 對應的樣本 ✅。</span><span data-lang="en"><strong>Singlet</strong>: one wristband — assign to that HTO’s sample ✅.</span></div>
+<div class="dt-node"><span class="dt-q">≥2</span><span class="dt-arrow">→</span><span data-lang="zh"><strong>Doublet</strong>：戴了兩條以上不同手環——兩顆（不同樣本）細胞混在一滴，標記剔除。</span><span data-lang="en"><strong>Doublet</strong>: two or more different wristbands — two cells (different samples) in one droplet, flag/remove.</span></div>
+</div>
+<div class="callout warn"><span class="callout-icon">⚠️</span><div>
+<span data-lang="zh"><strong>常見誤區：HTO doublet 偵測是「互補」而非「取代」計算式 doublet 工具。</strong>Hashing 只能抓到「來自<strong>不同樣本</strong>」的異源 (heterotypic) doublet——因為它們戴了兩條不同顏色手環才會露餡。但若兩顆細胞來自<strong>同一樣本</strong>（同一種 HTO、同一種手環顏色），HTO 看起來就跟一顆單細胞一模一樣，完全無法分辨。這類「同樣本 doublet」仍需仰賴以轉錄體為基礎的計算式方法（如 <strong>scDblFinder / DoubletFinder</strong>），它們是靠「這顆細胞的表達譜看起來像兩種細胞的混合」來揪出可疑者。兩者角度不同、互相補位——搭配使用最穩。</span>
+<span data-lang="en"><strong>Pitfall: HTO doublet detection complements — not replaces — computational doublet tools.</strong> Hashing only catches <strong>heterotypic</strong> doublets from <strong>different samples</strong> — they give themselves away by wearing two colored wristbands. But two cells from the <strong>same sample</strong> (same HTO, same wristband color) look identical to a single cell; HTO can't tell them apart. Such “same-sample doublets” still need transcriptome-based tools (<strong>scDblFinder / DoubletFinder</strong>), which flag suspects because “this cell's expression profile looks like a mix of two cell types.” Different angles, mutually covering — use both together for the most robust result.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="整合" data-en="INTEGRATE">整合</div>
+<h2 data-zh="五、把四種模態疊成一個故事" data-en="V. Layering Four Modalities Into One Story">五、把四種模態疊成一個故事</h2>
+<div data-lang="zh">
+<p>多模態真正的甜蜜點，不在於「多量了幾種東西」，而在於<strong>疊圖之後浮現的完整敘事</strong>。把四種模態放到同一張 UMAP 上，每一層各司其職，最後拼出單一模態永遠說不清的故事。以下是典型的整合工作流：</p>
+</div>
+<div data-lang="en">
+<p>The real sweet spot of multimodal work isn't “we measured a few more things” — it's the <strong>complete narrative that emerges once you overlay everything</strong>. Put all four modalities on one UMAP, let each layer play its role, and you assemble a story no single modality could ever fully tell. Here's a typical integration workflow:</p>
+</div>
+<div class="workflow">
+<div class="workflow-step" data-step="1"><h4 data-zh="用 RNA 定義細胞狀態" data-en="Define cell state with RNA">用 RNA 定義細胞狀態</h4>
+<p data-lang="zh">先用全轉錄體分群、註釋，畫出 UMAP，標出大類（T、B、髓系…）與功能狀態（活化、耗竭、增殖）。RNA 是無偏的地圖底稿。</p>
+<p data-lang="en">Cluster and annotate on the whole transcriptome, draw the UMAP, mark broad types (T, B, myeloid…) and functional states (activated, exhausted, cycling). RNA is your unbiased base map.</p></div>
+<div class="workflow-step" data-step="2"><h4 data-zh="用 ADT 確認並細分表型" data-en="Confirm & refine phenotype with ADT">用 ADT 確認並細分表型</h4>
+<p data-lang="zh">疊上 CD4/CD8 等表面蛋白，把 RNA 分不開的相似亞群（naïve / memory / Treg）用乾淨的蛋白雙峰切開。RNA 定大群，ADT 分細群。</p>
+<p data-lang="en">Overlay surface proteins (CD4/CD8…) to split RNA-indistinguishable subsets (naïve / memory / Treg) via clean protein bimodality. RNA for big clusters, ADT for fine ones.</p></div>
+<div class="workflow-step" data-step="3"><h4 data-zh="用 TCR/BCR 找出擴增 clone" data-en="Find expanded clones with TCR/BCR">用 TCR/BCR 找出擴增 clone</h4>
+<p data-lang="zh">把 clonotype 大小映射到 UMAP，看哪些細胞屬於大幅擴增的家族。問：這些大 clone 落在哪個 RNA/ADT 定義的群？</p>
+<p data-lang="en">Map clonotype size onto the UMAP to see which cells belong to heavily expanded families. Ask: where do the big clones sit relative to RNA/ADT-defined clusters?</p></div>
+<div class="workflow-step" data-step="4"><h4 data-zh="用 HTO 確認來源與純度" data-en="Confirm origin & purity with HTO">用 HTO 確認來源與純度</h4>
+<p data-lang="zh">用樣本身分回答「這個發現在多個病人／時間點都成立嗎？」並確保分析建立在剔除 doublet 後的乾淨細胞上。</p>
+<p data-lang="en">Use sample identity to answer “does this hold across patients/timepoints?” and ensure the analysis rests on clean, doublet-removed cells.</p></div>
+</div>
+<div class="callout tip"><span class="callout-icon">🧩</span><div>
+<span data-lang="zh"><strong>整合的結論長這樣：</strong>「這一群細胞，RNA 顯示是<strong>耗竭</strong>特徵、ADT 確認是 <strong>CD8 蛋白陽性</strong>、TCR 顯示它們屬於<strong>少數幾個大幅擴增的 clone</strong>、HTO 確認它們主要來自<strong>治療前的腫瘤樣本</strong>。」——這樣一句話，四個模態互相佐證，比任何單一資料都硬。這就是多模態存在的理由。</span>
+<span data-lang="en"><strong>An integrated conclusion reads like this:</strong> “This cluster shows an <strong>exhaustion</strong> signature by RNA, is confirmed <strong>CD8-protein-positive</strong> by ADT, belongs to <strong>a few heavily expanded clones</strong> by TCR, and comes mainly from the <strong>pre-treatment tumor sample</strong> by HTO.” Four modalities corroborating each other in one sentence — far sturdier than any single dataset. That's the whole reason multimodal exists.</span>
+</div></div>
+</section>
+
+<section class="section">
+<div class="section-label" data-zh="比較" data-en="COMPARE">比較</div>
+<h2 data-zh="六、各模態加了什麼？" data-en="VI. What Does Each Modality Add?">六、各模態加了什麼？</h2>
+<table class="comp-table">
+<thead><tr>
+<th data-zh="模態" data-en="Modality">模態</th>
+<th data-zh="量測什麼" data-en="Measures">量測什麼</th>
+<th data-zh="關鍵優勢" data-en="Key strength">關鍵優勢</th>
+<th data-zh="主要注意事項 / 限制" data-en="Main caveat / limit">主要注意事項 / 限制</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><span class="mod-chip rna">RNA</span></td>
+<td data-lang="zh">全轉錄體 mRNA 表達</td><td data-lang="zh">上萬基因、無偏、可分型與找 marker</td><td data-lang="zh">表面標記常有 dropout；蛋白量 ≠ mRNA 量</td>
+<td data-lang="en">Whole-transcriptome mRNA</td><td data-lang="en">Thousands of genes, unbiased, typing & markers</td><td data-lang="en">Surface markers drop out; mRNA ≠ protein</td>
+</tr>
+<tr>
+<td><span class="mod-chip adt">ADT</span></td>
+<td data-lang="zh">表面蛋白（抗體 panel）</td><td data-lang="zh">乾淨、近似 flow 的表型，補 RNA 之不足</td><td data-lang="zh">背景 / 溢出 (spillover)；僅限 panel 內抗體</td>
+<td data-lang="en">Surface protein (antibody panel)</td><td data-lang="en">Clean, flow-like phenotype; fills RNA gaps</td><td data-lang="en">Background / spillover; only panel antibodies</td>
+</tr>
+<tr>
+<td><span class="mod-chip vdj">TCR/BCR</span></td>
+<td data-lang="zh">免疫受體序列、clonotype</td><td data-lang="zh">選殖擴增、可連結至轉錄體表型</td><td data-lang="zh"><strong>僅適用淋巴球</strong>；非 T/B 細胞無受體；單鏈配對不完整</td>
+<td data-lang="en">Immune-receptor sequence, clonotype</td><td data-lang="en">Clonal expansion; links to phenotype</td><td data-lang="en"><strong>Lymphocytes only</strong>; non-T/B have none; single-chain pairing incomplete</td>
+</tr>
+<tr>
+<td><span class="mod-chip hto">HTO</span></td>
+<td data-lang="zh">樣本身分標籤</td><td data-lang="zh">多樣本合併、降成本、抓異源 doublet</td><td data-lang="zh">只抓跨樣本 doublet；需搭配計算式工具</td>
+<td data-lang="en">Sample-identity tag</td><td data-lang="en">Pool samples, cut cost, catch doublets</td><td data-lang="en">Cross-sample doublets only; pair with compute tools</td>
+</tr>
+</tbody></table>
+<div class="callout tip"><span class="callout-icon">💡</span><div>
+<span data-lang="zh"><strong>專家小撇步：整合閱讀最有價值。</strong>把四種模態疊在同一張 UMAP 上：用 RNA 定義細胞狀態、用 ADT 確認表型、用 TCR/BCR 找出擴增 clone、用 HTO 確認樣本來源與純度。一顆「表現 CD8 蛋白 + 耗竭基因 + 屬於大幅擴增 clone + 來自治療前腫瘤」的細胞，比任何單一模態都更有說服力。BBrowserX 各功能的實際選單名稱與位置會依版本更新，若找不到請對照官方文件。</span>
+<span data-lang="en"><strong>Pro tip: integration is where the value is.</strong> Layer all four on one UMAP: RNA for cell state, ADT to confirm phenotype, TCR/BCR to find expanded clones, HTO for sample origin and purity. A cell that is “CD8-protein-high + exhaustion genes + member of a big clone + from pre-treatment tumor” is far more convincing than any single modality. Exact BBrowserX menu names/locations shift between versions — check the official docs if a feature isn't where expected.</span>
+</div></div>
+</section>
+
+<section class="quiz-section">
+<h3>📝 <span data-zh="自我檢測" data-en="Self-Check">自我檢測</span></h3>
+<div class="quiz-q" data-answer="2">
+<p data-lang="zh">1. CITE-seq 的 ADT (Antibody-Derived Tag) 主要提供什麼資訊？</p>
+<p data-lang="en">1. What does a CITE-seq ADT (Antibody-Derived Tag) mainly provide?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 每顆細胞的 TCR 序列</span><span data-lang="en">A. Each cell’s TCR sequence</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 樣本的身分標籤</span><span data-lang="en">B. A sample-identity tag</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 細胞表面蛋白的量（與 RNA 互補）</span><span data-lang="en">C. Surface protein levels (complementing RNA)</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 細胞的 pseudotime 位置</span><span data-lang="en">D. The cell’s pseudotime position</span></div>
+</div><div class="quiz-feedback" id="fb1"></div></div>
+
+<div class="quiz-q" data-answer="1">
+<p data-lang="zh">2. 在一次腫瘤浸潤 T 細胞分析中，你發現少數 clonotype 佔了大多數細胞，且它們高表現 PDCD1／LAG3。最合理的解讀是？</p>
+<p data-lang="en">2. In tumor-infiltrating T cells you find a few clonotypes dominating the population, and they highly express PDCD1/LAG3. The best interpretation is?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 這是定序錯誤，應忽略</span><span data-lang="en">A. A sequencing error — ignore it</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 大幅擴增的 clone 很可能是耗竭型 CD8 T 細胞</span><span data-lang="en">B. The expanded clones are likely exhausted CD8 T cells</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 這些細胞沒有 TCR</span><span data-lang="en">C. These cells have no TCR</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 代表 repertoire 多樣性很高</span><span data-lang="en">D. It means very high repertoire diversity</span></div>
+</div><div class="quiz-feedback" id="fb2"></div></div>
+
+<div class="quiz-q" data-answer="0">
+<p data-lang="zh">3. 關於細胞 hashing 的 HTO doublet 偵測，下列何者<strong>正確</strong>？</p>
+<p data-lang="en">3. Which statement about HTO-based doublet detection in cell hashing is <strong>correct</strong>?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 它只抓得到來自不同樣本的 doublet，需搭配計算式工具</span><span data-lang="en">A. It only catches doublets from different samples; pair with compute tools</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 它能抓到所有 doublet，計算式工具已多餘</span><span data-lang="en">B. It catches all doublets, making compute tools redundant</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 它會分析 TCR 序列</span><span data-lang="en">C. It analyzes TCR sequences</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. HTO 只用於非免疫細胞</span><span data-lang="en">D. HTOs work only for non-immune cells</span></div>
+</div><div class="quiz-feedback" id="fb3"></div></div>
+
+<div class="quiz-q" data-answer="3">
+<p data-lang="zh">4. 為什麼常說「蛋白量 ≠ mRNA 量」，讓 ADT 有加做的價值？</p>
+<p data-lang="en">4. Why is “protein level ≠ mRNA level” often true, making ADT worth adding?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. 因為抗體會改變基因序列</span><span data-lang="en">A. Because antibodies alter the gene sequence</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. 因為 mRNA 一定比蛋白多</span><span data-lang="en">B. Because there is always more mRNA than protein</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. 因為蛋白只存在於細胞核內</span><span data-lang="en">C. Because protein exists only inside the nucleus</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 轉譯效率、蛋白半衰期與 RNA dropout 讓兩者脫鉤，許多表面標記 RNA 稀疏但蛋白清楚</span><span data-lang="en">D. Translation efficiency, protein half-life, and RNA dropout decouple them; many surface markers are RNA-sparse but protein-clear</span></div>
+</div><div class="quiz-feedback" id="fb4"></div></div>
+
+<div class="quiz-q" data-answer="1">
+<p data-lang="zh">5. 一顆 barcode 偵測到兩種以上 HTO 都明顯高於背景，最可能被判為？</p>
+<p data-lang="en">5. A barcode shows two or more HTOs clearly above background. It is most likely classified as?</p>
+<div class="quiz-options">
+<div class="quiz-opt" data-idx="0"><span data-lang="zh">A. Negative（空液滴）</span><span data-lang="en">A. Negative (empty droplet)</span></div>
+<div class="quiz-opt" data-idx="1"><span data-lang="zh">B. Doublet（不同樣本的兩顆細胞混在一滴）</span><span data-lang="en">B. Doublet (two cells from different samples in one droplet)</span></div>
+<div class="quiz-opt" data-idx="2"><span data-lang="zh">C. Singlet（乾淨的單一樣本細胞）</span><span data-lang="en">C. Singlet (a clean single-sample cell)</span></div>
+<div class="quiz-opt" data-idx="3"><span data-lang="zh">D. 一顆耗竭型 CD8 T 細胞</span><span data-lang="en">D. An exhausted CD8 T cell</span></div>
+</div><div class="quiz-feedback" id="fb5"></div></div>
+</section>
+
+<nav class="page-nav">
+<a href="trajectory.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Prev">← 上一步</span><span class="nav-title" data-zh="軌跡與細胞通訊" data-en="Trajectory & Cell Communication">軌跡與細胞通訊</span></a>
+<a href="spatialx.html"><span class="nav-dir" data-zh="下一步 →" data-en="Next →">下一步 →</span><span class="nav-title" data-zh="SpatialX 空間分析" data-en="SpatialX Spatial Analysis">SpatialX 空間分析</span></a>
+</nav>
+</main>
+<footer class="site-footer">© Charlene — BioTuring Interactive Tutorial · <span data-zh="教學用途，非 BioTuring 官方文件" data-en="Educational use — not official BioTuring documentation">教學用途，非 BioTuring 官方文件</span></footer>
+<script src="i18n.js"></script>
+<script>
+window.addEventListener('scroll',()=>{const h=document.documentElement;document.getElementById('progressBar').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight))*100+'%';});
+
+// ---- Interactive ①: RNA vs ADT discordance ----
+const BINS_zh=['陰性','低','中','高','很高'];
+const BINS_en=['neg','low','mid','high','very high'];
+const ADT={
+ cd4:{rna:[62,22,9,5,2], adt:[40,6,4,20,30],
+   zh:'<b>CD4</b>：RNA 訊號被 dropout 壓成一大坨「陰性/低」，難以分群；<b>ADT 蛋白</b>則呈清楚雙峰（陰性 vs 陽性），第二個高峰就是真正的 CD4⁺ T 細胞，一眼分出。',
+   en:'<b>CD4</b>: RNA collapses into a big “negative/low” lump (dropout), hard to gate; <b>ADT protein</b> is clearly bimodal (neg vs pos) — the second peak is the true CD4⁺ T cells, obvious at a glance.'},
+ cd8:{rna:[55,25,10,7,3], adt:[45,5,5,18,27],
+   zh:'<b>CD8A</b>：RNA 稀疏且雜訊多，「高」峰若隱若現；<b>ADT</b> 讓 CD8⁺ 細胞群明確分離，便於挑出細胞毒性 T 細胞。',
+   en:'<b>CD8A</b>: RNA is sparse and noisy, the “high” peak barely shows; <b>ADT</b> cleanly separates the CD8⁺ population, making cytotoxic T cells easy to select.'},
+ cd19:{rna:[70,18,7,3,2], adt:[62,4,3,13,18],
+   zh:'<b>CD19</b>（B 細胞標記）：在 T 細胞為主的樣本中，RNA 幾乎全陰；<b>ADT</b> 仍能把少數污染的 B 細胞清楚標出，適合把關純度。',
+   en:'<b>CD19</b> (B-cell marker): in a T-cell-dominated sample RNA is almost all negative; <b>ADT</b> still flags the few contaminating B cells clearly — great for purity checks.'}
+};
+let adtKey='cd4';
+const adtChart=new Chart(document.getElementById('adtChart'),{type:'bar',
+ data:{labels:BINS_en,datasets:[
+   {label:'RNA (mRNA)',data:ADT.cd4.rna,backgroundColor:'#2563a8'},
+   {label:'ADT (protein)',data:ADT.cd4.adt,backgroundColor:'#1a6b5a'}
+ ]},
+ options:{responsive:true,maintainAspectRatio:false,
+  plugins:{legend:{position:'top'},title:{display:true,text:'CD4'}},
+  scales:{y:{title:{display:true,text:'% cells'}}}}});
+function renderADT(){const L=I18n.get();const d=ADT[adtKey];
+ adtChart.data.labels=L==='zh'?BINS_zh:BINS_en;
+ adtChart.data.datasets[0].data=d.rna;adtChart.data.datasets[1].data=d.adt;
+ adtChart.data.datasets[0].label=L==='zh'?'RNA (mRNA)':'RNA (mRNA)';
+ adtChart.data.datasets[1].label=L==='zh'?'ADT (蛋白)':'ADT (protein)';
+ adtChart.options.plugins.title.text=adtKey==='cd4'?'CD4':adtKey==='cd8'?'CD8A':'CD19';
+ adtChart.update();
+ document.getElementById('adtNote').innerHTML=d[L];}
+document.querySelectorAll('#markerPick .toggle-btn').forEach(b=>b.addEventListener('click',()=>{
+ document.querySelectorAll('#markerPick .toggle-btn').forEach(x=>x.classList.remove('active'));
+ b.classList.add('active');adtKey=b.dataset.k;renderADT();}));
+
+// ---- Interactive ②: Clonal expansion ----
+const REP={
+ healthy:{data:[7,6,6,5,5,71],
+   labels_zh:['clone 1','clone 2','clone 3','clone 4','clone 5','其他 (多數小 clone)'],
+   labels_en:['clone 1','clone 2','clone 3','clone 4','clone 5','others (many small)'],
+   stat_zh:'高多樣性：前 5 大 clone 僅佔 ~29%，其餘為大量小 clone——人人平等的健康 repertoire。',
+   stat_en:'High diversity: top-5 clones ≈ 29%; the rest are many small clones — an egalitarian, healthy repertoire.'},
+ expanded:{data:[38,22,14,6,4,16],
+   labels_zh:['clone 1 (主宰)','clone 2','clone 3','clone 4','clone 5','其他'],
+   labels_en:['clone 1 (dominant)','clone 2','clone 3','clone 4','clone 5','others'],
+   stat_zh:'低多樣性：前 5 大 clone 佔 ~84%，單一 clone 就吃掉近 4 成——強烈的抗原專一擴增訊號。',
+   stat_en:'Low diversity: top-5 clones ≈ 84%; one clone alone takes ~38% — a strong antigen-specific expansion signal.'}
+};
+const CLR=['#7c3aed','#5b3fb0','#2563a8','#1a6b5a','#30C5A6','#d5cfc0'];
+let repKey='healthy';
+const cloneChart=new Chart(document.getElementById('cloneChart'),{type:'doughnut',
+ data:{labels:REP.healthy.labels_en,datasets:[{data:REP.healthy.data,backgroundColor:CLR}]},
+ options:{responsive:true,maintainAspectRatio:false,
+  plugins:{legend:{position:'right',labels:{font:{size:11}}},
+   tooltip:{callbacks:{label:c=>c.label+': '+c.parsed+'%'}}}}});
+function renderRep(){const L=I18n.get();const d=REP[repKey];
+ cloneChart.data.labels=L==='zh'?d.labels_zh:d.labels_en;
+ cloneChart.data.datasets[0].data=d.data;cloneChart.update();
+ document.getElementById('repStat').textContent=(L==='zh'?d.stat_zh:d.stat_en);}
+document.querySelectorAll('#repPick .toggle-btn').forEach(b=>b.addEventListener('click',()=>{
+ document.querySelectorAll('#repPick .toggle-btn').forEach(x=>x.classList.remove('active'));
+ b.classList.add('active');repKey=b.dataset.k;renderRep();}));
+
+document.addEventListener('langchange',()=>{renderADT();renderRep();});
+renderADT();renderRep();
+
+// ---- Quiz ----
+const QF={
+ zh:{q1_y:'ADT 以帶條碼抗體量測「表面蛋白」的量，與 RNA 互補，蛋白量常不等於 mRNA 量。',q1_n:'正確答案已標示。',
+     q2_y:'大幅擴增的 clone 常是抗原專一反應的細胞；配上耗竭標記，最可能是耗竭型 CD8 T 細胞。',q2_n:'正確答案已標示。',
+     q3_y:'HTO 只能抓到「跨不同樣本」的異源 doublet；同樣本的 doublet 仍需計算式工具，兩者互補。',q3_n:'正確答案已標示。',
+     q4_y:'轉譯效率、蛋白半衰期與 RNA dropout 讓 mRNA 與蛋白脫鉤；許多表面標記 RNA 稀疏但蛋白清楚，這正是 ADT 的價值。',q4_n:'正確答案已標示。',
+     q5_y:'兩條以上手環 = 兩個不同樣本的細胞混在一滴 = 異源 doublet，標記剔除。',q5_n:'正確答案已標示。'},
+ en:{q1_y:'ADT uses barcoded antibodies to measure surface protein levels, complementing RNA — protein ≠ mRNA.',q1_n:'Correct answer highlighted.',
+     q2_y:'Expanded clones are often antigen-specific; with exhaustion markers they’re most likely exhausted CD8 T cells.',q2_n:'Correct answer highlighted.',
+     q3_y:'HTO catches only cross-sample (heterotypic) doublets; same-sample doublets still need compute tools — they complement each other.',q3_n:'Correct answer highlighted.',
+     q4_y:'Translation efficiency, protein half-life, and RNA dropout decouple mRNA from protein; many surface markers are RNA-sparse but protein-clear — exactly ADT’s value.',q4_n:'Correct answer highlighted.',
+     q5_y:'Two-plus wristbands = two cells from different samples in one droplet = a heterotypic doublet, flagged/removed.',q5_n:'Correct answer highlighted.'}
+};
+document.querySelectorAll('.quiz-q').forEach((q,qi)=>{const ans=+q.dataset.answer;q.querySelectorAll('.quiz-opt').forEach(o=>{o.addEventListener('click',()=>{if(q.classList.contains('answered'))return;q.classList.add('answered');const fb=document.getElementById('fb'+(qi+1));const ok=+o.dataset.idx===ans;o.classList.add(ok?'correct':'wrong');if(!ok)q.querySelectorAll('.quiz-opt')[ans].classList.add('correct');const L=I18n.get();fb.className='quiz-feedback show '+(ok?'correct-fb':'wrong-fb');fb.textContent=(ok?'✅ ':'❌ ')+(QF[L]['q'+(qi+1)+'_'+(ok?'y':'n')]||'');});});});
+</script>
+</body>
+</html>
+
