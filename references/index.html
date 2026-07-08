@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>BioTuring 參考資料 · References</title>
+<meta name="description" content="BioTuring Interactive Tutorial 的官方文件、演算法原始論文、Best Practices 與資料庫來源整理，附連結與疑義注記。">
+<link rel="stylesheet" href="../styles.css">
+<style>
+.ref-list{list-style:none;padding:0;margin:14px 0 0}
+.ref-list li{padding:14px 16px;background:var(--c-surface-alt);border:1px solid var(--c-border-light);border-radius:var(--radius);margin-bottom:10px;font-size:.92rem;line-height:1.65}
+.ref-list li:hover{background:var(--c-surface);border-color:var(--c-border)}
+.ref-tag{display:inline-block;font-family:var(--font-mono);font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:6px;margin-right:8px;letter-spacing:.5px}
+.ref-tag.paper{background:var(--c-accent-light);color:var(--c-accent-dark)}
+.ref-tag.doc{background:#e3f2fd;color:#1565c0}
+.ref-tag.bench{background:#fff3e0;color:#e65100}
+.ref-tag.db{background:#fce4ec;color:#ad1457}
+.ref-tag.bestp{background:var(--c-highlight-light);color:#a06a00;border:1px solid var(--c-highlight)}
+.ref-title{color:var(--c-ink);font-weight:500}
+.ref-meta{color:var(--c-ink-muted);font-size:.85rem;margin-top:4px;display:block}
+.ref-list a{color:var(--c-accent);text-decoration:none;border-bottom:1px dotted var(--c-accent)}
+.ref-list a:hover{color:var(--c-accent-dark);border-bottom-style:solid}
+.errata{background:#fef3c7;border-left:4px solid #d97706;border-radius:0 var(--radius-lg) var(--radius-lg) 0;padding:18px 22px;margin:18px 0;font-size:.9rem}
+.errata h4{margin:0 0 8px;color:#92400e;font-family:var(--font-display);font-size:1.05rem}
+.errata p{color:#78350f;margin-bottom:8px}.errata p:last-child{margin-bottom:0}
+.toc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin:18px 0}
+.toc-grid a{padding:10px 14px;background:var(--c-surface);border:1px solid var(--c-border-light);border-radius:var(--radius);text-decoration:none;color:var(--c-ink);font-size:.88rem;transition:var(--transition);display:flex;align-items:center;gap:8px}
+.toc-grid a:hover{border-color:var(--c-accent);background:var(--c-accent-light);color:var(--c-accent-dark)}
+.section-anchor{scroll-margin-top:80px}
+.page-hero{background:linear-gradient(160deg,#2b1a5e 0%,#3b2a86 35%,#5b3fb0 70%,#2563a8 100%)}
+</style>
+</head>
+<body>
+<nav class="top-nav"><div class="top-nav-inner">
+  <a href="../index.html" class="top-nav-brand"><span>🧬</span> <span data-zh="BioTuring 教學" data-en="BioTuring Tutorial">BioTuring 教學</span></a>
+  <ul class="top-nav-links">
+    <li><a href="../overview.html" data-zh="總覽" data-en="Overview">總覽</a></li><li><a href="../import.html">Import</a></li><li><a href="../qc.html">QC</a></li><li><a href="../normalization.html">Norm.</a></li><li><a href="../clustering.html">Cluster</a></li><li><a href="../annotation.html">Annot.</a></li><li><a href="../dge.html">DE</a></li><li><a href="../trajectory.html">Traj.</a></li><li><a href="../multimodal.html">Multi</a></li><li><a href="../spatialx.html">SpatialX</a></li><li><a href="../talk2data.html">Talk2Data</a></li>
+    <li><a href="index.html" class="active" style="font-weight:700" data-zh="📚 參考資料" data-en="📚 References">📚 參考資料</a></li>
+  </ul>
+</div></nav>
+
+<header class="page-hero">
+<div class="step-badge" data-zh="參考資料 · REFERENCES" data-en="REFERENCES">REFERENCES</div>
+<h1 data-zh="官方文件、演算法論文與資料庫來源" data-en="BioTuring References Index">官方文件、演算法論文與資料庫來源</h1>
+<p class="subtitle" data-lang="zh">整理 BioTuring 平台的官方頁面，以及每個「按鈕背後」演算法（UMAP、Louvain、Harmony、Venice、Monocle、CellChat…）的原始論文與 Best Practices，附連結與疑義注記。</p>
+<p class="subtitle" data-lang="en">Official BioTuring pages plus the primary papers behind each algorithm (UMAP, Louvain, Harmony, Venice, Monocle, CellChat…) and best-practice reviews — with links and caveats.</p>
+</header>
+
+<main class="content-wrap">
+
+<section class="section">
+<div class="section-label" data-zh="概覽" data-en="OVERVIEW">概覽</div>
+<h2 data-zh="如何使用這份資料？" data-en="How to use this page">如何使用這份資料？</h2>
+<p data-lang="zh">BioTuring 是商業 GUI 平台，其官方頁面是產品資訊主來源；而平台「背後」的演算法多為公開發表的方法，附上原始論文可讓你深入理解。標籤含義：</p>
+<p data-lang="en">BioTuring is a commercial GUI platform, so its official pages are the primary product source; the algorithms behind the buttons are mostly published methods, cited here for deeper understanding. Tag meanings:</p>
+<div class="card-grid cols-3">
+  <div class="card"><div class="card-icon" style="background:var(--c-accent-light)">📄</div><h4>Paper</h4><p data-lang="zh">演算法／方法原始論文（含 DOI）</p><p data-lang="en">Primary algorithm/method papers (with DOI)</p></div>
+  <div class="card"><div class="card-icon" style="background:#e3f2fd">📘</div><h4>Doc</h4><p data-lang="zh">BioTuring 官方頁面與文件</p><p data-lang="en">Official BioTuring pages & docs</p></div>
+  <div class="card"><div class="card-icon" style="background:var(--c-highlight-light)">⭐</div><h4>Best Practice</h4><p data-lang="zh">單細胞分析綜述與最佳實踐</p><p data-lang="en">Single-cell best-practice reviews</p></div>
+  <div class="card"><div class="card-icon" style="background:#fff3e0">📊</div><h4>Benchmark</h4><p data-lang="zh">方法評比／工具比較</p><p data-lang="en">Benchmarks & tool comparisons</p></div>
+  <div class="card"><div class="card-icon" style="background:#fce4ec">🗄️</div><h4>Database</h4><p data-lang="zh">Marker gene／細胞註釋資料庫</p><p data-lang="en">Marker gene & annotation databases</p></div>
+</div>
+<div class="toc-grid">
+  <a href="#official"><span class="step-tag">§1</span> <span data-zh="BioTuring 官方" data-en="Official">BioTuring 官方</span></a>
+  <a href="#venice"><span class="step-tag">§2</span> <span data-zh="Venice 差異表達" data-en="Venice DE">Venice</span></a>
+  <a href="#algos"><span class="step-tag">§3</span> <span data-zh="降維／分群／整合" data-en="Dim-red / Cluster / Integ.">演算法</span></a>
+  <a href="#downstream"><span class="step-tag">§4</span> <span data-zh="軌跡／通訊／多模態" data-en="Trajectory / CCC / Multimodal">下游分析</span></a>
+  <a href="#spatial"><span class="step-tag">§5</span> <span data-zh="空間轉錄組" data-en="Spatial">空間</span></a>
+  <a href="#bestp"><span class="step-tag">§6</span> <span data-zh="Best Practices／資料庫" data-en="Best Practices / DB">最佳實踐</span></a>
+  <a href="#errata"><span class="step-tag">⚠</span> <span data-zh="疑義與注記" data-en="Caveats">疑義注記</span></a>
+</div>
+</section>
+
+<section class="section section-anchor" id="official">
+<div class="section-label" data-zh="§1 官方" data-en="§1 OFFICIAL">§1 官方</div>
+<h2 data-zh="BioTuring 官方頁面與文件" data-en="Official BioTuring Pages & Docs">BioTuring 官方頁面與文件</h2>
+<ul class="ref-list">
+<li><span class="ref-tag doc">DOC</span><span class="ref-title">BioTuring — Platforms overview（BBrowserX · SpatialX · Talk2Data · SmartBulk）</span><span class="ref-meta"><a href="https://bioturing.com/platforms" target="_blank" rel="noopener">bioturing.com/platforms</a></span></li>
+<li><span class="ref-tag doc">DOC</span><span class="ref-title">BBrowserX — Single-cell Analytics Platform</span><span class="ref-meta"><a href="https://bioturing.com/single-cell-analysis-bbrowserx" target="_blank" rel="noopener">bioturing.com/single-cell-analysis-bbrowserx</a> · <span data-zh="細胞類型預測、支援技術與格式、testimonial" data-en="cell-type prediction, supported tech & formats, testimonials">細胞類型預測、支援技術與格式</span></span></li>
+<li><span class="ref-tag doc">DOC</span><span class="ref-title">BioTuring Documentation（BBrowserX Pro 使用手冊）</span><span class="ref-meta"><a href="https://bioturing.com/documentation" target="_blank" rel="noopener">bioturing.com/documentation</a></span></li>
+<li><span class="ref-tag doc">DOC</span><span class="ref-title">SpatialX — Spatial Omics Analytics Platform（前身 BioTuring Lens）</span><span class="ref-meta"><a href="https://bioturing.com/spatialx" target="_blank" rel="noopener">bioturing.com/spatialx</a></span></li>
+<li><span class="ref-tag doc">DOC</span><span class="ref-title">Talk2Data — Single-Cell and Spatial Analytics Hub</span><span class="ref-meta"><a href="https://bioturing.com/single-cell-and-spatial-database-talk2data" target="_blank" rel="noopener">bioturing.com/single-cell-and-spatial-database-talk2data</a> · <a href="https://talk2data.bioturing.com" target="_blank" rel="noopener">talk2data.bioturing.com</a></span></li>
+</ul>
+</section>
+
+<section class="section section-anchor" id="venice">
+<div class="section-label" data-zh="§2 Venice" data-en="§2 VENICE">§2 Venice</div>
+<h2 data-zh="Venice 差異表達演算法" data-en="Venice Differential Expression">Venice 差異表達演算法</h2>
+<ul class="ref-list">
+<li><span class="ref-tag paper">PAPER</span><span class="ref-title">Nguyen, H. et al. <em>Venice: A New Algorithm for Finding Marker Genes in Single-Cell Transcriptomic Data.</em> bioRxiv (2020).</span><span class="ref-meta">DOI: <a href="https://doi.org/10.1101/2020.11.16.384479" target="_blank" rel="noopener">10.1101/2020.11.16.384479</a> · <span data-zh="比較整個表現分佈，辨識 DE/DP/DM/DB 四型；benchmark 對比 15 方法有最佳 AUC" data-en="compares full distributions; detects DE/DP/DM/DB; best AUC vs 15 methods on simulations">辨識 DE/DP/DM/DB 四型</span></span></li>
+<li><span class="ref-tag doc">DOC</span><span class="ref-title">Signac — BioTuring 的單細胞分析套件（內建 Venice；open-source、學術免費）</span><span class="ref-meta"><span data-zh="注意名稱衝突：此 Signac 與 Stuart lab 的 scATAC「Signac」是不同套件（見疑義注記）。" data-en="Name clash: this Signac differs from the Stuart-lab scATAC 'Signac' (see caveats).">與 scATAC「Signac」不同（見疑義注記）</span></span></li>
+</ul>
+</section>
+
+<section class="section section-anchor" id="algos">
+<div class="section-label" data-zh="§3 演算法" data-en="§3 ALGORITHMS">§3 演算法</div>
+<h2 data-zh="降維、分群與批次整合" data-en="Dim-Reduction, Clustering & Integration">降維、分群與批次整合</h2>
+<ul class="ref-list">
+<li><span class="ref-tag paper">PAPER</span><span class="ref-title">McInnes, L., Healy, J., Melville, J. <em>UMAP: Uniform Manifold Approximation and Projection.</em> (2018).</span><span class="ref-meta">arXiv: <a href="https://arxiv.org/abs/1802.03426" target="_blank" rel="noopener">1802.03426</a></span></li>
+<li><span class="ref-tag paper">PAPER</span><span class="ref-title">van der Maaten, L. &amp; Hinton, G. <em>Visualizing Data using t-SNE.</em> J. Mach. Learn. Res. (2008).</span><span class="ref-meta"><a href="https://jmlr.org/papers/v9/vandermaaten08a.html" target="_blank" rel="noopener">jmlr.org/papers/v9/vandermaaten08a</a></span></li>
+<li><span class="ref-tag paper">PAPER</span><span class="ref-title">Blondel, V. et al. <em>Fast unfolding of communities in large networks (Louvain).</em> J. Stat. Mech. (2008).</span><span class="ref-meta">DOI: <a href="https://doi.org/10.1088/1742-5468/2008/10/P10008" target="_blank" rel="noopener">10.1088/1742-5468/2008/10/P10008</a></span></li>
+<li><span class="ref-tag paper">PAPER</span><span class="ref-title">Korsunsky, I. et al. <em>Fast, sensitive and accurate integration of single-cell data with Harmony.</em> Nat. Methods (2019).</span><span class="ref-meta">DOI: <a href="https://doi.org/10.1038/s41592-019-0619-0" target="_blank" rel="noopener">10.1038/s41592-019-0619-0</a></span></li>
+</ul>
+</section>
+
+<section class="section section-anchor" id="downstream">
+<div class="section-label" data-zh="§4 下游分析" data-en="§4 DOWNSTREAM">§4 下游分析</div>
+<h2 data-zh="軌跡、細胞通訊與多模態" data-en="Trajectory, Cell Communication & Multimodal">軌跡、細胞通訊與多模態</h2>
+<ul class="ref-list">
+<li><span class="ref-tag paper">PAPER</span><span class="ref-title">Qiu, X. et al. <em>Reversed graph embedding resolves complex single-cell trajectories (Monocle 2).</em> Nat. Methods (2017).</span><span class="ref-meta">DOI: <a href="https://doi.org/10.1038/nmeth.4402" target="_blank" rel="noopener">10.1038/nmeth.4402</a></span></li>
+<li><span class="ref-tag paper">PAPER</span><span class="ref-title">Jin, S. et al. <em>Inference and analysis of cell-cell communication using CellChat.</em> Nat. Commun. (2021).</span><span class="ref-meta">DOI: <a href="https://doi.org/10.1038/s41467-021-21246-9" target="_blank" rel="noopener">10.1038/s41467-021-21246-9</a></span></li>
+<li><span class="ref-tag paper">PAPER</span><span class="ref-title">Stoeckius, M. et al. <em>Simultaneous epitope and transcriptome measurement in single cells (CITE-seq).</em> Nat. Methods (2017).</span><span class="ref-meta">DOI: <a href="https://doi.org/10.1038/nmeth.4380" target="_blank" rel="noopener">10.1038/nmeth.4380</a></span></li>
+<li><span class="ref-tag paper">PAPER</span><span class="ref-title">Stoeckius, M. et al. <em>Cell Hashing with barcoded antibodies (demultiplexing &amp; doublet detection).</em> Genome Biol. (2018).</span><span class="ref-meta">DOI: <a href="https://doi.org/10.1186/s13059-018-1603-1" target="_blank" rel="noopener">10.1186/s13059-018-1603-1</a></span></li>
+</ul>
+</section>
+
+<section class="section section-anchor" id="spatial">
+<div class="section-label" data-zh="§5 空間" data-en="§5 SPATIAL">§5 空間</div>
+<h2 data-zh="空間轉錄組技術與方法" data-en="Spatial Transcriptomics Technologies">空間轉錄組技術與方法</h2>
+<ul class="ref-list">
+<li><span class="ref-tag bestp">REVIEW</span><span class="ref-title">Moses, L. &amp; Pachter, L. <em>Museum of spatial transcriptomics.</em> Nat. Methods (2022).</span><span class="ref-meta">DOI: <a href="https://doi.org/10.1038/s41592-022-01409-2" target="_blank" rel="noopener">10.1038/s41592-022-01409-2</a> · <span data-zh="平台與方法全面綜述" data-en="comprehensive platform/method review">平台與方法綜述</span></span></li>
+<li><span class="ref-tag doc">DOC</span><span class="ref-title" data-zh="平台官方頁：10x Visium/Xenium、NanoString CosMx/GeoMx、Vizgen MERFISH、Slide-seq" data-en="Vendor pages: 10x Visium/Xenium, NanoString CosMx/GeoMx, Vizgen MERFISH, Slide-seq">平台官方頁（Visium/Xenium、CosMx/GeoMx、MERFISH、Slide-seq）</span><span class="ref-meta"><span data-zh="各技術之解析度、gene panel 與適用情境請以廠商文件為準" data-en="Resolution, gene panel, and use-cases per vendor documentation">以廠商文件為準</span></span></li>
+</ul>
+</section>
+
+<section class="section section-anchor" id="bestp">
+<div class="section-label" data-zh="§6 最佳實踐" data-en="§6 BEST PRACTICES">§6 最佳實踐</div>
+<h2 data-zh="Best Practices 與資料庫" data-en="Best Practices & Databases">Best Practices 與資料庫</h2>
+<ul class="ref-list">
+<li><span class="ref-tag bestp">BEST</span><span class="ref-title">Luecken, M. &amp; Theis, F. <em>Current best practices in single-cell RNA-seq analysis: a tutorial.</em> Mol. Syst. Biol. (2019).</span><span class="ref-meta">DOI: <a href="https://doi.org/10.15252/msb.20188746" target="_blank" rel="noopener">10.15252/msb.20188746</a></span></li>
+<li><span class="ref-tag bestp">BEST</span><span class="ref-title">Heumos, L. et al. <em>Best practices for single-cell analysis across modalities.</em> Nat. Rev. Genet. (2023).</span><span class="ref-meta">DOI: <a href="https://doi.org/10.1038/s41576-023-00586-w" target="_blank" rel="noopener">10.1038/s41576-023-00586-w</a></span></li>
+<li><span class="ref-tag db">DB</span><span class="ref-title">Franzén, O. et al. <em>PanglaoDB: a web server for single-cell marker genes.</em> Database (2019).</span><span class="ref-meta">DOI: <a href="https://doi.org/10.1093/database/baz046" target="_blank" rel="noopener">10.1093/database/baz046</a> · <span data-zh="marker→細胞類型查詢" data-en="marker→cell-type lookup">marker→細胞類型</span></span></li>
+<li><span class="ref-tag bench">BENCH</span><span class="ref-title" data-zh="OmnibusX — 單細胞與空間分析工具比較（含 BBrowserX 之標準化／批次校正限制討論）" data-en="OmnibusX — comparison of single-cell & spatial tools (incl. BBrowserX norm/batch limitations)">OmnibusX — 工具比較部落格</span><span class="ref-meta"><a href="https://blog.omnibusx.com/comparing-tools-for-single-cell-and-spatial-transcriptomics-analysis/" target="_blank" rel="noopener">blog.omnibusx.com/comparing-tools…</a> · <span data-zh="次級來源，作者與 BioTuring 相關，宜對照官方文件" data-en="secondary source affiliated with BioTuring; cross-check with official docs">次級來源，宜對照官方文件</span></span></li>
+</ul>
+</section>
+
+<section class="section section-anchor" id="errata">
+<div class="section-label" data-zh="疑義注記" data-en="CAVEATS">疑義注記</div>
+<h2 data-zh="疑義與版本注記" data-en="Caveats & Version Notes">疑義與版本注記</h2>
+
+<div class="errata">
+<h4>① <span data-zh="產品命名會演變" data-en="Product names evolve">產品命名會演變</span></h4>
+<p data-lang="zh"><strong>BBrowser → BBrowserX</strong>；<strong>Lens → SpatialX</strong>。本教程以 2026 年官網命名為準。若你看到舊名（BBrowser、Lens），指的是同系列產品的早期版本。教程中的 GUI「點選路徑」為概念示意，實際選單名稱可能因版本而異——請以你安裝版本的官方文件為準。</p>
+<p data-lang="en"><strong>BBrowser → BBrowserX</strong>; <strong>Lens → SpatialX</strong>. This tutorial follows the 2026 site naming. Older names (BBrowser, Lens) refer to earlier versions of the same line. GUI "click paths" here are conceptual — exact menu labels may vary by version; defer to the official docs for your installed build.</p>
+</div>
+
+<div class="errata">
+<h4>② <span data-zh="官方數字是行銷值，會變動" data-en="Marketing figures change">官方數字會變動</span></h4>
+<p data-lang="zh">如「1 億+ 參考細胞」「54 類 / 183 亞型」「Talk2Data 120M+ 細胞」等，皆為官網於特定時點公佈的數字，會隨資料庫更新而變。引用於論文時請標註取用日期並回查官網最新值。</p>
+<p data-lang="en">Figures like "100M+ reference cells", "54 types / 183 subtypes", and "Talk2Data 120M+ cells" are point-in-time marketing numbers that grow with the database. Cite with an access date and re-check the site for current values.</p>
+</div>
+
+<div class="errata">
+<h4>③ <span data-zh="「Signac」名稱衝突" data-en="'Signac' name clash">「Signac」名稱衝突</span></h4>
+<p data-lang="zh">BioTuring 內建 Venice 的分析套件名為 <strong>Signac</strong>，與 Stuart 實驗室廣為使用的單細胞 ATAC-seq 套件 <strong>Signac</strong>（Seurat 生態系）<strong>並非同一個東西</strong>。查資料時務必辨明語境。</p>
+<p data-lang="en">BioTuring's analytics package that houses Venice is named <strong>Signac</strong> — <strong>not the same</strong> as the widely used scATAC-seq package <strong>Signac</strong> from the Stuart lab (Seurat ecosystem). Disambiguate by context when searching.</p>
+</div>
+
+<div class="errata">
+<h4>④ <span data-zh="Monocle 版本" data-en="Monocle version">Monocle 版本</span></h4>
+<p data-lang="zh">BBrowserX 的軌跡分析文獻多引用 <strong>Monocle 2</strong>（reversed graph embedding），與後續改版的 Monocle 3 演算法不同；若比較結果差異，先確認版本。</p>
+<p data-lang="en">BBrowserX's trajectory analysis is generally cited as <strong>Monocle 2</strong> (reversed graph embedding), which differs from the later Monocle 3; if results differ, check the version first.</p>
+</div>
+
+<div class="errata">
+<h4>⑤ <span data-zh="GUI 便利 ≠ 免於判斷" data-en="Convenience ≠ no judgment">GUI 便利 ≠ 免於判斷</span></h4>
+<p data-lang="zh">自動註釋、預設閾值與一鍵分析降低了操作門檻，但生物學判讀責任仍在使用者。務必用 marker、生物學情境與（可行時）程式碼工具交叉驗證關鍵結論。</p>
+<p data-lang="en">Auto-annotation, default thresholds, and one-click analysis lower the barrier, but biological interpretation remains the user's responsibility. Cross-validate key conclusions with markers, biological context, and (where feasible) code tools.</p>
+</div>
+</section>
+
+<nav class="page-nav">
+<a href="../talk2data.html"><span class="nav-dir" data-zh="← 上一步" data-en="← Previous">← 上一步</span><span class="nav-title" data-zh="Talk2Data 資料庫" data-en="Talk2Data Database">Talk2Data 資料庫</span></a>
+<a href="../bioturing-quiz/index.html" target="_blank" rel="noopener"><span class="nav-dir" data-zh="測驗 →" data-en="Quiz →">測驗 →</span><span class="nav-title" data-zh="📝 互動式考題" data-en="📝 Interactive Quiz">📝 互動式考題</span></a>
+</nav>
+</main>
+<footer class="site-footer">© Charlene — BioTuring Interactive Tutorial · <span data-zh="教學用途，非 BioTuring 官方文件" data-en="Educational use — not official BioTuring documentation">教學用途，非 BioTuring 官方文件</span></footer>
+<script src="../i18n.js"></script>
+</body></html>
